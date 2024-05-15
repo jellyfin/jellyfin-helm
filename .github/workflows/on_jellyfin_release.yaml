@@ -1,0 +1,42 @@
+name: OnJellyfinRelease
+on:
+  workflow_dispatch:
+    inputs:
+      jellyfin_version:
+        description: 'Version of jellyfin released'
+        required: true
+        type: string
+
+jobs:
+  release:
+    # depending on default permission settings for your org (contents being read-only or read-write for workloads), you will have to add permissions
+    # see: https://docs.github.com/en/actions/security-guides/automatic-token-authentication#modifying-the-permissions-for-the-github_token
+    permissions:
+      contents: write
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Configure Git
+        run: |
+          git config user.name "$GITHUB_ACTOR"
+          git config user.email "$GITHUB_ACTOR@users.noreply.github.com"
+
+      - name: yq - portable yaml processor
+        uses: mikefarah/yq@v4.43.1
+
+      - name: Update helm values
+        run: |
+          JELLYFIN_VERSION=${{ github.event.inputs.jellyfin_version }}
+          yq -i ".appVersion=\"${JELLYFIN_VERSION}\"" charts/jellyfin/Chart.yaml
+          yq -i ".version=\"${JELLYFIN_VERSION}\"" charts/jellyfin/Chart.yaml
+          make helm-docs
+          
+          cp charts/jellyfin/README.md README.MD
+          git add charts
+          git add README.MD         
+          git commit -m "chore(jellyfin): Updated chart and app version to ${JELLYFIN_VERSION}}"
+          git push
