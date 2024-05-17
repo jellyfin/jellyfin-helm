@@ -1,5 +1,5 @@
 apiVersion: v2
-appVersion: "10.9.0"
+appVersion: "10.9.1"
 description: Jellyfin Media Server
 name: jellyfin
 version: 10.9.0
