@@ -122,3 +122,6 @@ extraVolumeMounts: []
   #- mountPath: /dev/dri/renderD129
   #  name: renderD129
 
+extraEnvVars: []
+  #- name: MY_ENV_VAR
+  #  value: my-env-var-value
