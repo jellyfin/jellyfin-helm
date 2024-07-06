@@ -20,6 +20,9 @@ spec:
       labels:
         app.kubernetes.io/name: {{ include "jellyfin.name" . }}
         app.kubernetes.io/instance: {{ .Release.Name }}
+        {{- with .Values.extraPodLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
     spec:
     {{- if .Values.enableDLNA }}
       hostNetwork: true

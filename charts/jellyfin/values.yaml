@@ -122,3 +122,5 @@ extraVolumeMounts: []
   #- mountPath: /dev/dri/renderD129
   #  name: renderD129
 
+# additional labels applied to the pod
+extraPodLabels: {}
