@@ -124,3 +124,7 @@ extraVolumeMounts: []
 
 # additional labels applied to the pod
 extraPodLabels: {}
+
+extraEnvVars: []
+  #- name: MY_ENV_VAR
+  #  value: my-env-var-value
