@@ -128,3 +128,6 @@ extraPodLabels: {}
 extraEnvVars: []
   #- name: MY_ENV_VAR
   #  value: my-env-var-value
+
+# additional annotations applied to the pod
+extraPodAnnotations: {}

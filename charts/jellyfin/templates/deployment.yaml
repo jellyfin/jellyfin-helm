@@ -23,6 +23,10 @@ spec:
         {{- with .Values.extraPodLabels }}
         {{- toYaml . | nindent 8 }}
         {{- end }}
+      {{- with .Values.extraPodAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
     spec:
     {{- if .Values.enableDLNA }}
       hostNetwork: true
