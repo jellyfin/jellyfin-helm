@@ -20,6 +20,13 @@ spec:
       labels:
         app.kubernetes.io/name: {{ include "jellyfin.name" . }}
         app.kubernetes.io/instance: {{ .Release.Name }}
+        {{- with .Values.extraPodLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      {{- with .Values.extraPodAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
     spec:
     {{- if .Values.enableDLNA }}
       hostNetwork: true
@@ -28,6 +35,10 @@ spec:
         - name: {{ .Chart.Name }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
+        {{ if .Values.extraEnvVars }}
+          env:
+            {{- toYaml .Values.extraEnvVars | nindent 12 }}
+        {{- end }}
           ports:
             - name: http
               containerPort: 8096
@@ -63,6 +74,9 @@ spec:
             {{- if .Values.extraVolumeMounts }}
             {{- toYaml .Values.extraVolumeMounts | nindent 12 }}
             {{- end }}
+          {{- if .Values.extraContainers }}
+          {{- toYaml .Values.extraContainers | nindent 10 }}
+          {{- end }}
           resources:
 {{ toYaml .Values.resources | indent 12 }}
       volumes:
