@@ -49,12 +49,46 @@ spec:
               hostPort: 1900
               protocol: UDP
           {{- end }}
+        {{ if .Values.livenessProbe.enabled }}
           livenessProbe:
+          {{ if .Values.livenessProbe.initialDelaySeconds }}
+            initialDelaySeconds: {{ .Values.livenessProbe.initialDelaySeconds }}
+          {{- end }}
+          {{ if .Values.livenessProbe.periodSeconds }}
+            periodSeconds: {{ .Values.livenessProbe.periodSeconds }}
+          {{- end }}
+          {{ if .Values.livenessProbe.timeoutSeconds }}
+            timeoutSeconds: {{ .Values.livenessProbe.timeoutSeconds }}
+          {{- end }}
+          {{ if .Values.livenessProbe.failureThreshold }}
+            failureThreshold: {{ .Values.livenessProbe.failureThreshold }}
+          {{- end }}
+          {{ if .Values.livenessProbe.successThreshold }}
+            successThreshold: {{ .Values.livenessProbe.successThreshold }}
+          {{- end }}
             tcpSocket:
               port: http
+        {{- end }}
+        {{ if .Values.readinessProbe.enabled }}
           readinessProbe:
+          {{ if .Values.readinessProbe.initialDelaySeconds }}
+            initialDelaySeconds: {{ .Values.readinessProbe.initialDelaySeconds }}
+          {{- end }}
+          {{ if .Values.readinessProbe.periodSeconds }}
+            periodSeconds: {{ .Values.readinessProbe.periodSeconds }}
+          {{- end }}
+          {{ if .Values.readinessProbe.timeoutSeconds }}
+            timeoutSeconds: {{ .Values.readinessProbe.timeoutSeconds }}
+          {{- end }}
+          {{ if .Values.readinessProbe.failureThreshold }}
+            failureThreshold: {{ .Values.readinessProbe.failureThreshold }}
+          {{- end }}
+          {{ if .Values.readinessProbe.successThreshold }}
+            successThreshold: {{ .Values.readinessProbe.successThreshold }}
+          {{- end }}
             tcpSocket:
               port: http
+        {{- end }}
           volumeMounts:
             - mountPath: /config
               name: config
