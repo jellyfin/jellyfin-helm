@@ -47,6 +47,18 @@ The following tables lists the configurable parameters of the Jellyfin chart and
 | `nodeSelector`             | Node labels for pod assignment | `{}` |
 | `tolerations`              | Toleration labels for pod assignment | `[]` |
 | `affinity`                 | Affinity settings for pod assignment | `{}` |
+| `livenessProbe.enabled`                | Enable livenessProbe | `true` |
+| `livenessProbe.failureThreshold`       | Number of consecutive failures before restarting the pod | `3` |
+| `livenessProbe.initialDelaySeconds`    | Number of seconds after the container has started before liveness probes begin     | `10` |
+| `livenessProbe.periodSeconds`          | How often to perform the probe | `10` |
+| `livenessProbe.successThreshold`       | Minimum consecutive successes for the probe to be considered successful after having failed | `1` |
+| `livenessProbe.timeoutSeconds`         | Number of seconds after which the probe times out | `3` |
+| `readinessProbe.enabled`               | Enable readinessProbe | `true` |
+| `readinessProbe.failureThreshold`      | Number of consecutive failures before restarting the pod | `3` |
+| `readinessProbe.initialDelaySeconds`   | Number of seconds after the container has started before liveness probes begin     | `10` |
+| `readinessProbe.periodSeconds`         | How often to perform the probe | `10` |
+| `readinessProbe.successThreshold`      | Minimum consecutive successes for the probe to be considered successful after having failed | `1` |
+| `readinessProbe.timeoutSeconds`        | Number of seconds after which the probe times out | `3` |
 
 Specify each parameter using the `--set key=value[,key=value]` argument to `helm install`.
 
