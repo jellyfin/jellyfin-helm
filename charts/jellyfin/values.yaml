@@ -19,7 +19,7 @@ fullnameOverride: ""
 enableDLNA: false
 
 service:
-  type: LoadBalancer
+  type: ClusterIP
   port: 8096
   ## Specify the nodePort value for the LoadBalancer and NodePort service types.
   ## ref: https://kubernetes.io/docs/concepts/services-networking/service/#type-nodeport
