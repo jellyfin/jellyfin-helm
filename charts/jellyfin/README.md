@@ -21,11 +21,11 @@ The following tables lists the configurable parameters of the Jellyfin chart and
 | `image.pullPolicy`         | Image pull policy | `IfNotPresent` |
 | `enableDLNA`		  | Enable DLNA for jellyfin | `false` |
 | `Service.type`          | Kubernetes service type for the jellyfin GUI | `ClusterIP` |
-| `Service.port`          | Kubernetes port where the jellyfin GUI is exposed| `8096` |
-| `Service.annotations`   | Service annotations for the jellyfin GUI | `{}` |
-| `Service.labels`        | Custom labels | `{}` |
-| `Service.loadBalancerIP` | Loadbalance IP for the jellyfin GUI | `{}` |
-| `Service.loadBalancerSourceRanges` | List of IP CIDRs allowed access to load balancer (if supported)      | None
+| `service.port`          | Kubernetes port where the jellyfin GUI is exposed| `8096` |
+| `service.annotations`   | Service annotations for the jellyfin GUI | `{}` |
+| `service.labels`        | Custom labels | `{}` |
+| `service.loadBalancerIP` | Loadbalance IP for the jellyfin GUI | `{}` |
+| `service.loadBalancerSourceRanges` | List of IP CIDRs allowed access to load balancer (if supported)      | None
 | `ingress.enabled`              | Enables Ingress | `false` |
 | `ingress.annotations`          | Ingress annotations | `{}` |
 | `ingress.labels`               | Custom labels                       | `{}`
