@@ -38,11 +38,13 @@ The following tables lists the configurable parameters of the Jellyfin chart and
 | `persistence.config.existingClaim`| Use an existing PVC to persist data | `nil` |
 | `persistence.config.storageClass` | Type of persistent volume claim | `-` |
 | `persistence.config.accessMode`  | Persistence access mode | `ReadWriteOnce` |
+| `persistence.config.customVolume`  | When set and `persistence.config.enabled` is false, will configure a custom volume instead of an `emptyDir` | `nil` |
 | `persistence.media.enabled`      | Use persistent volume to store configuration data | `true` |
 | `persistence.media.size`         | Size of persistent volume claim | `10Gi` |
 | `persistence.media.existingClaim`| Use an existing PVC to persist data | `nil` |
 | `persistence.media.storageClass` | Type of persistent volume claim | `-` |
 | `persistence.media.accessMode`  | Persistence access mode | `ReadWriteOnce` |
+| `persistence.media.customVolume`  | When set and `persistence.media.enabled` is false, will configure a custom volume instead of an `emptyDir` | `nil` |
 | `persistence.extraExistingClaimMounts`  | Optionally add multiple existing claims | `[]` |
 | `resources`                | CPU/Memory resource requests/limits | `{}` |
 | `nodeSelector`             | Node labels for pod assignment | `{}` |
