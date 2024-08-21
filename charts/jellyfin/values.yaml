@@ -71,6 +71,18 @@ persistence:
     # subPath: some-subpath
     accessMode: ReadWriteOnce
     size: 1Gi
+    ## If you neither want to create a PVC, nor use a pre-existing one,
+    ## but instead want to use a custom volume, simply set and configure
+    ## the customVolume section with your volume definition.
+    ## This can be useful, for instance, to hook into an NFS endpoint
+    ## by creating an NFS volume.
+    ## persistence.config.enabled takes precedence over the custom volume definition
+    ## so make sure to set it to false if you intend to use a custom volume.
+    # customVolume:
+    #   nfs:
+    #     server: my-nfs-server.example.com
+    #     path: /my-nfs-volume
+    #     readOnly: false
   media:
     enabled: false
     ## Directory where media is persisted
@@ -88,6 +100,18 @@ persistence:
     # subPath: some-subpath
     accessMode: ReadWriteOnce
     size: 10Gi
+    ## If you neither want to create a PVC, nor use a pre-existing one,
+    ## but instead want to use a custom volume, simply set and configure
+    ## the customVolume section with your volume definition.
+    ## This can be useful, for instance, to hook into an NFS endpoint
+    ## by creating an NFS volume.
+    ## persistence.media.enabled takes precedence over the custom volume definition
+    ## so make sure to set it to false if you intend to use a custom volume.
+    # customVolume:
+    #   nfs:
+    #     server: my-nfs-server.example.com
+    #     path: /my-nfs-volume
+    #     readOnly: false
   extraExistingClaimMounts: []
     # - name: external-mount
     #   mountPath: /srv/external-mount
