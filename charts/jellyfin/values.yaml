@@ -47,11 +47,11 @@ ingress:
   # ingressClassName: nginx
   path: /
   hosts:
-    - chart-example.local
+    - jellyfin.local
   tls: []
-  #  - secretName: chart-example-tls
+  #  - secretName: jellyfin-tls
   #    hosts:
-  #      - chart-example.local
+  #      - jellyfin.local
 
 persistence:
   config:
