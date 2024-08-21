@@ -28,6 +28,7 @@ The following tables lists the configurable parameters of the Jellyfin chart and
 | `Service.loadBalancerSourceRanges` | List of IP CIDRs allowed access to load balancer (if supported)      | None
 | `ingress.enabled`              | Enables Ingress | `false` |
 | `ingress.annotations`          | Ingress annotations | `{}` |
+| `ingress.ingressClassName`          | Ingress class name | `nil` |
 | `ingress.labels`               | Custom labels                       | `{}`
 | `ingress.path`                 | Ingress path | `/` |
 | `ingress.hosts`                | Ingress accepted hostnames | `chart-example.local` |
