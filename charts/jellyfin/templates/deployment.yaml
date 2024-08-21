@@ -118,6 +118,8 @@ spec:
       {{- if .Values.persistence.config.enabled }}
         persistentVolumeClaim:
           claimName: {{ if .Values.persistence.config.existingClaim }}{{ .Values.persistence.config.existingClaim }}{{- else }}{{ template "jellyfin.fullname" . }}-config{{- end }}
+      {{- else if .Values.persistence.config.customVolume }}
+        {{.Values.persistence.media.customVolume | toYaml | nindent 8 }}
       {{- else }}
         emptyDir: {}
       {{- end }}
@@ -125,6 +127,8 @@ spec:
       {{- if .Values.persistence.media.enabled }}
         persistentVolumeClaim:
           claimName: {{ if .Values.persistence.media.existingClaim }}{{ .Values.persistence.media.existingClaim }}{{- else }}{{ template "jellyfin.fullname" . }}-media{{- end }}
+      {{- else if .Values.persistence.media.customVolume }}
+        {{- .Values.persistence.media.customVolume | toYaml | nindent 8 }}
       {{- else }}
         emptyDir: {}
       {{- end }}
