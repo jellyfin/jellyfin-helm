@@ -6,7 +6,7 @@ replicaCount: 1
 
 image:
   repository: docker.io/jellyfin/jellyfin
-  tag: "10.9.1"
+  tag: "10.9.10"
   pullPolicy: IfNotPresent
 
 nameOverride: ""
