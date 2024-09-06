@@ -1,0 +1,60 @@
+{{ template "chart.header" . }}
+{{ template "chart.deprecationWarning" . }}
+
+{{ template "chart.badgesSection" . }}
+
+{{ template "chart.description" . }}
+
+{{ template "chart.homepageLine" . }}
+
+## Steps to Use a Helm Chart
+
+### 1. Add a Helm Repository
+
+Helm repositories contain collections of charts. You can add an existing repository using the following command:
+
+```bash
+helm repo add <repo-name> <repo-url>
+```
+
+### 2. Install the Helm Chart
+
+To install a chart, use the following command:
+
+```bash
+helm install <release-name> <repo-name>/jellyfin
+```
+
+### 3. View the Installation
+
+You can check the status of the release using:
+
+```bash
+helm status <release-name>
+```
+
+## Customizing the Chart
+
+Helm charts come with default values, but you can customize them by using the --set flag or by providing a custom values.yaml file.
+
+### 1. Using --set to Override Values
+```bash
+helm install <release-name> <chart-name> --set key1=value1,key2=value2
+```
+
+### 2. Using a values.yaml File
+You can create a custom values.yaml file and pass it to the install command:
+
+```bash
+helm install <release-name> <chart-name> -f values.yaml
+```
+
+{{ template "chart.maintainersSection" . }}
+
+{{ template "chart.sourcesSection" . }}
+
+{{ template "chart.requirementsSection" . }}
+
+{{ template "chart.valuesSection" . }}
+
+{{ template "helm-docs.versionFooter" . }}
