@@ -1,42 +1,73 @@
-name: OnJellyfinRelease
+name: Bump Helm Chart Version
+
 on:
+  push:
+    branches:
+      - main
   workflow_dispatch:
     inputs:
       jellyfin_version:
-        description: 'Version of jellyfin released'
+        description: 'Application version to set in Chart.yaml'
         required: true
-        type: string
+        default: '1.0.0'
 
 jobs:
-  release:
-    # depending on default permission settings for your org (contents being read-only or read-write for workloads), you will have to add permissions
-    # see: https://docs.github.com/en/actions/security-guides/automatic-token-authentication#modifying-the-permissions-for-the-github_token
-    permissions:
-      contents: write
+  bump-version:
     runs-on: ubuntu-latest
+
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
+    - name: Checkout code
+      uses: actions/checkout@v3
 
-      - name: Configure Git
-        run: |
-          git config user.name "$GITHUB_ACTOR"
-          git config user.email "$GITHUB_ACTOR@users.noreply.github.com"
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: 3.x
 
-      - name: yq - portable yaml processor
-        uses: mikefarah/yq@f15500b20a1c991c8729870ba60a4dc3524b6a94 # v4.44.2
+    - name: Bump chart version and set appVersion
+      id: bump_version
+      run: |
+        # Read the current version from the Chart.yaml
+        current_version=$(grep '^version:' Chart.yaml | awk '{print $2}')
+        echo "Current version: $current_version"
 
-      - name: Update helm values
-        run: |
-          JELLYFIN_VERSION=${{ github.event.inputs.jellyfin_version }}
-          yq -i ".appVersion=\"${JELLYFIN_VERSION}\"" charts/jellyfin/Chart.yaml
-          yq -i ".version=\"${JELLYFIN_VERSION}\"" charts/jellyfin/Chart.yaml
-          make helm-docs
-          
-          cp charts/jellyfin/README.md README.MD
-          git add charts
-          git add README.MD         
-          git commit -m "chore(jellyfin): Updated chart and app version to ${JELLYFIN_VERSION}}"
-          git push
+        # Split the version by dot and increment the minor version
+        major=$(echo "$current_version" | cut -d '.' -f 1)
+        minor=$(echo "$current_version" | cut -d '.' -f 2)
+        patch=$(echo "$current_version" | cut -d '.' -f 3)
+        new_version="$major.$((minor+1)).0"
+
+        echo "New chart version: $new_version"
+
+        # Get the app version passed as an input
+        jellyfin_version="${{ github.event.inputs.jellyfin_version }}"
+        echo "Setting appVersion to: $jellyfin_version"
+
+        # Update the Chart.yaml with the new version and appVersion
+        sed -i "s/^version:.*/version: $new_version/" Chart.yaml
+        sed -i "s/^appVersion:.*/appVersion: $jellyfin_version/" Chart.yaml
+
+        # Output the new chart version for further use
+        echo "::set-output name=new_version::$new_version"
+
+    - name: Commit changes
+      run: |
+        git config --global user.name "github-actions[bot]"
+        git config --global user.email "github-actions[bot]@users.noreply.github.com"
+        git add Chart.yaml
+        git commit -m "chore(jellyfin): Bump chart version to ${{ steps.bump_version.outputs.new_version }} and set appVersion to ${{ github.event.inputs.jellyfin_version }}"
+
+    - name: Push changes
+      run: git push
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Create Git tag
+      id: create_tag
+      run: |
+        new_version="${{ steps.bump_version.outputs.new_version }}"
+        git tag "$new_version"
+        echo "Tag created: $new_version"
+
+    - name: Push tag
+      run: git push origin "${{ steps.bump_version.outputs.new_version }}"
