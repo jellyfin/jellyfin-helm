@@ -5,7 +5,7 @@ image:
   # -- Set cutom repository for jellyfin image
   repository: docker.io/jellyfin/jellyfin
   # -- Set jellyfin version which should be required since chart is updated with new versions automatically
-  tag: "10.9.1"
+  tag: ""
   pullPolicy: IfNotPresent
 
 nameOverride: ""
