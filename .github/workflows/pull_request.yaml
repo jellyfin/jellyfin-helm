@@ -1,7 +1,9 @@
-name: Pull Request
+name: Docs Update
 
 on:
-  - pull_request
+  push:
+    branches:
+      - master
 
 permissions:
   contents: write
