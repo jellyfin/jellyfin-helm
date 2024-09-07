@@ -1,20 +1,18 @@
-# Default values for jellyfin.
-# This is a YAML-formatted file.
-# Declare variables to be passed into your templates.
-
+# -- Number of jellyfin replicas to start. Should be left at 1
 replicaCount: 1
 
 image:
+  # -- Set cutom repository for jellyfin image
   repository: docker.io/jellyfin/jellyfin
-  tag: "10.9.1"
+  # -- Set jellyfin version which should be required since chart is updated with new versions automatically
+  tag: ""
   pullPolicy: IfNotPresent
 
 nameOverride: ""
 fullnameOverride: ""
 
-# Setting this to true enables DLNA which requires the pod to be attached to the
+# -- Setting this to true enables DLNA which requires the pod to be attached to the
 # host network in order to be useful - this can break things like ingress to the service
-# https://kubernetes.io/docs/reference/kubernetes-api/workload-resources/pod-v1/#hosts-namespaces
 # https://jellyfin.org/docs/general/networking/dlna.html
 enableDLNA: false
 
@@ -55,15 +53,8 @@ ingress:
 persistence:
   config:
     enabled: false
-    ## jellyfin configuration data Persistent Volume Storage Class
-    ## If defined, storageClassName: <storageClass>
-    ## If set to "-", storageClassName: "", which disables dynamic provisioning
-    ## If undefined (the default) or set to null, no storageClassName spec is
-    ##   set, choosing the default provisioner.  (gp2 on AWS, standard on
-    ##   GKE, AWS & OpenStack)
-    ##
-    # storageClass: "-"
-    ##
+    # -- If undefined (the default) or set to null, no storageClassName spec is set, choosing the default provisioner.
+    storageClass: "-"
     ## If you want to reuse an existing claim, you can pass the name of the PVC using
     ## the existingClaim variable
     # existingClaim: your-claim
@@ -72,21 +63,15 @@ persistence:
     size: 1Gi
   media:
     enabled: false
-    ## Directory where media is persisted
-    ## If defined, storageClassName: <storageClass>
-    ## If set to "-", storageClassName: "", which disables dynamic provisioning
-    ## If undefined (the default) or set to null, no storageClassName spec is
-    ##   set, choosing the default provisioner.  (gp2 on AWS, standard on
-    ##   GKE, AWS & OpenStack)
-    ##
-    # storageClass: "-"
-    ##
+    # -- If undefined (the default) or set to null, no storageClassName spec is set, choosing the default provisioner.
+    storageClass: "-"
     ## If you want to reuse an existing claim, you can pass the name of the PVC using
     ## the existingClaim variable
     # existingClaim: your-claim
     # subPath: some-subpath
     accessMode: ReadWriteOnce
     size: 10Gi
+  # -- Add aditional PVs/PVCs to our container. Check values.yaml to see an example.
   extraExistingClaimMounts: []
     # - name: external-mount
     #   mountPath: /srv/external-mount
@@ -113,27 +98,32 @@ tolerations: []
 
 affinity: {}
 
+# -- Define additional volumes to mount to the pod.
 extraVolumes: []
   #- name: renderD129
   #  hostPath:
   #    path: /dev/dri/renderD129
 
+# -- Define mount points for additional volumes.
 extraVolumeMounts: []
   #- mountPath: /dev/dri/renderD129
   #  name: renderD129
 
+# -- additional pod labels. Not used as a selector label.
 extraPodLabels: {}
 
+# -- aditional environment variables passed to the pod
 extraEnvVars: []
   #- name: MY_ENV_VAR
   #  value: my-env-var-value
 
-# additional annotations applied to the pod
+# -- additional annotations applied to the pod
 extraPodAnnotations: {}
 
+# -- additional sidecar containers to run inside the pod.
 extraContainers: {}
 
-# Larger libraries may need to increase the readinessProbe and livenessProbe timeouts. Start by increasing the initialDelaySeconds.
+# -- Larger libraries may need to increase the readinessProbe and livenessProbe timeouts. Start by increasing the initialDelaySeconds.
 livenessProbe:
   enabled: true
   # failureThreshold: 3
@@ -142,6 +132,7 @@ livenessProbe:
   # successThreshold: 1
   # timeoutSeconds: 1
 
+# -- Larger libraries may need to increase the readinessProbe and livenessProbe timeouts. Start by increasing the initialDelaySeconds.
 readinessProbe:
   enabled: true
   # failureThreshold: 3

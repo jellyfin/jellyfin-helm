@@ -1,65 +1,95 @@
-# Jellyfin Software Media System
+# jellyfin
 
-This is a helm chart for [Jellyfin](https://github.com/jellyfin/jellyfin/)
+![Version: 1.0.0](https://img.shields.io/badge/Version-1.0.0-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: 10.9.1](https://img.shields.io/badge/AppVersion-10.9.1-informational?style=flat-square)
 
-## Prerequisites
+Jellyfin Media Server
 
-- Kubernetes 1.19+
-- Helm 3+
+**Homepage:** <https://jellyfin.org/>
 
-## TL;DR;
+## Steps to Use a Helm Chart
 
+### 1. Add a Helm Repository
 
-## Configuration
+Helm repositories contain collections of charts. You can add an existing repository using the following command:
 
-The following tables lists the configurable parameters of the Jellyfin chart and their default values.
+```bash
+helm repo add <repo-name> <repo-url>
+```
 
-| Parameter                  | Description                         | Default                                                 |
-|----------------------------|-------------------------------------|---------------------------------------------------------|
-| `image.repository`         | Image repository | `docker.io/jellyfin/jellyfin` |
-| `image.tag`                | Image tag. Possible values listed [here](https://hub.docker.com/r/jellyfin/jellyfin/tags/).| `latest`|
-| `image.pullPolicy`         | Image pull policy | `IfNotPresent` |
-| `enableDLNA`		  | Enable DLNA for jellyfin | `false` |
-| `Service.type`          | Kubernetes service type for the jellyfin GUI | `ClusterIP` |
-| `Service.port`          | Kubernetes port where the jellyfin GUI is exposed| `8096` |
-| `Service.annotations`   | Service annotations for the jellyfin GUI | `{}` |
-| `Service.labels`        | Custom labels | `{}` |
-| `Service.loadBalancerIP` | Loadbalance IP for the jellyfin GUI | `{}` |
-| `Service.loadBalancerSourceRanges` | List of IP CIDRs allowed access to load balancer (if supported)      | None
-| `ingress.enabled`              | Enables Ingress | `false` |
-| `ingress.annotations`          | Ingress annotations | `{}` |
-| `ingress.labels`               | Custom labels                       | `{}`
-| `ingress.path`                 | Ingress path | `/` |
-| `ingress.hosts`                | Ingress accepted hostnames | `chart-example.local` |
-| `ingress.tls`                  | Ingress TLS configuration | `[]` |
-| `persistence.config.enabled`      | Use persistent volume to store configuration data | `false` |
-| `persistence.config.size`         | Size of persistent volume claim | `1Gi` |
-| `persistence.config.existingClaim`| Use an existing PVC to persist data | `nil` |
-| `persistence.config.storageClass` | Type of persistent volume claim | `-` |
-| `persistence.config.accessMode`  | Persistence access mode | `ReadWriteOnce` |
-| `persistence.media.enabled`      | Use persistent volume to store configuration data | `true` |
-| `persistence.media.size`         | Size of persistent volume claim | `10Gi` |
-| `persistence.media.existingClaim`| Use an existing PVC to persist data | `nil` |
-| `persistence.media.storageClass` | Type of persistent volume claim | `-` |
-| `persistence.media.accessMode`  | Persistence access mode | `ReadWriteOnce` |
-| `persistence.extraExistingClaimMounts`  | Optionally add multiple existing claims | `[]` |
-| `resources`                | CPU/Memory resource requests/limits | `{}` |
-| `nodeSelector`             | Node labels for pod assignment | `{}` |
-| `tolerations`              | Toleration labels for pod assignment | `[]` |
-| `affinity`                 | Affinity settings for pod assignment | `{}` |
-| `livenessProbe.enabled`                | Enable livenessProbe | `true` |
-| `livenessProbe.failureThreshold`       | Number of consecutive failures before restarting the pod | `3` |
-| `livenessProbe.initialDelaySeconds`    | Number of seconds after the container has started before liveness probes begin | `10` |
-| `livenessProbe.periodSeconds`          | How often to perform the probe | `10` |
-| `livenessProbe.successThreshold`       | Minimum consecutive successes for the probe to be considered successful after having failed | `1` |
-| `livenessProbe.timeoutSeconds`         | Number of seconds after which the probe times out | `1` |
-| `readinessProbe.enabled`               | Enable readinessProbe | `true` |
-| `readinessProbe.failureThreshold`      | Number of consecutive failures before restarting the pod | `3` |
-| `readinessProbe.initialDelaySeconds`   | Number of seconds after the container has started before liveness probes begin | `10` |
-| `readinessProbe.periodSeconds`         | How often to perform the probe | `10` |
-| `readinessProbe.successThreshold`      | Minimum consecutive successes for the probe to be considered successful after having failed | `1` |
-| `readinessProbe.timeoutSeconds`        | Number of seconds after which the probe times out | `1` |
+### 2. Install the Helm Chart
 
-Specify each parameter using the `--set key=value[,key=value]` argument to `helm install`.
+To install a chart, use the following command:
 
-Read through the [values.yaml](values.yaml) file. It has several suggested values.
+```bash
+helm install <release-name> <repo-name>/jellyfin
+```
+
+### 3. View the Installation
+
+You can check the status of the release using:
+
+```bash
+helm status <release-name>
+```
+
+## Customizing the Chart
+
+Helm charts come with default values, but you can customize them by using the --set flag or by providing a custom values.yaml file.
+
+### 1. Using --set to Override Values
+```bash
+helm install <release-name> <chart-name> --set key1=value1,key2=value2
+```
+
+### 2. Using a values.yaml File
+You can create a custom values.yaml file and pass it to the install command:
+
+```bash
+helm install <release-name> <chart-name> -f values.yaml
+```
+
+## Values
+
+| Key | Type | Default | Description |
+|-----|------|---------|-------------|
+| affinity | object | `{}` |  |
+| enableDLNA | bool | `false` | Setting this to true enables DLNA which requires the pod to be attached to the host network in order to be useful - this can break things like ingress to the service https://jellyfin.org/docs/general/networking/dlna.html |
+| extraContainers | object | `{}` | additional sidecar containers to run inside the pod. |
+| extraEnvVars | list | `[]` | aditional environment variables passed to the pod |
+| extraPodAnnotations | object | `{}` | additional annotations applied to the pod |
+| extraPodLabels | object | `{}` | additional pod labels. Not used as a selector label. |
+| extraVolumeMounts | list | `[]` | Define mount points for additional volumes. |
+| extraVolumes | list | `[]` | Define additional volumes to mount to the pod. |
+| fullnameOverride | string | `""` |  |
+| image.pullPolicy | string | `"IfNotPresent"` |  |
+| image.repository | string | `"docker.io/jellyfin/jellyfin"` | Set cutom repository for jellyfin image |
+| image.tag | string | `""` | Set jellyfin version which should be required since chart is updated with new versions automatically |
+| ingress.annotations | object | `{}` |  |
+| ingress.enabled | bool | `false` |  |
+| ingress.hosts[0] | string | `"chart-example.local"` |  |
+| ingress.path | string | `"/"` |  |
+| ingress.tls | list | `[]` |  |
+| livenessProbe | object | `{"enabled":true,"initialDelaySeconds":10}` | Larger libraries may need to increase the readinessProbe and livenessProbe timeouts. Start by increasing the initialDelaySeconds. |
+| nameOverride | string | `""` |  |
+| nodeSelector | object | `{}` |  |
+| persistence.config.accessMode | string | `"ReadWriteOnce"` |  |
+| persistence.config.enabled | bool | `false` |  |
+| persistence.config.size | string | `"1Gi"` |  |
+| persistence.config.storageClass | string | `"-"` | If undefined (the default) or set to null, no storageClassName spec is set, choosing the default provisioner. |
+| persistence.extraExistingClaimMounts | list | `[]` | Add aditional PVs/PVCs to our container. Check values.yaml to see an example. |
+| persistence.media.accessMode | string | `"ReadWriteOnce"` |  |
+| persistence.media.enabled | bool | `false` |  |
+| persistence.media.size | string | `"10Gi"` |  |
+| persistence.media.storageClass | string | `"-"` | If undefined (the default) or set to null, no storageClassName spec is set, choosing the default provisioner. |
+| readinessProbe | object | `{"enabled":true,"initialDelaySeconds":10}` | Larger libraries may need to increase the readinessProbe and livenessProbe timeouts. Start by increasing the initialDelaySeconds. |
+| replicaCount | int | `1` | Number of jellyfin replicas to start. Should be left at 1 |
+| resources | object | `{}` |  |
+| service.annotations | object | `{}` |  |
+| service.labels | object | `{}` |  |
+| service.loadBalancerIP | string | `nil` |  |
+| service.port | int | `8096` |  |
+| service.type | string | `"ClusterIP"` |  |
+| tolerations | list | `[]` |  |
+
+----------------------------------------------
+Autogenerated from chart metadata using [helm-docs v1.14.2](https://github.com/norwoodj/helm-docs/releases/v1.14.2)

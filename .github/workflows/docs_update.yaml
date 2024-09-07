@@ -1,0 +1,28 @@
+name: Docs Update
+
+on:
+  push:
+    branches:
+      - master
+
+permissions:
+  contents: write
+  packages: write
+
+jobs:
+  generate-docs:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout
+      uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
+      with:
+        fetch-depth: 0
+
+    - name: Helm Docs GitHub Action
+      uses: losisin/helm-docs-github-action@v1.3.1
+      with:
+        git-push: true
+        git-commit-message: "docs(charts): :memo: write updated reademe"
+
+    - name: Push changes
+      run: git push
