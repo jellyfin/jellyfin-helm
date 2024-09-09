@@ -50,7 +50,7 @@ jobs:
         sed -i "s/^appVersion:.*/appVersion: $jellyfin_version/" charts/jellyfin/Chart.yaml
 
         # Output the new chart version for further use
-        echo "::set-output name=new_version::$new_version"
+        echo "new_version=$new_version" >> $GITHUB_OUTPUT
 
     - name: Commit changes
       run: |
