@@ -18,6 +18,8 @@ jobs:
     steps:
     - name: Checkout code
       uses: actions/checkout@v3
+      with:
+         persist-credentials: false
 
     - name: Set up Python
       uses: actions/setup-python@v4
@@ -58,7 +60,9 @@ jobs:
         git commit -m "chore(jellyfin): Bump chart version to ${{ steps.bump_version.outputs.new_version }} and set appVersion to ${{ github.event.inputs.jellyfin_version }}"
 
     - name: Push changes
-      run: git push
+      uses: ad-m/github-push-action@master
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Create Git tag
       id: create_tag
