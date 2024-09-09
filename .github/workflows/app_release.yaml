@@ -54,7 +54,7 @@ jobs:
       run: |
         git config --global user.name "github-actions[bot]"
         git config --global user.email "github-actions[bot]@users.noreply.github.com"
-        git add Chart.yaml
+        git add charts/jellyfin/Chart.yaml
         git commit -m "chore(jellyfin): Bump chart version to ${{ steps.bump_version.outputs.new_version }} and set appVersion to ${{ github.event.inputs.jellyfin_version }}"
 
     - name: Push changes
