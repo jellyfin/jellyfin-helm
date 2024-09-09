@@ -28,7 +28,7 @@ jobs:
       id: bump_version
       run: |
         # Read the current version from the Chart.yaml
-        current_version=$(grep '^version:' Chart.yaml | awk '{print $2}')
+        current_version=$(grep '^version:' charts/jellyfin/Chart.yaml | awk '{print $2}')
         echo "Current version: $current_version"
 
         # Split the version by dot and increment the minor version
@@ -44,8 +44,8 @@ jobs:
         echo "Setting appVersion to: $jellyfin_version"
 
         # Update the Chart.yaml with the new version and appVersion
-        sed -i "s/^version:.*/version: $new_version/" Chart.yaml
-        sed -i "s/^appVersion:.*/appVersion: $jellyfin_version/" Chart.yaml
+        sed -i "s/^version:.*/version: $new_version/" charts/jellyfin/Chart.yaml
+        sed -i "s/^appVersion:.*/appVersion: $jellyfin_version/" charts/jellyfin/Chart.yaml
 
         # Output the new chart version for further use
         echo "::set-output name=new_version::$new_version"
