@@ -74,5 +74,5 @@ jobs:
     - name: Push changes
       uses: ad-m/github-push-action@master
       with:
-        github_token: ${{ secrets.PAT }}
+        github_token: ${{ secrets.JF_BOT_TOKEN }}
         tags: true
