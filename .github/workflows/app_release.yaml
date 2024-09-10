@@ -17,10 +17,12 @@ jobs:
 
     steps:
     - name: Checkout code
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
+      with:
+         persist-credentials: false
 
     - name: Set up Python
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v5
       with:
         python-version: 3.x
 
@@ -48,7 +50,7 @@ jobs:
         sed -i "s/^appVersion:.*/appVersion: $jellyfin_version/" charts/jellyfin/Chart.yaml
 
         # Output the new chart version for further use
-        echo "::set-output name=new_version::$new_version"
+        echo "new_version=$new_version" >> $GITHUB_OUTPUT
 
     - name: Commit changes
       run: |
@@ -58,7 +60,9 @@ jobs:
         git commit -m "chore(jellyfin): Bump chart version to ${{ steps.bump_version.outputs.new_version }} and set appVersion to ${{ github.event.inputs.jellyfin_version }}"
 
     - name: Push changes
-      run: git push
+      uses: ad-m/github-push-action@master
+      with:
+        github_token: ${{ secrets.JF_BOT_TOKEN }}
 
     - name: Create Git tag
       id: create_tag
@@ -66,6 +70,9 @@ jobs:
         new_version="${{ steps.bump_version.outputs.new_version }}"
         git tag "$new_version"
         echo "Tag created: $new_version"
-
-    - name: Push tag
-      run: git push origin "${{ steps.bump_version.outputs.new_version }}"
+        
+    - name: Push changes
+      uses: ad-m/github-push-action@master
+      with:
+        github_token: ${{ secrets.JF_BOT_TOKEN }}
+        tags: true
