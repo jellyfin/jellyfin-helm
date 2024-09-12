@@ -2,7 +2,7 @@ apiVersion: v2
 appVersion: 10.9.11
 description: Jellyfin Media Server
 name: jellyfin
-version: 1.2.0
+version: 1.3.0
 type: application
 home: https://jellyfin.org/
 icon: https://jellyfin.org/images/logo.svg
