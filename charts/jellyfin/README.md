@@ -67,6 +67,7 @@ helm install <release-name> <chart-name> -f values.yaml
 | ingress.annotations | object | `{}` |  |
 | ingress.enabled | bool | `false` |  |
 | ingress.hosts[0] | string | `"chart-example.local"` |  |
+| ingress.labels | object | `{}` |  |
 | ingress.path | string | `"/"` |  |
 | ingress.tls | list | `[]` |  |
 | livenessProbe | object | `{"enabled":true,"initialDelaySeconds":10}` | Larger libraries may need to increase the readinessProbe and livenessProbe timeouts. Start by increasing the initialDelaySeconds. |
