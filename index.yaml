@@ -3,6 +3,22 @@ entries:
   jellyfin:
   - apiVersion: v2
     appVersion: 10.9.11
+    created: "2024-09-12T19:47:26.839480455Z"
+    description: Jellyfin Media Server
+    digest: 4a862deb0b175fc2dc588ac16558c7702ff51e7b26b1418227853274621a8154
+    home: https://jellyfin.org/
+    icon: https://jellyfin.org/images/logo.svg
+    keywords:
+    - jellyfin
+    - media
+    - self-hosted
+    name: jellyfin
+    type: application
+    urls:
+    - https://github.com/jellyfin/jellyfin-helm/releases/download/jellyfin-1.3.0/jellyfin-1.3.0.tgz
+    version: 1.3.0
+  - apiVersion: v2
+    appVersion: 10.9.11
     created: "2024-09-10T14:07:12.583254226Z"
     description: Jellyfin Media Server
     digest: 4986cb2280709582b6fdb0a7735eb4e91a2343f9bd9968a13a804f7b2ebbfd1e
@@ -17,4 +33,4 @@ entries:
     urls:
     - https://github.com/jellyfin/jellyfin-helm/releases/download/jellyfin-1.2.0/jellyfin-1.2.0.tgz
     version: 1.2.0
-generated: "2024-09-10T14:07:12.583264696Z"
+generated: "2024-09-12T19:47:26.839493279Z"
