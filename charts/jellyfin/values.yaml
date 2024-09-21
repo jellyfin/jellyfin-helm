@@ -121,6 +121,9 @@ extraEnvVars: []
 # -- additional annotations applied to the pod
 extraPodAnnotations: {}
 
+# -- additional init containers to run inside the pod.
+extraInitContainers: {}
+  
 # -- additional sidecar containers to run inside the pod.
 extraContainers: {}
 
