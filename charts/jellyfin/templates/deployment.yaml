@@ -47,6 +47,10 @@ spec:
           env:
             {{- toYaml .Values.extraEnvVars | nindent 12 }}
         {{- end }}
+        {{ if .Values.securityContext }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+        {{- end }}
           ports:
             - name: http
               containerPort: 8096
