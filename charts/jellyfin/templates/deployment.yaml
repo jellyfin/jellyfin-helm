@@ -109,7 +109,7 @@ spec:
             {{- toYaml .Values.extraVolumeMounts | nindent 12 }}
             {{- end }}
           {{- if .Values.extraContainers }}
-          {{- toYaml .Values.extraContainers | nindent 10 }}
+          {{- toYaml .Values.extraContainers | nindent 8 }}
           {{- end }}
           resources:
 {{ toYaml .Values.resources | indent 12 }}
