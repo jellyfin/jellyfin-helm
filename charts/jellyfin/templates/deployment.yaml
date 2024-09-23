@@ -35,9 +35,21 @@ spec:
         - name: {{ .Chart.Name }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
+        {{ if .Values.image.command }}
+          command:
+            {{- toYaml .Values.image.command | nindent 12 }}
+        {{- end }}
+        {{ if .Values.image.args }}
+          args:
+            {{- toYaml .Values.image.args | nindent 12 }}
+        {{- end }}
         {{ if .Values.extraEnvVars }}
           env:
             {{- toYaml .Values.extraEnvVars | nindent 12 }}
+        {{- end }}
+        {{ if .Values.securityContext }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
         {{- end }}
           ports:
             - name: http
@@ -109,13 +121,13 @@ spec:
             {{- toYaml .Values.extraVolumeMounts | nindent 12 }}
             {{- end }}
           {{- if .Values.extraContainers }}
-          {{- toYaml .Values.extraContainers | nindent 10 }}
+          {{- toYaml .Values.extraContainers | nindent 8 }}
           {{- end }}
           resources:
 {{ toYaml .Values.resources | indent 12 }}
   {{- if .Values.extraInitContainers }}
       initContainers:
-	  {{- toYaml .Values.extraInitContainers | nindent 10 }}
+      {{- toYaml .Values.extraInitContainers | nindent 10 }}
   {{- end }}
       volumes:
       - name: config
