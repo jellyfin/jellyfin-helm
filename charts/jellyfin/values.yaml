@@ -62,6 +62,10 @@ persistence:
     # subPath: some-subpath
     accessMode: ReadWriteOnce
     size: 1Gi
+    # -- Custom labels to be added to the PVC
+    labels: {}
+    # -- Custom annotations to be added to the PVC
+    annotations: {}
   media:
     enabled: false
     # -- If undefined (the default) or set to null, no storageClassName spec is set, choosing the default provisioner.
@@ -72,6 +76,11 @@ persistence:
     # subPath: some-subpath
     accessMode: ReadWriteOnce
     size: 10Gi
+    # -- Custom labels to be added to the PVC
+    labels: {}
+    # -- Custom annotations to be added to the PVC
+    annotations: {}
+
   # -- Add aditional PVs/PVCs to our container. Check values.yaml to see an example.
   extraExistingClaimMounts: []
     # - name: external-mount
@@ -126,6 +135,21 @@ extraInitContainers: {}
   
 # -- additional sidecar containers to run inside the pod.
 extraContainers: {}
+
+# -- SecurityContext configuration for the Jellyfin pod
+podSecurityContext: {}
+# Jellyfin can be run as an unprivileged user with the following settings:
+  # runAsUser: 65534
+  # runAsGroup: 65534
+
+# -- SecurityContext configuration for the Jellyfin container
+securityContext: {}
+# For example, you might need to grant the following capabilities to enable hardware acceleration when mounting a /dev/dri device:
+  # capabilities:
+  #   add:
+  #     - "SYS_ADMIN"
+  #   drop:
+  #     - "ALL"
 
 # -- Larger libraries may need to increase the readinessProbe and livenessProbe timeouts. Start by increasing the initialDelaySeconds.
 livenessProbe:

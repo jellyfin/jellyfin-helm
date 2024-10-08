@@ -58,3 +58,30 @@ helm install <release-name> <chart-name> -f values.yaml
 {{ template "chart.valuesSection" . }}
 
 {{ template "helm-docs.versionFooter" . }}
+
+## Hardware acceleration
+
+Out of the box the pod does not have the necessary permissions to enable hardware acceleration (HWA) in Jellyfin.
+Adding the following Helm values should make it enable you to use hardware acceleration features.
+Some settings may need to be tweaked depending on the type of device (Intel/AMD/NVIDIA/...) and your container runtime.
+
+Please refer to the Jellyfin upstream documentation for more information about hardware acceleration: <https://jellyfin.org/docs/general/administration/hardware-acceleration/>
+
+```yaml
+securityContext:
+  capabilities:
+    add:
+      - "SYS_ADMIN"
+    drop:
+      - "ALL"
+  privileged: false
+
+extraVolumes:
+  - name: hwa
+    hostPath:
+      path: /dev/dri
+
+extraVolumeMounts:
+  - name: hwa
+    mountPath: /dev/dri
+```

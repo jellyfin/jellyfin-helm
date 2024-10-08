@@ -125,6 +125,8 @@ spec:
           {{- end }}
           resources:
 {{ toYaml .Values.resources | indent 12 }}
+          terminationMessagePolicy: FallbackToLogsOnError
+          securityContext: {{- toYaml .Values.securityContext | nindent 12 }}
   {{- if .Values.extraInitContainers }}
       initContainers:
       {{- toYaml .Values.extraInitContainers | nindent 10 }}
@@ -164,3 +166,4 @@ spec:
       tolerations:
 {{ toYaml . | indent 8 }}
     {{- end }}
+      securityContext: {{- toYaml .Values.podSecurityContext | nindent 8 }}
