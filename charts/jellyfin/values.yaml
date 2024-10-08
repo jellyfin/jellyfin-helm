@@ -127,6 +127,21 @@ extraInitContainers: {}
 # -- additional sidecar containers to run inside the pod.
 extraContainers: {}
 
+# -- SecurityContext configuration for the Jellyfin pod
+podSecurityContext: {}
+# Jellyfin can be run as an unprivileged user with the following settings:
+  # runAsUser: 65534
+  # runAsGroup: 65534
+
+# -- SecurityContext configuration for the Jellyfin container
+securityContext: {}
+# For example, you might need to grant the following capabilities to enable hardware acceleration when mounting a /dev/dri device:
+  # capabilities:
+  #   add:
+  #     - "SYS_ADMIN"
+  #   drop:
+  #     - "ALL"
+
 # -- Larger libraries may need to increase the readinessProbe and livenessProbe timeouts. Start by increasing the initialDelaySeconds.
 livenessProbe:
   enabled: true
