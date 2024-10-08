@@ -62,6 +62,10 @@ persistence:
     # subPath: some-subpath
     accessMode: ReadWriteOnce
     size: 1Gi
+    # -- Custom labels to be added to the PVC
+    labels: {}
+    # -- Custom annotations to be added to the PVC
+    annotations: {}
   media:
     enabled: false
     # -- If undefined (the default) or set to null, no storageClassName spec is set, choosing the default provisioner.
@@ -72,6 +76,11 @@ persistence:
     # subPath: some-subpath
     accessMode: ReadWriteOnce
     size: 10Gi
+    # -- Custom labels to be added to the PVC
+    labels: {}
+    # -- Custom annotations to be added to the PVC
+    annotations: {}
+
   # -- Add aditional PVs/PVCs to our container. Check values.yaml to see an example.
   extraExistingClaimMounts: []
     # - name: external-mount
