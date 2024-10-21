@@ -167,3 +167,6 @@ spec:
 {{ toYaml . | indent 8 }}
     {{- end }}
       securityContext: {{- toYaml .Values.podSecurityContext | nindent 8 }}
+    {{- if .Values.runtimeClassName }}
+      runtimeClassName: {{.Values.runtimeClassName}}
+    {{- end }}

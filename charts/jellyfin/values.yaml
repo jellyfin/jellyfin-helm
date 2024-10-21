@@ -102,6 +102,9 @@ resources: {}
   #  cpu: 100m
   #  memory: 128Mi
 
+# Define a custom runtimeClassName for the pod, e.g. "nvidia" if you have the NVIDIA GPU Operator installed
+runtimeClassName:
+
 nodeSelector: {}
 
 tolerations: []
