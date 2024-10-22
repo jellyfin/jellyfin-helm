@@ -134,10 +134,10 @@ extraEnvVars: []
 extraPodAnnotations: {}
 
 # -- additional init containers to run inside the pod.
-extraInitContainers: {}
+extraInitContainers: []
   
 # -- additional sidecar containers to run inside the pod.
-extraContainers: {}
+extraContainers: []
 
 # -- SecurityContext configuration for the Jellyfin pod
 podSecurityContext: {}
