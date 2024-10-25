@@ -54,9 +54,9 @@ helm install <release-name> <chart-name> -f values.yaml
 |-----|------|---------|-------------|
 | affinity | object | `{}` |  |
 | enableDLNA | bool | `false` | Setting this to true enables DLNA which requires the pod to be attached to the host network in order to be useful - this can break things like ingress to the service https://jellyfin.org/docs/general/networking/dlna.html |
-| extraContainers | object | `{}` | additional sidecar containers to run inside the pod. |
+| extraContainers | list | `[]` | additional sidecar containers to run inside the pod. |
 | extraEnvVars | list | `[]` | aditional environment variables passed to the pod |
-| extraInitContainers | object | `{}` | additional init containers to run inside the pod. |
+| extraInitContainers | list | `[]` | additional init containers to run inside the pod. |
 | extraPodAnnotations | object | `{}` | additional annotations applied to the pod |
 | extraPodLabels | object | `{}` | additional pod labels. Not used as a selector label. |
 | extraVolumeMounts | list | `[]` | Define mount points for additional volumes. |
