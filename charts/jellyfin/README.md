@@ -65,6 +65,7 @@ helm install <release-name> <chart-name> -f values.yaml
 | image.pullPolicy | string | `"IfNotPresent"` |  |
 | image.repository | string | `"docker.io/jellyfin/jellyfin"` | Set cutom repository for jellyfin image |
 | image.tag | string | `""` | Set jellyfin version which should be required since chart is updated with new versions automatically |
+| imagePullSecrets | list | `[]` |  |
 | ingress.annotations | object | `{}` |  |
 | ingress.enabled | bool | `false` |  |
 | ingress.hosts[0] | string | `"chart-example.local"` |  |
