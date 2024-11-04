@@ -1,6 +1,7 @@
 # -- Number of jellyfin replicas to start. Should be left at 1
 replicaCount: 1
 
+imagePullSecrets: []
 image:
   # -- Set cutom repository for jellyfin image
   repository: docker.io/jellyfin/jellyfin
