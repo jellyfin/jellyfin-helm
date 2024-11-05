@@ -18,6 +18,7 @@ fullnameOverride: ""
 enableDLNA: false
 
 service:
+  name: http
   type: ClusterIP
   port: 8096
   ## Specify the nodePort value for the LoadBalancer and NodePort service types.
@@ -37,6 +38,41 @@ service:
   # loadBalancerSourceRanges: []
   ## Set the externalTrafficPolicy in the Service to either Cluster or Local
   # externalTrafficPolicy: Cluster
+
+# -- Configuration for metrics collection and monitoring
+metrics:
+  # -- Enable or disable metrics collection
+  enabled: false
+  command:
+    - bash
+    - '-c'
+    - >-
+      sed 's,<EnableMetrics>false</EnableMetrics>,<EnableMetrics>true</EnableMetrics>,' -i /config/config/system.xml &&
+      /jellyfin/jellyfin
+  # -- Configuration for the Prometheus ServiceMonitor
+  serviceMonitor:
+    # -- Enable or disable the creation of a ServiceMonitor resource
+    enabled: false
+    # -- Namespace where the ServiceMonitor resource should be created. Defaults to Release.Namespace
+    namespace: ''
+    # -- Labels to add to the ServiceMonitor resource
+    labels: {}
+    # -- Interval at which metrics should be scraped
+    interval: 30s
+    # -- Timeout for scraping metrics
+    scrapeTimeout: 30s
+    # -- Path to scrape for metrics
+    path: /metrics
+    # -- Scheme to use for scraping metrics (http or https)
+    scheme: http
+    # -- TLS configuration for scraping metrics
+    tlsConfig: {}
+    # -- Relabeling rules for the scraped metrics
+    relabelings: []
+    # -- Relabeling rules for the metrics before ingestion
+    metricRelabelings: []
+    # -- Target labels to add to the scraped metrics
+    targetLabels: []
 
 ingress:
   enabled: false
