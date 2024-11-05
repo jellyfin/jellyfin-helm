@@ -13,7 +13,7 @@ Jellyfin Media Server
 Helm repositories contain collections of charts. You can add an existing repository using the following command:
 
 ```bash
-helm repo add <repo-name> <repo-url>
+helm repo add jellyfin https://jellyfin.github.io/jellyfin-helm
 ```
 
 ### 2. Install the Helm Chart
@@ -21,7 +21,7 @@ helm repo add <repo-name> <repo-url>
 To install a chart, use the following command:
 
 ```bash
-helm install <release-name> <repo-name>/jellyfin
+helm install my-jellyfin jellyfin/jellyfin
 ```
 
 ### 3. View the Installation
@@ -29,7 +29,7 @@ helm install <release-name> <repo-name>/jellyfin
 You can check the status of the release using:
 
 ```bash
-helm status <release-name>
+helm status my-jellyfin
 ```
 
 ## Customizing the Chart
@@ -38,14 +38,14 @@ Helm charts come with default values, but you can customize them by using the --
 
 ### 1. Using --set to Override Values
 ```bash
-helm install <release-name> <chart-name> --set key1=value1,key2=value2
+helm install my-jellyfin jellyfin/jellyfin --set key1=value1,key2=value2
 ```
 
 ### 2. Using a values.yaml File
 You can create a custom values.yaml file and pass it to the install command:
 
 ```bash
-helm install <release-name> <chart-name> -f values.yaml
+helm install my-jellyfin jellyfin/jellyfin -f values.yaml
 ```
 
 ## Values
