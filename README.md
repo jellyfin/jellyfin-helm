@@ -32,7 +32,7 @@ hellyfin-helm/
 To use the charts in this repository, first add the repository to Helm:
 
 ```bash
-helm repo add jellyfin https://<your-repo-url>.git
+helm repo add jellyfin https://jellyfin.github.io/jellyfin-helm
 helm repo update
 ```
 
