@@ -73,6 +73,20 @@ helm install my-jellyfin jellyfin/jellyfin -f values.yaml
 | ingress.path | string | `"/"` |  |
 | ingress.tls | list | `[]` |  |
 | livenessProbe | object | `{"enabled":true,"initialDelaySeconds":10}` | Larger libraries may need to increase the readinessProbe and livenessProbe timeouts. Start by increasing the initialDelaySeconds. |
+| metrics | object | `{"command":["bash","-c","sed 's,<EnableMetrics>false</EnableMetrics>,<EnableMetrics>true</EnableMetrics>,' -i /config/config/system.xml && /jellyfin/jellyfin"],"enabled":false,"serviceMonitor":{"enabled":false,"interval":"30s","labels":{},"metricRelabelings":[],"namespace":"","path":"/metrics","relabelings":[],"scheme":"http","scrapeTimeout":"30s","targetLabels":[],"tlsConfig":{}}}` | Configuration for metrics collection and monitoring |
+| metrics.enabled | bool | `false` | Enable or disable metrics collection |
+| metrics.serviceMonitor | object | `{"enabled":false,"interval":"30s","labels":{},"metricRelabelings":[],"namespace":"","path":"/metrics","relabelings":[],"scheme":"http","scrapeTimeout":"30s","targetLabels":[],"tlsConfig":{}}` | Configuration for the Prometheus ServiceMonitor |
+| metrics.serviceMonitor.enabled | bool | `false` | Enable or disable the creation of a ServiceMonitor resource |
+| metrics.serviceMonitor.interval | string | `"30s"` | Interval at which metrics should be scraped |
+| metrics.serviceMonitor.labels | object | `{}` | Labels to add to the ServiceMonitor resource |
+| metrics.serviceMonitor.metricRelabelings | list | `[]` | Relabeling rules for the metrics before ingestion |
+| metrics.serviceMonitor.namespace | string | `""` | Namespace where the ServiceMonitor resource should be created. Defaults to Release.Namespace |
+| metrics.serviceMonitor.path | string | `"/metrics"` | Path to scrape for metrics |
+| metrics.serviceMonitor.relabelings | list | `[]` | Relabeling rules for the scraped metrics |
+| metrics.serviceMonitor.scheme | string | `"http"` | Scheme to use for scraping metrics (http or https) |
+| metrics.serviceMonitor.scrapeTimeout | string | `"30s"` | Timeout for scraping metrics |
+| metrics.serviceMonitor.targetLabels | list | `[]` | Target labels to add to the scraped metrics |
+| metrics.serviceMonitor.tlsConfig | object | `{}` | TLS configuration for scraping metrics |
 | nameOverride | string | `""` |  |
 | nodeSelector | object | `{}` |  |
 | persistence.config.accessMode | string | `"ReadWriteOnce"` |  |
@@ -97,6 +111,7 @@ helm install my-jellyfin jellyfin/jellyfin -f values.yaml
 | service.annotations | object | `{}` |  |
 | service.labels | object | `{}` |  |
 | service.loadBalancerIP | string | `nil` |  |
+| service.name | string | `"http"` |  |
 | service.port | int | `8096` |  |
 | service.type | string | `"ClusterIP"` |  |
 | tolerations | list | `[]` |  |
