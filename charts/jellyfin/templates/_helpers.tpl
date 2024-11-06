@@ -1,4 +1,12 @@
 {{/* vim: set filetype=mustache: */}}
+
+{{/*
+Fail if command and metrics are set
+*/}}
+{{- if and .Values.image.command .Values.metrics.enabled }}
+{{- fail "Can't use custom command and metrics in combination. They are exclusive features" }}
+{{- end }}
+
 {{/*
 Expand the name of the chart.
 */}}

@@ -39,9 +39,13 @@ spec:
         - name: {{ .Chart.Name }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
-        {{ if .Values.image.command }}
+        {{ if and .Values.image.command (not .Values.metrics.enabled) }}
           command:
             {{- toYaml .Values.image.command | nindent 12 }}
+        {{- end }}
+        {{ if .Values.metrics.enabled }}
+          command:
+            {{- toYaml .Values.metrics.command | nindent 12 }}
         {{- end }}
         {{ if .Values.image.args }}
           args:
