@@ -1,52 +1,58 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: {{ template "jellyfin.fullname" . }}
+  name: {{ include "jellyfin.fullname" . }}
   labels:
-    app.kubernetes.io/name: {{ include "jellyfin.name" . }}
-    helm.sh/chart: {{ include "jellyfin.chart" . }}
-    app.kubernetes.io/instance: {{ .Release.Name }}
-    app.kubernetes.io/managed-by: {{ .Release.Service }}
-{{- if .Values.service.labels }}
-{{ toYaml .Values.service.labels | indent 4 }}
-{{- end }}
-{{- with .Values.service.annotations }}
+    {{- include "jellyfin.labels" . | nindent 4 }}
+    {{- with .Values.service.labels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+  {{- with .Values.service.annotations }}
   annotations:
-{{ toYaml . | indent 4 }}
-{{- end }}
-spec:
-{{- if (or (eq .Values.service.type "ClusterIP") (empty .Values.service.type)) }}
-  type: ClusterIP
-  {{- if .Values.service.clusterIP }}
-  clusterIP: {{ .Values.service.clusterIP }}
-  {{end}}
-{{- else if eq .Values.service.type "LoadBalancer" }}
-  type: {{ .Values.service.type }}
-  {{- if .Values.service.loadBalancerIP }}
-  loadBalancerIP: {{ .Values.service.loadBalancerIP }}
+    {{- toYaml . | nindent 4 }}
   {{- end }}
-  {{- if .Values.service.loadBalancerSourceRanges }}
+spec:
+  {{- if (or (eq .Values.service.type "ClusterIP") (empty .Values.service.type)) }}
+  type: ClusterIP
+  {{- with .Values.service.clusterIP }}
+  clusterIP: {{ . }}
+  {{- end }}
+  {{- else if eq .Values.service.type "LoadBalancer" }}
+  type: LoadBalancer
+  {{- with .Values.service.loadBalancerIP }}
+  loadBalancerIP: {{ . }}
+  {{- end }}
+  {{- with .Values.service.loadBalancerClass }}
+  loadBalancerClass: {{ . }}
+  {{- end }}
+  {{- with .Values.service.loadBalancerSourceRanges }}
   loadBalancerSourceRanges:
-{{ toYaml .Values.service.loadBalancerSourceRanges | indent 4 }}
-  {{- end -}}
-{{- else }}
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  {{- else }}
   type: {{ .Values.service.type }}
-{{- end }}
-{{- if .Values.service.externalIPs }}
+  {{- end }}
+  {{- if .Values.service.ipFamilyPolicy }}
+  ipFamilyPolicy: {{ .Values.service.ipFamilyPolicy }}
+  {{- end }}
+  {{- if .Values.service.ipFamilies }}
+  ipFamilies: 
+    {{- toYaml .Values.service.ipFamilies | nindent 4 }}
+  {{- end }}
+  {{- with .Values.service.externalIPs }}
   externalIPs:
-{{ toYaml .Values.service.externalIPs | indent 4 }}
-{{- end }}
-  {{- if .Values.service.externalTrafficPolicy }}
-  externalTrafficPolicy: {{ .Values.service.externalTrafficPolicy }}
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  {{- with .Values.service.externalTrafficPolicy }}
+  externalTrafficPolicy: {{ . }}
   {{- end }}
   ports:
-    - name: {{ .Values.service.name }}
+    - name: {{ .Values.service.portName | default "http" }}
       port: {{ .Values.service.port }}
       protocol: TCP
       targetPort: http
-{{ if (and (eq .Values.service.type "NodePort") (not (empty .Values.service.nodePort))) }}
-      nodePort: {{.Values.service.nodePort}}
-{{ end }}
+      {{- if (and (eq .Values.service.type "NodePort") (not (empty .Values.service.nodePort))) }}
+      nodePort: {{ .Values.service.nodePort }}
+      {{- end }}
   selector:
-    app.kubernetes.io/name: {{ include "jellyfin.name" . }}
-    app.kubernetes.io/instance: {{ .Release.Name }}
+    {{- include "jellyfin.selectorLabels" . | nindent 4 }}
