@@ -6,39 +6,36 @@ metadata:
   name: {{ include "jellyfin.fullname" . }}
   {{- if .Values.metrics.serviceMonitor.namespace }}
   namespace: {{ tpl .Values.metrics.serviceMonitor.namespace . }}
-  {{- else }}
+  {{- end }}
   labels:
-    app.kubernetes.io/name: {{ include "jellyfin.name" . }}
-    helm.sh/chart: {{ include "jellyfin.chart" . }}
-    app.kubernetes.io/instance: {{ .Release.Name }}
-    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    {{- include "jellyfin.labels" . | nindent 4 }}
     {{- with .Values.metrics.serviceMonitor.labels }}
     {{- tpl (toYaml . | nindent 4) $ }}
     {{- end }}
 spec:
   endpoints:
-  - port: {{ .Values.service.name }}
-    {{- with .Values.metrics.serviceMonitor.interval }}
-    interval: {{ . }}
-    {{- end }}
-    {{- with .Values.metrics.serviceMonitor.scrapeTimeout }}
-    scrapeTimeout: {{ . }}
-    {{- end }}
-    honorLabels: true
-    path: {{ .Values.metrics.serviceMonitor.path }}
-    scheme: {{ .Values.metrics.serviceMonitor.scheme }}
-    {{- with .Values.metrics.serviceMonitor.tlsConfig }}
-    tlsConfig:
-      {{- toYaml . | nindent 6 }}
-    {{- end }}
-    {{- with .Values.metrics.serviceMonitor.relabelings }}
-    relabelings:
-      {{- toYaml . | nindent 6 }}
-    {{- end }}
-    {{- with .Values.metrics.serviceMonitor.metricRelabelings }}
-    metricRelabelings:
-      {{- toYaml . | nindent 6 }}
-    {{- end }}
+    - port: {{ .Values.service.name }}
+      {{- with .Values.metrics.serviceMonitor.interval }}
+      interval: {{ . }}
+      {{- end }}
+      {{- with .Values.metrics.serviceMonitor.scrapeTimeout }}
+      scrapeTimeout: {{ . }}
+      {{- end }}
+      honorLabels: true
+      path: {{ .Values.metrics.serviceMonitor.path }}
+      scheme: {{ .Values.metrics.serviceMonitor.scheme }}
+      {{- with .Values.metrics.serviceMonitor.tlsConfig }}
+      tlsConfig:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.metrics.serviceMonitor.relabelings }}
+      relabelings:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.metrics.serviceMonitor.metricRelabelings }}
+      metricRelabelings:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
   jobLabel: "{{ .Release.Name }}"
   selector:
     matchLabels:

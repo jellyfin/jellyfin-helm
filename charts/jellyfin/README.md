@@ -2,7 +2,7 @@
 
 ![Version: 1.5.0](https://img.shields.io/badge/Version-1.5.0-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: 10.10.1](https://img.shields.io/badge/AppVersion-10.10.1-informational?style=flat-square)
 
-Jellyfin Media Server
+A Helm chart for Jellyfin Media Server
 
 **Homepage:** <https://jellyfin.org/>
 
@@ -52,27 +52,21 @@ helm install my-jellyfin jellyfin/jellyfin -f values.yaml
 
 | Key | Type | Default | Description |
 |-----|------|---------|-------------|
-| affinity | object | `{}` |  |
-| enableDLNA | bool | `false` | Setting this to true enables DLNA which requires the pod to be attached to the host network in order to be useful - this can break things like ingress to the service https://jellyfin.org/docs/general/networking/dlna.html |
+| affinity | object | `{}` | Affinity rules for pod scheduling. |
+| deploymentStrategy | object | `{"type":"RollingUpdate"}` | Deployment strategy configuration. See `kubectl explain deployment.spec.strategy`. |
 | extraContainers | list | `[]` | additional sidecar containers to run inside the pod. |
-| extraEnvVars | list | `[]` | aditional environment variables passed to the pod |
 | extraInitContainers | list | `[]` | additional init containers to run inside the pod. |
-| extraPodAnnotations | object | `{}` | additional annotations applied to the pod |
-| extraPodLabels | object | `{}` | additional pod labels. Not used as a selector label. |
-| extraVolumeMounts | list | `[]` | Define mount points for additional volumes. |
-| extraVolumes | list | `[]` | Define additional volumes to mount to the pod. |
-| fullnameOverride | string | `""` |  |
-| image.pullPolicy | string | `"IfNotPresent"` |  |
-| image.repository | string | `"docker.io/jellyfin/jellyfin"` | Set cutom repository for jellyfin image |
-| image.tag | string | `""` | Set jellyfin version which should be required since chart is updated with new versions automatically |
-| imagePullSecrets | list | `[]` |  |
-| ingress.annotations | object | `{}` |  |
-| ingress.enabled | bool | `false` |  |
-| ingress.hosts[0] | string | `"chart-example.local"` |  |
-| ingress.labels | object | `{}` |  |
-| ingress.path | string | `"/"` |  |
-| ingress.tls | list | `[]` |  |
-| livenessProbe | object | `{"enabled":true,"initialDelaySeconds":10}` | Larger libraries may need to increase the readinessProbe and livenessProbe timeouts. Start by increasing the initialDelaySeconds. |
+| fullnameOverride | string | `""` | Override the default full name of the chart. |
+| image.pullPolicy | string | `"IfNotPresent"` | Image pull policy (Always, IfNotPresent, or Never). |
+| image.repository | string | `"docker.io/jellyfin/jellyfin"` | Container image repository for Jellyfin. |
+| image.tag | string | `""` | Jellyfin container image tag. Leave empty to automatically use the Chart's app version. |
+| imagePullSecrets | list | `[]` | Image pull secrets to authenticate with private repositories. See: https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/ |
+| ingress | object | `{"annotations":{},"className":"","enabled":false,"hosts":[{"host":"chart-example.local","paths":[{"path":"/","pathType":"ImplementationSpecific"}]}],"tls":[]}` | Ingress configuration. See: https://kubernetes.io/docs/concepts/services-networking/ingress/ |
+| jellyfin.args | list | `[]` | Additional arguments for the entrypoint command. |
+| jellyfin.command | list | `[]` | Custom command to use as container entrypoint. |
+| jellyfin.enableDLNA | bool | `false` | Enable DLNA. Requires host network. See: https://jellyfin.org/docs/general/networking/dlna.html |
+| jellyfin.env | list | `[]` | Additional environment variables for the container. |
+| livenessProbe | object | `{"initialDelaySeconds":10,"tcpSocket":{"port":"http"}}` | Configure liveness probe for Jellyfin. |
 | metrics | object | `{"command":["bash","-c","sed 's,<EnableMetrics>false</EnableMetrics>,<EnableMetrics>true</EnableMetrics>,' -i /config/config/system.xml && /jellyfin/jellyfin"],"enabled":false,"serviceMonitor":{"enabled":false,"interval":"30s","labels":{},"metricRelabelings":[],"namespace":"","path":"/metrics","relabelings":[],"scheme":"http","scrapeTimeout":"30s","targetLabels":[],"tlsConfig":{}}}` | Configuration for metrics collection and monitoring |
 | metrics.enabled | bool | `false` | Enable or disable metrics collection |
 | metrics.serviceMonitor | object | `{"enabled":false,"interval":"30s","labels":{},"metricRelabelings":[],"namespace":"","path":"/metrics","relabelings":[],"scheme":"http","scrapeTimeout":"30s","targetLabels":[],"tlsConfig":{}}` | Configuration for the Prometheus ServiceMonitor |
@@ -87,34 +81,44 @@ helm install my-jellyfin jellyfin/jellyfin -f values.yaml
 | metrics.serviceMonitor.scrapeTimeout | string | `"30s"` | Timeout for scraping metrics |
 | metrics.serviceMonitor.targetLabels | list | `[]` | Target labels to add to the scraped metrics |
 | metrics.serviceMonitor.tlsConfig | object | `{}` | TLS configuration for scraping metrics |
-| nameOverride | string | `""` |  |
-| nodeSelector | object | `{}` |  |
+| nameOverride | string | `""` | Override the default name of the chart. |
+| nodeSelector | object | `{}` | Node selector for pod scheduling. |
 | persistence.config.accessMode | string | `"ReadWriteOnce"` |  |
 | persistence.config.annotations | object | `{}` | Custom annotations to be added to the PVC |
-| persistence.config.enabled | bool | `false` |  |
-| persistence.config.labels | object | `{}` | Custom labels to be added to the PVC |
-| persistence.config.size | string | `"1Gi"` |  |
-| persistence.config.storageClass | string | `"-"` | If undefined (the default) or set to null, no storageClassName spec is set, choosing the default provisioner. |
-| persistence.extraExistingClaimMounts | list | `[]` | Add aditional PVs/PVCs to our container. Check values.yaml to see an example. |
+| persistence.config.enabled | bool | `true` | set to false to use emptyDir |
+| persistence.config.size | string | `"5Gi"` |  |
+| persistence.config.storageClass | string | `""` | If undefined (the default) or set to null, no storageClassName spec is set, choosing the default provisioner. |
 | persistence.media.accessMode | string | `"ReadWriteOnce"` |  |
 | persistence.media.annotations | object | `{}` | Custom annotations to be added to the PVC |
-| persistence.media.enabled | bool | `false` |  |
-| persistence.media.labels | object | `{}` | Custom labels to be added to the PVC |
-| persistence.media.size | string | `"10Gi"` |  |
-| persistence.media.storageClass | string | `"-"` | If undefined (the default) or set to null, no storageClassName spec is set, choosing the default provisioner. |
-| podSecurityContext | object | `{}` | SecurityContext configuration for the Jellyfin pod |
-| readinessProbe | object | `{"enabled":true,"initialDelaySeconds":10}` | Larger libraries may need to increase the readinessProbe and livenessProbe timeouts. Start by increasing the initialDelaySeconds. |
-| replicaCount | int | `1` | Number of jellyfin replicas to start. Should be left at 1 |
-| resources | object | `{}` |  |
-| runtimeClassName | string | `nil` |  |
-| securityContext | object | `{}` | SecurityContext configuration for the Jellyfin container |
-| service.annotations | object | `{}` |  |
-| service.labels | object | `{}` |  |
-| service.loadBalancerIP | string | `nil` |  |
-| service.name | string | `"http"` |  |
-| service.port | int | `8096` |  |
-| service.type | string | `"ClusterIP"` |  |
-| tolerations | list | `[]` |  |
+| persistence.media.enabled | bool | `true` | set to false to use emptyDir |
+| persistence.media.size | string | `"25Gi"` |  |
+| persistence.media.storageClass | string | `""` | If undefined (the default) or set to null, no storageClassName spec is set, choosing the default provisioner. |
+| podAnnotations | object | `{}` | Annotations to add to the pod. |
+| podLabels | object | `{}` | Additional labels to add to the pod. |
+| podSecurityContext | object | `{}` | Security context for the pod. |
+| readinessProbe | object | `{"initialDelaySeconds":10,"tcpSocket":{"port":"http"}}` | Configure readiness probe for Jellyfin. |
+| replicaCount | int | `1` | Number of Jellyfin replicas to start. Should be left at 1. |
+| resources | object | `{}` | Resource requests and limits for the Jellyfin container. |
+| runtimeClassName | string | `""` | Define a custom runtimeClassName for the pod. |
+| securityContext | object | `{}` | Security context for the container. |
+| service.annotations | object | `{}` | Annotations for the service. |
+| service.ipFamilies | list | `[]` | Supported IP families (IPv4, IPv6). |
+| service.ipFamilyPolicy | string | `""` | Configure dual-stack IP family policy. See: https://kubernetes.io/docs/concepts/services-networking/dual-stack/ |
+| service.labels | object | `{}` | Labels for the service. |
+| service.loadBalancerClass | string | `""` | Class of the LoadBalancer. |
+| service.loadBalancerIP | string | `""` | Specific IP address for the LoadBalancer. |
+| service.loadBalancerSourceRanges | list | `[]` | Source ranges allowed to access the LoadBalancer. |
+| service.port | int | `8096` | Port for the Jellyfin service. |
+| service.portName | string | `"service"` | Name of the port in the service. |
+| service.type | string | `"ClusterIP"` | Service type (ClusterIP, NodePort, or LoadBalancer). |
+| serviceAccount | object | `{"annotations":{},"automount":true,"create":true,"name":""}` | Service account configuration. See: https://kubernetes.io/docs/concepts/security/service-accounts/ |
+| serviceAccount.annotations | object | `{}` | Annotations for the service account. |
+| serviceAccount.automount | bool | `true` | Automatically mount API credentials for the service account. |
+| serviceAccount.create | bool | `true` | Specifies whether to create a service account. |
+| serviceAccount.name | string | `""` | Custom name for the service account. If left empty, the name will be autogenerated. |
+| tolerations | list | `[]` | Tolerations for pod scheduling. |
+| volumeMounts | list | `[]` | Additional volume mounts for the Jellyfin container. |
+| volumes | list | `[]` | Additional volumes to mount in the Jellyfin pod. |
 
 ----------------------------------------------
 Autogenerated from chart metadata using [helm-docs v1.14.2](https://github.com/norwoodj/helm-docs/releases/v1.14.2)

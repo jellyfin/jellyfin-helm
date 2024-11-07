@@ -1,8 +1,6 @@
 apiVersion: v2
-appVersion: 10.10.1
-description: Jellyfin Media Server
 name: jellyfin
-version: 1.5.0
+description: A Helm chart for Jellyfin Media Server
 type: application
 home: https://jellyfin.org/
 icon: https://jellyfin.org/images/logo.svg
@@ -10,3 +8,5 @@ keywords:
   - jellyfin
   - media
   - self-hosted
+version: 1.5.0
+appVersion: 10.10.1
