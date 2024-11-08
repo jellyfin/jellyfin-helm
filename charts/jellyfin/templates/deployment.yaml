@@ -119,5 +119,5 @@ spec:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       {{- with .Values.runtimeClassName }}
-      runtimeClassName: {{- . | quote }}
+      runtimeClassName: {{ . | quote }}
       {{- end }}
