@@ -187,7 +187,7 @@ persistence:
 
 # -- Configuration for metrics collection and monitoring
 metrics:
-  # -- Enable or disable metrics collection
+  # -- Enable or disable metrics collection - Ensure you have started and configured your Jellyfin instance first as this will fail if system.xml does not exist yet.
   enabled: false
   command:
     - bash
