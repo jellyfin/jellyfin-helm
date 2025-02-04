@@ -19,7 +19,7 @@ jobs:
         fetch-depth: 0
 
     - name: Helm Docs GitHub Action
-      uses: losisin/helm-docs-github-action@57d2dc9379d9f0d5d22d2845a62c935d32cddfe2 # v1.3.3
+      uses: losisin/helm-docs-github-action@0a82321d03b78ba94b4cc75e4efe7547f9379072 # v1.3.6
       with:
         git-push: true
         git-commit-message: "docs(charts): :memo: write updated reademe"
