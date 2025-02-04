@@ -68,7 +68,7 @@ helm install my-jellyfin jellyfin/jellyfin -f values.yaml
 | jellyfin.env | list | `[]` | Additional environment variables for the container. |
 | livenessProbe | object | `{"initialDelaySeconds":10,"tcpSocket":{"port":"http"}}` | Configure liveness probe for Jellyfin. |
 | metrics | object | `{"command":["bash","-c","sed 's,<EnableMetrics>false</EnableMetrics>,<EnableMetrics>true</EnableMetrics>,' -i /config/config/system.xml && /jellyfin/jellyfin"],"enabled":false,"serviceMonitor":{"enabled":false,"interval":"30s","labels":{},"metricRelabelings":[],"namespace":"","path":"/metrics","relabelings":[],"scheme":"http","scrapeTimeout":"30s","targetLabels":[],"tlsConfig":{}}}` | Configuration for metrics collection and monitoring |
-| metrics.enabled | bool | `false` | Enable or disable metrics collection |
+| metrics.enabled | bool | `false` | Enable or disable metrics collection - Ensure you have started and configured your Jellyfin instance first as this will fail if system.xml does not exist yet. |
 | metrics.serviceMonitor | object | `{"enabled":false,"interval":"30s","labels":{},"metricRelabelings":[],"namespace":"","path":"/metrics","relabelings":[],"scheme":"http","scrapeTimeout":"30s","targetLabels":[],"tlsConfig":{}}` | Configuration for the Prometheus ServiceMonitor |
 | metrics.serviceMonitor.enabled | bool | `false` | Enable or disable the creation of a ServiceMonitor resource |
 | metrics.serviceMonitor.interval | string | `"30s"` | Interval at which metrics should be scraped |
