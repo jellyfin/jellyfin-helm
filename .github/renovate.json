@@ -1,6 +1,13 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "extends": [
-    "github>jellyfin/.github//renovate-presets/default"
+  "extends": ["github>jellyfin/.github//renovate-presets/default"],
+  "customManagers": [
+    {
+      "customType": "regex",
+      "fileMatch": ["charts/jellyfin/Chart.yaml"],
+      "matchStrings": ["appVersion: (?<currentValue>.*?)\\n"],
+      "datasourceTemplate": "docker",
+      "depNameTemplate": "jellyfin/jellyfin"
+    }
   ]
 }
