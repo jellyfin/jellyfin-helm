@@ -209,6 +209,8 @@ metrics:
     scrapeTimeout: 30s
     # -- Path to scrape for metrics
     path: /metrics
+    # -- Port to scrape for metrics
+    port: 8096
     # -- Scheme to use for scraping metrics (http or https)
     scheme: http
     # -- TLS configuration for scraping metrics

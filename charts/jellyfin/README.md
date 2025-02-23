@@ -1,6 +1,6 @@
 # jellyfin
 
-![Version: 2.1.0](https://img.shields.io/badge/Version-2.1.0-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: 10.10.6](https://img.shields.io/badge/AppVersion-10.10.6-informational?style=flat-square)
+![Version: 2.1.1](https://img.shields.io/badge/Version-2.1.1-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: 10.10.6](https://img.shields.io/badge/AppVersion-10.10.6-informational?style=flat-square)
 
 A Helm chart for Jellyfin Media Server
 
@@ -67,15 +67,16 @@ helm install my-jellyfin jellyfin/jellyfin -f values.yaml
 | jellyfin.enableDLNA | bool | `false` | Enable DLNA. Requires host network. See: https://jellyfin.org/docs/general/networking/dlna.html |
 | jellyfin.env | list | `[]` | Additional environment variables for the container. |
 | livenessProbe | object | `{"initialDelaySeconds":10,"tcpSocket":{"port":"http"}}` | Configure liveness probe for Jellyfin. |
-| metrics | object | `{"command":["bash","-c","sed 's,<EnableMetrics>false</EnableMetrics>,<EnableMetrics>true</EnableMetrics>,' -i /config/config/system.xml && /jellyfin/jellyfin"],"enabled":false,"serviceMonitor":{"enabled":false,"interval":"30s","labels":{},"metricRelabelings":[],"namespace":"","path":"/metrics","relabelings":[],"scheme":"http","scrapeTimeout":"30s","targetLabels":[],"tlsConfig":{}}}` | Configuration for metrics collection and monitoring |
+| metrics | object | `{"command":["bash","-c","sed 's,<EnableMetrics>false</EnableMetrics>,<EnableMetrics>true</EnableMetrics>,' -i /config/config/system.xml && /jellyfin/jellyfin"],"enabled":false,"serviceMonitor":{"enabled":false,"interval":"30s","labels":{},"metricRelabelings":[],"namespace":"","path":"/metrics","port":8096,"relabelings":[],"scheme":"http","scrapeTimeout":"30s","targetLabels":[],"tlsConfig":{}}}` | Configuration for metrics collection and monitoring |
 | metrics.enabled | bool | `false` | Enable or disable metrics collection - Ensure you have started and configured your Jellyfin instance first as this will fail if system.xml does not exist yet. |
-| metrics.serviceMonitor | object | `{"enabled":false,"interval":"30s","labels":{},"metricRelabelings":[],"namespace":"","path":"/metrics","relabelings":[],"scheme":"http","scrapeTimeout":"30s","targetLabels":[],"tlsConfig":{}}` | Configuration for the Prometheus ServiceMonitor |
+| metrics.serviceMonitor | object | `{"enabled":false,"interval":"30s","labels":{},"metricRelabelings":[],"namespace":"","path":"/metrics","port":8096,"relabelings":[],"scheme":"http","scrapeTimeout":"30s","targetLabels":[],"tlsConfig":{}}` | Configuration for the Prometheus ServiceMonitor |
 | metrics.serviceMonitor.enabled | bool | `false` | Enable or disable the creation of a ServiceMonitor resource |
 | metrics.serviceMonitor.interval | string | `"30s"` | Interval at which metrics should be scraped |
 | metrics.serviceMonitor.labels | object | `{}` | Labels to add to the ServiceMonitor resource |
 | metrics.serviceMonitor.metricRelabelings | list | `[]` | Relabeling rules for the metrics before ingestion |
 | metrics.serviceMonitor.namespace | string | `""` | Namespace where the ServiceMonitor resource should be created. Defaults to Release.Namespace |
 | metrics.serviceMonitor.path | string | `"/metrics"` | Path to scrape for metrics |
+| metrics.serviceMonitor.port | int | `8096` | Port to scrape for metrics |
 | metrics.serviceMonitor.relabelings | list | `[]` | Relabeling rules for the scraped metrics |
 | metrics.serviceMonitor.scheme | string | `"http"` | Scheme to use for scraping metrics (http or https) |
 | metrics.serviceMonitor.scrapeTimeout | string | `"30s"` | Timeout for scraping metrics |
