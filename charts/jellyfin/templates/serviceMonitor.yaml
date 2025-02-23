@@ -23,6 +23,7 @@ spec:
       {{- end }}
       honorLabels: true
       path: {{ .Values.metrics.serviceMonitor.path }}
+      port: {{ .Values.metrics.serviceMonitor.port }}
       scheme: {{ .Values.metrics.serviceMonitor.scheme }}
       {{- with .Values.metrics.serviceMonitor.tlsConfig }}
       tlsConfig:
