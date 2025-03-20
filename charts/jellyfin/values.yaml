@@ -58,6 +58,8 @@ deploymentStrategy:
   type: RollingUpdate
 
 service:
+  # # -- Custom name for the service port
+  # name: http
   # -- Service type (ClusterIP, NodePort, or LoadBalancer).
   type: ClusterIP
   # -- Configure dual-stack IP family policy. See: https://kubernetes.io/docs/concepts/services-networking/dual-stack/
