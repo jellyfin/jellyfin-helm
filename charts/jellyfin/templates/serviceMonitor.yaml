@@ -14,7 +14,7 @@ metadata:
     {{- end }}
 spec:
   endpoints:
-    - port: {{ .Values.service.name }}
+    - port: {{ .Values.service.name | default "http" }}
       {{- with .Values.metrics.serviceMonitor.interval }}
       interval: {{ . }}
       {{- end }}
@@ -23,7 +23,6 @@ spec:
       {{- end }}
       honorLabels: true
       path: {{ .Values.metrics.serviceMonitor.path }}
-      port: {{ .Values.metrics.serviceMonitor.port }}
       scheme: {{ .Values.metrics.serviceMonitor.scheme }}
       {{- with .Values.metrics.serviceMonitor.tlsConfig }}
       tlsConfig:

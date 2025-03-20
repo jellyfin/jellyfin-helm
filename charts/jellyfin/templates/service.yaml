@@ -47,7 +47,7 @@ spec:
   externalTrafficPolicy: {{ . }}
   {{- end }}
   ports:
-    - name: {{ .Values.service.portName | default "http" }}
+    - name: {{ .Values.service.name | default "http" }}
       port: {{ .Values.service.port }}
       protocol: TCP
       targetPort: http
