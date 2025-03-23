@@ -53,6 +53,7 @@ helm install my-jellyfin jellyfin/jellyfin -f values.yaml
 | Key | Type | Default | Description |
 |-----|------|---------|-------------|
 | affinity | object | `{}` | Affinity rules for pod scheduling. |
+| deploymentAnnotations | object | `{}` | Annotations to add to the deployment. |
 | deploymentStrategy | object | `{"type":"RollingUpdate"}` | Deployment strategy configuration. See `kubectl explain deployment.spec.strategy`. |
 | extraContainers | list | `[]` | additional sidecar containers to run inside the pod. |
 | extraInitContainers | list | `[]` | additional init containers to run inside the pod. |
