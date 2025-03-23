@@ -57,6 +57,9 @@ runtimeClassName: ''
 deploymentStrategy:
   type: RollingUpdate
 
+# -- Annotations to add to the deployment.
+deploymentAnnotations: {}
+
 service:
   # # -- Custom name for the service port
   # name: http
