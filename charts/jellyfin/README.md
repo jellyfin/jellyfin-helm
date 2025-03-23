@@ -98,6 +98,7 @@ helm install my-jellyfin jellyfin/jellyfin -f values.yaml
 | podAnnotations | object | `{}` | Annotations to add to the pod. |
 | podLabels | object | `{}` | Additional labels to add to the pod. |
 | podSecurityContext | object | `{}` | Security context for the pod. |
+| priorityClassName | string | `""` | Define a priorityClassName for the pod. |
 | readinessProbe | object | `{"initialDelaySeconds":10,"tcpSocket":{"port":"http"}}` | Configure readiness probe for Jellyfin. |
 | replicaCount | int | `1` | Number of Jellyfin replicas to start. Should be left at 1. |
 | resources | object | `{}` | Resource requests and limits for the Jellyfin container. |
