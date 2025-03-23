@@ -53,6 +53,9 @@ securityContext: {}
 # -- Define a custom runtimeClassName for the pod.
 runtimeClassName: ''
 
+# -- Define a priorityClassName for the pod.
+priorityClassName: ""
+
 # -- Deployment strategy configuration. See `kubectl explain deployment.spec.strategy`.
 deploymentStrategy:
   type: RollingUpdate
