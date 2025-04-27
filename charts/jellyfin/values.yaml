@@ -195,14 +195,8 @@ persistence:
 
 # -- Configuration for metrics collection and monitoring
 metrics:
-  # -- Enable or disable metrics collection - Ensure you have started and configured your Jellyfin instance first as this will fail if system.xml does not exist yet.
+  # -- Enable or disable metrics collection
   enabled: false
-  command:
-    - bash
-    - '-c'
-    - >-
-      sed 's,<EnableMetrics>false</EnableMetrics>,<EnableMetrics>true</EnableMetrics>,' -i /config/config/system.xml &&
-      /jellyfin/jellyfin
   # -- Configuration for the Prometheus ServiceMonitor
   serviceMonitor:
     # -- Enable or disable the creation of a ServiceMonitor resource

@@ -45,13 +45,9 @@ spec:
             {{- toYaml .Values.securityContext | nindent 12 }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
-          {{- if and .Values.image.command (not .Values.metrics.enabled) }}
+          {{- with .Values.jellyfin.command }}
           command:
-            {{- toYaml .Values.jellyfin.command | nindent 12 }}
-          {{- end }}
-          {{- if .Values.metrics.enabled }}
-          command:
-            {{- toYaml .Values.metrics.command | nindent 12 }}
+            {{- toYaml . | nindent 12 }}
           {{- end }}
           {{- with .Values.jellyfin.args }}
           args:
@@ -60,6 +56,41 @@ spec:
           {{- with .Values.jellyfin.env }}
           env:
             {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- if .Values.metrics.enabled }}
+          lifecycle:
+            postStart:
+              exec:
+                command:
+                  - /bin/sh
+                  - -c
+                  - |
+                    echo "Waiting for system.xml to enable metrics..."
+                    timeout=300 # 5 minutes timeout
+                    interval=5  # Check every 5 seconds
+                    elapsed=0
+                    while [ ! -f /config/config/system.xml ]; do
+                      if [ $elapsed -ge $timeout ]; then
+                        echo "ERROR: Timed out waiting for /config/config/system.xml" >&2
+                        exit 1
+                      fi
+                      sleep $interval
+                      elapsed=$((elapsed + interval))
+                    done
+                    echo "Found /config/config/system.xml, enabling metrics..."
+                    # Check if metrics are already enabled before running sed
+                    if ! grep -q '<EnableMetrics>true</EnableMetrics>' /config/config/system.xml; then
+                      sed 's,<EnableMetrics>false</EnableMetrics>,<EnableMetrics>true</EnableMetrics>,' -i /config/config/system.xml
+                      if [ $? -eq 0 ]; then
+                        echo "Metrics enabled successfully."
+                      else
+                        echo "ERROR: Failed to enable metrics in /config/config/system.xml" >&2
+                        exit 1
+                      fi
+                    else
+                      echo "Metrics already enabled."
+                    fi
+                    exit 0
           {{- end }}
           ports:
             - name: http
@@ -102,8 +133,16 @@ spec:
           {{- end }}
         - name: media
           {{- if .Values.persistence.media.enabled }}
+            {{- if eq .Values.persistence.media.type "pvc" }}
           persistentVolumeClaim:
             claimName: {{ if .Values.persistence.media.existingClaim }}{{ .Values.persistence.media.existingClaim }}{{- else }}{{ template "jellyfin.fullname" . }}-media{{- end }}
+            {{- else if eq .Values.persistence.media.type "hostPath" }}
+          hostPath:
+            path: {{ .Values.persistence.media.hostPath }}
+            type: Directory
+            {{- else }}
+          emptyDir: {}
+            {{- end }}
           {{- else }}
           emptyDir: {}
           {{- end }}
