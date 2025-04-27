@@ -21,7 +21,7 @@ spec:
   {{- end }}
 {{- end }}
 
-{{- if and .Values.persistence.media.enabled (not .Values.persistence.media.existingClaim) }}
+{{- if and .Values.persistence.media.enabled (eq .Values.persistence.media.type "pvc") (not .Values.persistence.media.existingClaim) }}
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim

@@ -184,6 +184,11 @@ persistence:
   media:
     # -- set to false to use emptyDir
     enabled: true
+    # -- Type of volume for media storage (pvc, hostPath, emptyDir). If 'enabled' is false, 'emptyDir' is used regardless of this setting.
+    type: pvc
+    # -- Path on the host node for media storage, only used if type is 'hostPath'.
+    hostPath: ""
+    # -- PVC specific settings, only used if type is 'pvc'.
     accessMode: ReadWriteOnce
     size: 25Gi
     # -- Custom annotations to be added to the PVC
