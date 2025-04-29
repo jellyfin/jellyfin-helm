@@ -4,6 +4,10 @@
 # -- Number of Jellyfin replicas to start. Should be left at 1.
 replicaCount: 1
 
+# -- Specify how many old ReplicaSets for this Deployment you want to retain.
+# See: https://kubernetes.io/docs/concepts/workloads/controllers/deployment/#clean-up-policy
+revisionHistoryLimit: 10
+
 # -- Image pull secrets to authenticate with private repositories.
 # See: https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/
 imagePullSecrets: []
@@ -168,6 +172,8 @@ jellyfin:
   args: []
   # -- Additional environment variables for the container.
   env: []
+  # -- Additional environment variables for the container from ConfigMap's or Secrets.
+  envFrom: []
 
 persistence:
   config:
@@ -186,6 +192,17 @@ persistence:
     enabled: true
     accessMode: ReadWriteOnce
     size: 25Gi
+    # -- Custom annotations to be added to the PVC
+    annotations: {}
+    # -- If undefined (the default) or set to null, no storageClassName spec is set, choosing the default provisioner.
+    storageClass: ''
+    ## -- Use an existing PVC for this mount
+    # existingClaim: ''
+  cache:
+    # -- set to false to use emptyDir
+    enabled: false
+    accessMode: ReadWriteOnce
+    size: 5Gi
     # -- Custom annotations to be added to the PVC
     annotations: {}
     # -- If undefined (the default) or set to null, no storageClassName spec is set, choosing the default provisioner.
