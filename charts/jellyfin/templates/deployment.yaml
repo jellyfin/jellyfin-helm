@@ -14,6 +14,7 @@ spec:
     {{- toYaml . | trim | nindent 4 }}
   {{- end }}
   replicas: {{ .Values.replicaCount }}
+  revisionHistoryLimit: {{ .Values.revisionHistoryLimit }}
   selector:
     matchLabels:
       {{- include "jellyfin.selectorLabels" . | nindent 6 }}
@@ -61,6 +62,10 @@ spec:
           env:
             {{- toYaml . | nindent 12 }}
           {{- end }}
+          {{- with .Values.jellyfin.envFrom }}
+          envFrom:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
           ports:
             - name: http
               containerPort: 8096
@@ -82,13 +87,15 @@ spec:
               name: config
             - mountPath: /media
               name: media
+            - mountPath: /cache
+              name: cache
             {{- with .Values.volumeMounts }}
             {{- toYaml . | nindent 12 }}
             {{- end }}
         {{- with .Values.extraContainers }}
         {{- toYaml . | nindent 8 }}
         {{- end }}
-      {{- with .Values.initContainers }}
+      {{- with .Values.extraInitContainers }}
       initContainers:
         {{- toYaml . | nindent 6 }}
       {{- end }}
@@ -104,6 +111,13 @@ spec:
           {{- if .Values.persistence.media.enabled }}
           persistentVolumeClaim:
             claimName: {{ if .Values.persistence.media.existingClaim }}{{ .Values.persistence.media.existingClaim }}{{- else }}{{ template "jellyfin.fullname" . }}-media{{- end }}
+          {{- else }}
+          emptyDir: {}
+          {{- end }}
+        - name: cache
+          {{- if .Values.persistence.cache.enabled }}
+          persistentVolumeClaim:
+            claimName: {{ if .Values.persistence.cache.existingClaim }}{{ .Values.persistence.cache.existingClaim }}{{- else }}{{ template "jellyfin.fullname" . }}-cache{{- end }}
           {{- else }}
           emptyDir: {}
           {{- end }}
