@@ -184,6 +184,11 @@ persistence:
   media:
     # -- set to false to use emptyDir
     enabled: true
+    # -- Type of volume for media storage (pvc, hostPath, emptyDir). If 'enabled' is false, 'emptyDir' is used regardless of this setting.
+    type: pvc
+    # -- Path on the host node for media storage, only used if type is 'hostPath'.
+    hostPath: ""
+    # -- PVC specific settings, only used if type is 'pvc'.
     accessMode: ReadWriteOnce
     size: 25Gi
     # -- Custom annotations to be added to the PVC
@@ -195,14 +200,8 @@ persistence:
 
 # -- Configuration for metrics collection and monitoring
 metrics:
-  # -- Enable or disable metrics collection - Ensure you have started and configured your Jellyfin instance first as this will fail if system.xml does not exist yet.
+  # -- Enable or disable metrics collection
   enabled: false
-  command:
-    - bash
-    - '-c'
-    - >-
-      sed 's,<EnableMetrics>false</EnableMetrics>,<EnableMetrics>true</EnableMetrics>,' -i /config/config/system.xml &&
-      /jellyfin/jellyfin
   # -- Configuration for the Prometheus ServiceMonitor
   serviceMonitor:
     # -- Enable or disable the creation of a ServiceMonitor resource
