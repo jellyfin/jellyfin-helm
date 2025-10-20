@@ -7,7 +7,7 @@ This repository contains Helm charts for the jellyfin project.
 Each Helm chart is stored in its own directory. Each chart follows the standard Helm chart structure:
 
 ```plaintext
-hellyfin-helm/
+jellyfin-helm/
 ├── jellyfin/
 │   ├── Chart.yaml
 │   ├── values.yaml
