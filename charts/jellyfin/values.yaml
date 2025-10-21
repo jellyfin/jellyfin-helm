@@ -175,6 +175,15 @@ tolerations: []
 # -- Affinity rules for pod scheduling.
 affinity: {}
 
+# -- Privileged pod settings for advanced use cases
+podPrivileges:
+  # -- Enable hostIPC namespace. Required for NVIDIA MPS (Multi-Process Service) GPU sharing. See: https://docs.nvidia.com/deploy/mps/index.html
+  hostIPC: false
+  # -- Enable hostNetwork. Allows pod to use the host's network namespace.
+  hostNetwork: false
+  # -- Enable hostPID namespace. Allows pod to see processes on the host.
+  hostPID: false
+
 jellyfin:
   # -- Enable DLNA. Requires host network. See: https://jellyfin.org/docs/general/networking/dlna.html
   enableDLNA: false
