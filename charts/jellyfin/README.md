@@ -101,6 +101,10 @@ helm install my-jellyfin jellyfin/jellyfin -f values.yaml
 | persistence.media.type | string | `"pvc"` | Type of volume for media storage (pvc, hostPath, emptyDir). If 'enabled' is false, 'emptyDir' is used regardless of this setting. |
 | podAnnotations | object | `{}` | Annotations to add to the pod. |
 | podLabels | object | `{}` | Additional labels to add to the pod. |
+| podPrivileges | object | `{"hostIPC":false,"hostNetwork":false,"hostPID":false}` | Privileged pod settings for advanced use cases |
+| podPrivileges.hostIPC | bool | `false` | Enable hostIPC namespace. Required for NVIDIA MPS (Multi-Process Service) GPU sharing. See: https://docs.nvidia.com/deploy/mps/index.html |
+| podPrivileges.hostNetwork | bool | `false` | Enable hostNetwork. Allows pod to use the host's network namespace. |
+| podPrivileges.hostPID | bool | `false` | Enable hostPID namespace. Allows pod to see processes on the host. |
 | podSecurityContext | object | `{}` | Security context for the pod. |
 | priorityClassName | string | `""` | Define a priorityClassName for the pod. |
 | readinessProbe | object | `{"initialDelaySeconds":10,"tcpSocket":{"port":"http"}}` | Configure readiness probe for Jellyfin. |
