@@ -1,0 +1,100 @@
+{{- if .Values.initContainers }}
+#############################################################################
+##                            ⚠️  WARNING  ⚠️                              ##
+##                                                                         ##
+##  The 'initContainers' parameter is DEPRECATED!                         ##
+##  Please migrate to 'extraInitContainers' instead.                      ##
+##                                                                         ##
+##  Support for 'initContainers' will be removed after 2030.              ##
+##                                                                         ##
+##  Migration guide:                                                      ##
+##    Old: initContainers: [...]                                          ##
+##    New: extraInitContainers: [...]                                     ##
+##                                                                         ##
+#############################################################################
+
+{{- end }}
+Thank you for installing {{ .Chart.Name }}!
+
+Your release is named {{ .Release.Name }}.
+
+To learn more about the release, try:
+
+  $ helm status {{ .Release.Name }} --namespace {{ .Release.Namespace }}
+  $ helm get all {{ .Release.Name }} --namespace {{ .Release.Namespace }}
+
+{{- if .Values.ingress.enabled }}
+{{- range $host := .Values.ingress.hosts }}
+  {{- range .paths }}
+
+Jellyfin is available at:
+  http{{ if $.Values.ingress.tls }}s{{ end }}://{{ $host.host }}{{ .path }}
+  {{- end }}
+{{- end }}
+{{- else if contains "NodePort" .Values.service.type }}
+
+Get the Jellyfin URL by running:
+
+  export NODE_PORT=$(kubectl get --namespace {{ .Release.Namespace }} -o jsonpath="{.spec.ports[0].nodePort}" services {{ include "jellyfin.fullname" . }})
+  export NODE_IP=$(kubectl get nodes --namespace {{ .Release.Namespace }} -o jsonpath="{.items[0].status.addresses[0].address}")
+  echo "Jellyfin URL: http://$NODE_IP:$NODE_PORT"
+
+{{- else if contains "LoadBalancer" .Values.service.type }}
+
+Get the Jellyfin URL by running:
+
+  NOTE: It may take a few minutes for the LoadBalancer IP to be available.
+        You can watch the status by running:
+        kubectl get --namespace {{ .Release.Namespace }} svc -w {{ include "jellyfin.fullname" . }}
+
+  export SERVICE_IP=$(kubectl get svc --namespace {{ .Release.Namespace }} {{ include "jellyfin.fullname" . }} --template "{{"{{ range (index .status.loadBalancer.ingress 0) }}{{.}}{{ end }}"}}")
+  echo "Jellyfin URL: http://$SERVICE_IP:{{ .Values.service.port }}"
+
+{{- else if contains "ClusterIP" .Values.service.type }}
+
+Get the Jellyfin URL by running:
+
+  export POD_NAME=$(kubectl get pods --namespace {{ .Release.Namespace }} -l "app.kubernetes.io/name={{ include "jellyfin.name" . }},app.kubernetes.io/instance={{ .Release.Name }}" -o jsonpath="{.items[0].metadata.name}")
+  export CONTAINER_PORT=$(kubectl get pod --namespace {{ .Release.Namespace }} $POD_NAME -o jsonpath="{.spec.containers[0].ports[0].containerPort}")
+  echo "Jellyfin URL: http://127.0.0.1:8080"
+  kubectl --namespace {{ .Release.Namespace }} port-forward $POD_NAME 8080:$CONTAINER_PORT
+
+{{- end }}
+
+{{- if .Values.persistence.config.enabled }}
+
+Configuration is persisted to:
+{{- if .Values.persistence.config.existingClaim }}
+  Existing PVC: {{ .Values.persistence.config.existingClaim }}
+{{- else }}
+  PVC: {{ include "jellyfin.fullname" . }}-config
+{{- end }}
+{{- else }}
+
+WARNING: Configuration persistence is disabled!
+         Data will be lost when the pod is restarted.
+         Enable persistence.config.enabled to persist your configuration.
+{{- end }}
+
+{{- if .Values.persistence.media.enabled }}
+
+Media is {{ if eq .Values.persistence.media.type "hostPath" }}mounted from host path{{ else if eq .Values.persistence.media.type "pvc" }}persisted to PVC{{ else }}stored in emptyDir{{ end }}:
+{{- if eq .Values.persistence.media.type "hostPath" }}
+  Host path: {{ .Values.persistence.media.hostPath }}
+{{- else if eq .Values.persistence.media.type "pvc" }}
+  {{- if .Values.persistence.media.existingClaim }}
+  Existing PVC: {{ .Values.persistence.media.existingClaim }}
+  {{- else }}
+  PVC: {{ include "jellyfin.fullname" . }}-media
+  {{- end }}
+{{- end }}
+{{- else }}
+
+WARNING: Media persistence is disabled!
+         Your media files will be lost when the pod is restarted.
+         Enable persistence.media.enabled to persist your media.
+{{- end }}
+
+For more information and documentation:
+  Repository: https://github.com/jellyfin/jellyfin-helm
+  Jellyfin Docs: https://jellyfin.org/docs/

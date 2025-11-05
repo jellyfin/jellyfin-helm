@@ -254,8 +254,22 @@ metrics:
     # -- Target labels to add to the scraped metrics
     targetLabels: []
 
-# -- additional init containers to run inside the pod.
+# -- DEPRECATED: Use extraInitContainers instead. Will be removed after 2030.
+# @deprecated - This parameter is deprecated, use extraInitContainers instead
+initContainers: []
+
+# -- Additional init containers to run inside the pod.
+# Init containers run before the main application container starts.
+# See: https://kubernetes.io/docs/concepts/workloads/pods/init-containers/
+# Example:
+# extraInitContainers:
+#   - name: init-config
+#     image: busybox:1.35
+#     command: ['sh', '-c', 'echo "Initializing..." && sleep 5']
+#     volumeMounts:
+#       - name: config
+#         mountPath: /config
 extraInitContainers: []
-  
+
 # -- additional sidecar containers to run inside the pod.
 extraContainers: []
