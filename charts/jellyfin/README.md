@@ -1,6 +1,6 @@
 # jellyfin
 
-![Version: 2.5.0](https://img.shields.io/badge/Version-2.5.0-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: 10.11.2](https://img.shields.io/badge/AppVersion-10.11.2-informational?style=flat-square)
+![Version: 2.5.1](https://img.shields.io/badge/Version-2.5.1-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: 10.11.2](https://img.shields.io/badge/AppVersion-10.11.2-informational?style=flat-square)
 
 A Helm chart for Jellyfin Media Server
 
@@ -68,7 +68,7 @@ helm install my-jellyfin jellyfin/jellyfin -f values.yaml
 | jellyfin.args | list | `[]` | Additional arguments for the entrypoint command. |
 | jellyfin.command | list | `[]` | Custom command to use as container entrypoint. |
 | jellyfin.enableDLNA | bool | `false` | Enable DLNA. Requires host network. See: https://jellyfin.org/docs/general/networking/dlna.html |
-| jellyfin.env | list | `[]` | Additional environment variables for the container. |
+| jellyfin.env | list | `[]` | Additional environment variables for the container. Example: Workaround for inotify limits (see Troubleshooting section in README) |
 | livenessProbe | object | `{"initialDelaySeconds":10,"tcpSocket":{"port":"http"}}` | Configure liveness probe for Jellyfin. |
 | metrics | object | `{"enabled":false,"serviceMonitor":{"enabled":false,"interval":"30s","labels":{},"metricRelabelings":[],"namespace":"","path":"/metrics","port":8096,"relabelings":[],"scheme":"http","scrapeTimeout":"30s","targetLabels":[],"tlsConfig":{}}}` | Configuration for metrics collection and monitoring |
 | metrics.enabled | bool | `false` | Enable or disable metrics collection |
@@ -160,3 +160,44 @@ extraVolumeMounts:
   - name: hwa
     mountPath: /dev/dri
 ```
+
+## Troubleshooting
+
+### inotify Instance Limit Reached
+
+**Problem:** Jellyfin crashes with error:
+```
+System.IO.IOException: The configured user limit (128) on the number of inotify instances has been reached
+```
+
+**Root cause:** The Linux kernel has a limit on inotify instances (file system watchers) per user. Jellyfin uses inotify to monitor media libraries for changes.
+
+**Proper solution (recommended):**
+
+Increase the inotify limit on the Kubernetes nodes:
+
+```bash
+# Temporary (until reboot)
+sysctl -w fs.inotify.max_user_instances=512
+
+# Permanent
+echo "fs.inotify.max_user_instances=512" >> /etc/sysctl.conf
+sysctl -p
+```
+
+Recommended values:
+- `fs.inotify.max_user_instances`: 512 or higher
+- `fs.inotify.max_user_watches`: 524288 or higher (if you have large media libraries)
+
+**Workaround (if you cannot modify host settings):**
+
+If you're running on a managed Kubernetes cluster where you cannot modify node-level settings, you can force Jellyfin to use polling instead of inotify. **Note: This is less efficient and may increase CPU usage and delay change detection.**
+
+```yaml
+jellyfin:
+  env:
+    - name: DOTNET_USE_POLLING_FILE_WATCHER
+      value: "1"
+```
+
+This workaround disables inotify file watching in favor of periodic polling, which doesn't require inotify instances but is less efficient.

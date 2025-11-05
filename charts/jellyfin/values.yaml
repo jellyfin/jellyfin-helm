@@ -192,7 +192,10 @@ jellyfin:
   # -- Additional arguments for the entrypoint command.
   args: []
   # -- Additional environment variables for the container.
+  # Example: Workaround for inotify limits (see Troubleshooting section in README)
   env: []
+  # - name: DOTNET_USE_POLLING_FILE_WATCHER
+  #   value: "1"
 
 persistence:
   config:
