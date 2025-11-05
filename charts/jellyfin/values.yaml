@@ -133,7 +133,20 @@ resources: {}
   #   cpu: 100m
   #   memory: 128Mi
 
+# -- Configure startup probe for Jellyfin.
+# This probe gives Jellyfin enough time to start, especially with large media libraries.
+# After the startup probe succeeds once, liveness and readiness probes take over.
+startupProbe:
+  tcpSocket:
+    port: http
+  initialDelaySeconds: 0
+  periodSeconds: 10
+  failureThreshold: 30
+  # With these defaults, Jellyfin has up to 5 minutes (30 * 10s) to start.
+  # Adjust failureThreshold if you have very large media libraries or slow storage.
+
 # -- Configure liveness probe for Jellyfin.
+# This probe is disabled during startup (startup probe handles initial checks).
 livenessProbe:
   initialDelaySeconds: 10
   tcpSocket:
@@ -144,6 +157,7 @@ livenessProbe:
   # periodSeconds: 10
 
 # -- Configure readiness probe for Jellyfin.
+# This probe is disabled during startup (startup probe handles initial checks).
 readinessProbe:
   initialDelaySeconds: 10
   tcpSocket:
