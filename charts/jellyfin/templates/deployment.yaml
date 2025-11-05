@@ -119,6 +119,8 @@ spec:
               name: config
             - mountPath: /media
               name: media
+            - mountPath: /cache
+              name: cache
             {{- with .Values.volumeMounts }}
             {{- toYaml . | nindent 12 }}
             {{- end }}
@@ -145,6 +147,21 @@ spec:
             {{- else if eq .Values.persistence.media.type "hostPath" }}
           hostPath:
             path: {{ .Values.persistence.media.hostPath }}
+            type: Directory
+            {{- else }}
+          emptyDir: {}
+            {{- end }}
+          {{- else }}
+          emptyDir: {}
+          {{- end }}
+        - name: cache
+          {{- if .Values.persistence.cache.enabled }}
+            {{- if eq .Values.persistence.cache.type "pvc" }}
+          persistentVolumeClaim:
+            claimName: {{ if .Values.persistence.cache.existingClaim }}{{ .Values.persistence.cache.existingClaim }}{{- else }}{{ template "jellyfin.fullname" . }}-cache{{- end }}
+            {{- else if eq .Values.persistence.cache.type "hostPath" }}
+          hostPath:
+            path: {{ .Values.persistence.cache.hostPath }}
             type: Directory
             {{- else }}
           emptyDir: {}

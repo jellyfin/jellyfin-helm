@@ -1,6 +1,6 @@
 # jellyfin
 
-![Version: 2.5.0](https://img.shields.io/badge/Version-2.5.0-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: 10.11.2](https://img.shields.io/badge/AppVersion-10.11.2-informational?style=flat-square)
+![Version: 2.5.1](https://img.shields.io/badge/Version-2.5.1-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: 10.11.2](https://img.shields.io/badge/AppVersion-10.11.2-informational?style=flat-square)
 
 A Helm chart for Jellyfin Media Server
 
@@ -87,6 +87,13 @@ helm install my-jellyfin jellyfin/jellyfin -f values.yaml
 | metrics.serviceMonitor.tlsConfig | object | `{}` | TLS configuration for scraping metrics |
 | nameOverride | string | `""` | Override the default name of the chart. |
 | nodeSelector | object | `{}` | Node selector for pod scheduling. |
+| persistence.cache.accessMode | string | `"ReadWriteOnce"` | PVC specific settings, only used if type is 'pvc'. |
+| persistence.cache.annotations | object | `{}` | Custom annotations to be added to the PVC |
+| persistence.cache.enabled | bool | `false` | set to false to use emptyDir |
+| persistence.cache.hostPath | string | `""` | Path on the host node for cache storage, only used if type is 'hostPath'. |
+| persistence.cache.size | string | `"10Gi"` |  |
+| persistence.cache.storageClass | string | `""` | If undefined (the default) or set to null, no storageClassName spec is set, choosing the default provisioner. |
+| persistence.cache.type | string | `"pvc"` | Type of volume for cache storage (pvc, hostPath, emptyDir). If 'enabled' is false, 'emptyDir' is used regardless of this setting. |
 | persistence.config.accessMode | string | `"ReadWriteOnce"` |  |
 | persistence.config.annotations | object | `{}` | Custom annotations to be added to the PVC |
 | persistence.config.enabled | bool | `true` | set to false to use emptyDir |
