@@ -1,0 +1,108 @@
+name: Auto-bump Chart Version
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    paths:
+      - 'charts/jellyfin/Chart.yaml'
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  auto-bump:
+    runs-on: ubuntu-latest
+    # Only run for Renovate PRs
+    if: github.actor == 'renovate[bot]' || github.actor == 'renovate-bot'
+    steps:
+      - name: Checkout PR branch
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+          repository: ${{ github.event.pull_request.head.repo.full_name }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
+
+      - name: Check if appVersion changed
+        id: check_changes
+        run: |
+          # Get the base branch
+          git fetch origin ${{ github.event.pull_request.base.ref }}
+
+          # Check if appVersion changed
+          BASE_APP_VERSION=$(git show origin/${{ github.event.pull_request.base.ref }}:charts/jellyfin/Chart.yaml | grep '^appVersion:' | awk '{print $2}')
+          CURRENT_APP_VERSION=$(grep '^appVersion:' charts/jellyfin/Chart.yaml | awk '{print $2}')
+
+          echo "Base appVersion: $BASE_APP_VERSION"
+          echo "Current appVersion: $CURRENT_APP_VERSION"
+
+          if [ "$BASE_APP_VERSION" != "$CURRENT_APP_VERSION" ]; then
+            echo "changed=true" >> $GITHUB_OUTPUT
+            echo "appVersion changed from $BASE_APP_VERSION to $CURRENT_APP_VERSION"
+          else
+            echo "changed=false" >> $GITHUB_OUTPUT
+            echo "appVersion did not change"
+          fi
+
+      - name: Check if chart version already bumped
+        if: steps.check_changes.outputs.changed == 'true'
+        id: check_version_bumped
+        run: |
+          # Get versions
+          BASE_CHART_VERSION=$(git show origin/${{ github.event.pull_request.base.ref }}:charts/jellyfin/Chart.yaml | grep '^version:' | awk '{print $2}')
+          CURRENT_CHART_VERSION=$(grep '^version:' charts/jellyfin/Chart.yaml | awk '{print $2}')
+
+          echo "Base chart version: $BASE_CHART_VERSION"
+          echo "Current chart version: $CURRENT_CHART_VERSION"
+
+          if [ "$BASE_CHART_VERSION" != "$CURRENT_CHART_VERSION" ]; then
+            echo "already_bumped=true" >> $GITHUB_OUTPUT
+            echo "Chart version already bumped from $BASE_CHART_VERSION to $CURRENT_CHART_VERSION"
+          else
+            echo "already_bumped=false" >> $GITHUB_OUTPUT
+            echo "Chart version not bumped yet"
+          fi
+
+      - name: Bump chart version
+        if: steps.check_changes.outputs.changed == 'true' && steps.check_version_bumped.outputs.already_bumped == 'false'
+        id: bump_version
+        run: |
+          CHART_FILE='charts/jellyfin/Chart.yaml'
+          CURRENT_VERSION=$(grep '^version:' "$CHART_FILE" | awk '{print $2}')
+
+          # Parse version
+          MAJOR=$(echo "$CURRENT_VERSION" | cut -d. -f1)
+          MINOR=$(echo "$CURRENT_VERSION" | cut -d. -f2)
+          PATCH=$(echo "$CURRENT_VERSION" | cut -d. -f3)
+
+          # Bump patch version
+          NEW_VERSION="$MAJOR.$MINOR.$((PATCH + 1))"
+
+          # Update Chart.yaml
+          sed -i "s/^version:.*/version: $NEW_VERSION/" "$CHART_FILE"
+
+          echo "old_version=$CURRENT_VERSION" >> $GITHUB_OUTPUT
+          echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
+          echo "Bumped chart version from $CURRENT_VERSION to $NEW_VERSION"
+
+      - name: Commit and push changes
+        if: steps.check_changes.outputs.changed == 'true' && steps.check_version_bumped.outputs.already_bumped == 'false'
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git add charts/jellyfin/Chart.yaml
+          git commit --message "chore(jellyfin): bump chart version to ${{ steps.bump_version.outputs.new_version }}"
+          git push
+
+      - name: Comment on PR
+        if: steps.check_changes.outputs.changed == 'true' && steps.check_version_bumped.outputs.already_bumped == 'false'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: `✅ Automatically bumped chart version from **${{ steps.bump_version.outputs.old_version }}** to **${{ steps.bump_version.outputs.new_version }}** due to appVersion change.`
+            })

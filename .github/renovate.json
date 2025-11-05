@@ -9,5 +9,39 @@
       "datasourceTemplate": "docker",
       "depNameTemplate": "jellyfin/jellyfin"
     }
+  ],
+  "packageRules": [
+    {
+      "description": "Automerge GitHub Actions minor and patch updates",
+      "matchManagers": ["github-actions"],
+      "matchUpdateTypes": ["minor", "patch", "pin", "digest"],
+      "automerge": true
+    },
+    {
+      "description": "Automerge Jellyfin patch updates after tests pass",
+      "matchDatasources": ["docker"],
+      "matchPackageNames": ["jellyfin/jellyfin"],
+      "matchUpdateTypes": ["patch"],
+      "automerge": true
+    },
+    {
+      "description": "Auto-bump chart version when appVersion changes",
+      "matchDatasources": ["docker"],
+      "matchPackageNames": ["jellyfin/jellyfin"],
+      "postUpgradeTasks": {
+        "commands": [
+          "CHART_FILE='charts/jellyfin/Chart.yaml'",
+          "CURRENT_VERSION=$(grep '^version:' \"$CHART_FILE\" | awk '{print $2}')",
+          "MAJOR=$(echo \"$CURRENT_VERSION\" | cut -d. -f1)",
+          "MINOR=$(echo \"$CURRENT_VERSION\" | cut -d. -f2)",
+          "PATCH=$(echo \"$CURRENT_VERSION\" | cut -d. -f3)",
+          "NEW_VERSION=\"$MAJOR.$MINOR.$((PATCH + 1))\"",
+          "sed -i \"s/^version:.*/version: $NEW_VERSION/\" \"$CHART_FILE\"",
+          "echo \"Bumped chart version from $CURRENT_VERSION to $NEW_VERSION\""
+        ],
+        "fileFilters": ["charts/jellyfin/Chart.yaml"],
+        "executionMode": "branch"
+      }
+    }
   ]
 }
