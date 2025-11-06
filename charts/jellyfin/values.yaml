@@ -4,6 +4,12 @@
 # -- Number of Jellyfin replicas to start. Should be left at 1.
 replicaCount: 1
 
+# -- Number of old ReplicaSets to retain for rollback history.
+# Set to 0 to disable revision history (not recommended).
+# If not specified, Kubernetes defaults to 10.
+# See: https://kubernetes.io/docs/concepts/workloads/controllers/deployment/#revision-history-limit
+revisionHistoryLimit: 3
+
 # -- Image pull secrets to authenticate with private repositories.
 # See: https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/
 imagePullSecrets: []
