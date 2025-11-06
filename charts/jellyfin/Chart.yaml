@@ -8,5 +8,9 @@ keywords:
   - jellyfin
   - media
   - self-hosted
-version: 2.5.0
+version: 2.5.1
 appVersion: 10.11.2
+annotations:
+  artifacthub.io/changes: |
+    - kind: added
+      description: Add revisionHistoryLimit parameter to control rollback history retention (defaults to 3 instead of Kubernetes default 10)
