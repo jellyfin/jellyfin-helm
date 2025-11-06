@@ -59,6 +59,10 @@ spec:
           args:
             {{- toYaml . | nindent 12 }}
           {{- end }}
+          {{- with .Values.jellyfin.envFrom }}
+          envFrom:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
           {{- with .Values.jellyfin.env }}
           env:
             {{- toYaml . | nindent 12 }}

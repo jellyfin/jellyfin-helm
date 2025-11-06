@@ -8,5 +8,9 @@ keywords:
   - jellyfin
   - media
   - self-hosted
-version: 2.5.0
+version: 2.6.0
 appVersion: 10.11.2
+annotations:
+  artifacthub.io/changes: |
+    - kind: added
+      description: Add envFrom support to load environment variables from ConfigMap or Secret
