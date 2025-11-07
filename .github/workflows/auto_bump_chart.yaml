@@ -24,6 +24,25 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           fetch-depth: 0
 
+      - name: Install tools
+        run: |
+          # Install yq
+          # renovate: datasource=github-releases depName=mikefarah/yq
+          YQ_VERSION="4.44.3"
+          wget -q https://github.com/mikefarah/yq/releases/download/v${YQ_VERSION}/yq_linux_amd64 -O yq
+          chmod +x yq
+          sudo mv yq /usr/local/bin/yq
+          yq --version
+
+          # Install helm-docs
+          # renovate: datasource=github-releases depName=norwoodj/helm-docs
+          HELM_DOCS_VERSION="1.14.2"
+          wget -q https://github.com/norwoodj/helm-docs/releases/download/v${HELM_DOCS_VERSION}/helm-docs_${HELM_DOCS_VERSION}_Linux_x86_64.tar.gz
+          tar -xzf helm-docs_${HELM_DOCS_VERSION}_Linux_x86_64.tar.gz
+          sudo mv helm-docs /usr/local/bin/
+          sudo chmod +x /usr/local/bin/helm-docs
+          helm-docs --version
+
       - name: Check if appVersion changed
         id: check_changes
         run: |
@@ -86,13 +105,44 @@ jobs:
           echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
           echo "Bumped chart version from $CURRENT_VERSION to $NEW_VERSION"
 
+      - name: Update changelog annotation
+        if: steps.check_changes.outputs.changed == 'true' && steps.check_version_bumped.outputs.already_bumped == 'false'
+        run: |
+          CHART_FILE='charts/jellyfin/Chart.yaml'
+
+          # Extract description from PR title
+          # Format: "chore(deps): update jellyfin/jellyfin docker tag to v10.11.3" -> "Update jellyfin/jellyfin docker tag to v10.11.3"
+          pr_title="${{ github.event.pull_request.title }}"
+          # Remove conventional commit prefix (e.g., "chore(deps): ") and capitalize first letter
+          changelog_desc=$(echo "$pr_title" | sed -E 's/^[^:]+:\s*//' | sed 's/^./\U&/')
+
+          echo "📝 Updating changelog annotation with: $changelog_desc"
+
+          # Update changelog annotation with PR description
+          export changelog_desc
+          yq eval -i '.annotations."artifacthub.io/changes" = "- kind: changed\n  description: " + env(changelog_desc)' \
+            "$CHART_FILE"
+
+          echo "✅ Updated Chart.yaml changelog"
+
+      - name: Regenerate documentation
+        if: steps.check_changes.outputs.changed == 'true' && steps.check_version_bumped.outputs.already_bumped == 'false'
+        run: |
+          if [ -f "charts/jellyfin/README.md.gotmpl" ]; then
+            echo "📚 Regenerating documentation for charts/jellyfin"
+            helm-docs charts/jellyfin
+            echo "✅ Documentation regenerated"
+          else
+            echo "ℹ️ No README.md.gotmpl found, skipping documentation generation"
+          fi
+
       - name: Commit and push changes
         if: steps.check_changes.outputs.changed == 'true' && steps.check_version_bumped.outputs.already_bumped == 'false'
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          git add charts/jellyfin/Chart.yaml
-          git commit --message "chore(jellyfin): bump chart version to ${{ steps.bump_version.outputs.new_version }}"
+          git add charts/jellyfin/Chart.yaml charts/jellyfin/README.md
+          git commit --message "chore(jellyfin): bump chart version to ${{ steps.bump_version.outputs.new_version }} and regenerate docs"
           git push
 
       - name: Comment on PR
