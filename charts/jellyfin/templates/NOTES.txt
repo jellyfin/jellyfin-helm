@@ -1,0 +1,40 @@
+Thank you for installing {{ .Chart.Name }}.
+
+Your release is named {{ .Release.Name }}.
+
+To learn more about the release, try:
+
+  $ helm status {{ .Release.Name }}
+  $ helm get all {{ .Release.Name }}
+
+{{- if .Values.ingress.enabled }}
+
+Jellyfin is available via Ingress at:
+{{- range .Values.ingress.hosts }}
+  http{{ if $.Values.ingress.tls }}s{{ end }}://{{ .host }}{{ (index .paths 0).path }}
+{{- end }}
+{{- else }}
+
+To access Jellyfin, you can use port-forwarding:
+
+  $ kubectl port-forward --namespace {{ .Release.Namespace }} svc/{{ include "jellyfin.fullname" . }} {{ .Values.service.port }}:{{ .Values.service.port }}
+
+Then visit http://localhost:{{ .Values.service.port }} in your browser.
+{{- end }}
+
+{{- if .Values.startupProbe }}
+{{- $startupTimeout := mul (default 10 .Values.startupProbe.periodSeconds) (default 30 .Values.startupProbe.failureThreshold) }}
+
+Startup Configuration:
+  Startup Probe: Enabled
+  Max Startup Time: {{ $startupTimeout }}s ({{ div $startupTimeout 60 }} minutes)
+
+  The startup probe gives Jellyfin enough time to initialize, especially
+  with large media libraries. After startup succeeds, liveness and
+  readiness probes take over for health monitoring.
+
+  {{- if gt $startupTimeout 600 }}
+  ⚠ NOTE: Startup timeout is very long ({{ div $startupTimeout 60 }}+ minutes).
+  Consider optimizing your media library or reducing failureThreshold.
+  {{- end }}
+{{- end }}
