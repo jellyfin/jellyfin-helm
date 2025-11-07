@@ -8,5 +8,14 @@ keywords:
   - jellyfin
   - media
   - self-hosted
-version: 2.5.0
+version: 2.6.0
 appVersion: 10.11.2
+annotations:
+  artifacthub.io/changes: |
+    - kind: added
+      description: "Add NetworkPolicy support for network isolation and security hardening"
+      links:
+        - name: Documentation
+          url: https://kubernetes.io/docs/concepts/services-networking/network-policies/
+    - kind: added
+      description: "Add NOTES.txt with deployment status and NetworkPolicy configuration summary"
