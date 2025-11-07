@@ -1,0 +1,36 @@
+Thank you for installing {{ .Chart.Name }}.
+
+Your release is named {{ .Release.Name }}.
+
+To learn more about the release, try:
+
+  $ helm status {{ .Release.Name }}
+  $ helm get all {{ .Release.Name }}
+
+{{- if .Values.ingress.enabled }}
+
+Jellyfin is available via Ingress at:
+{{- range .Values.ingress.hosts }}
+  http{{ if $.Values.ingress.tls }}s{{ end }}://{{ .host }}{{ (index .paths 0).path }}
+{{- end }}
+{{- else }}
+
+To access Jellyfin, you can use port-forwarding:
+
+  $ kubectl port-forward --namespace {{ .Release.Namespace }} svc/{{ include "jellyfin.fullname" . }} {{ .Values.service.port }}:{{ .Values.service.port }}
+
+Then visit http://localhost:{{ .Values.service.port }} in your browser.
+{{- end }}
+
+{{- if .Values.jellyfin.envFrom }}
+
+Environment Configuration:
+  Loading environment variables from {{ len .Values.jellyfin.envFrom }} source(s):
+{{- range .Values.jellyfin.envFrom }}
+  {{- if .configMapRef }}
+    - ConfigMap: {{ .configMapRef.name }}{{ if .configMapRef.optional }} (optional){{ end }}{{ if .prefix }} with prefix: {{ .prefix }}{{ end }}
+  {{- else if .secretRef }}
+    - Secret: {{ .secretRef.name }}{{ if .secretRef.optional }} (optional){{ end }}{{ if .prefix }} with prefix: {{ .prefix }}{{ end }}
+  {{- end }}
+{{- end }}
+{{- end }}
