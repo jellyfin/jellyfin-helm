@@ -1,0 +1,42 @@
+Thank you for installing {{ .Chart.Name }}.
+
+Your release is named {{ .Release.Name }}.
+
+To learn more about the release, try:
+
+  $ helm status {{ .Release.Name }}
+  $ helm get all {{ .Release.Name }}
+
+{{- if .Values.ingress.enabled }}
+
+Jellyfin is available via Ingress at:
+{{- range .Values.ingress.hosts }}
+  http{{ if $.Values.ingress.tls }}s{{ end }}://{{ .host }}{{ (index .paths 0).path }}
+{{- end }}
+{{- else }}
+
+To access Jellyfin, you can use port-forwarding:
+
+  $ kubectl port-forward --namespace {{ .Release.Namespace }} svc/{{ include "jellyfin.fullname" . }} {{ .Values.service.port }}:{{ .Values.service.port }}
+
+Then visit http://localhost:{{ .Values.service.port }} in your browser.
+{{- end }}
+
+{{- if or .Values.service.ipFamilyPolicy .Values.service.ipFamilies }}
+
+Service IP Configuration:
+{{- if .Values.service.ipFamilyPolicy }}
+  IP Family Policy: {{ .Values.service.ipFamilyPolicy }}
+{{- end }}
+{{- if .Values.service.ipFamilies }}
+  IP Families: {{ .Values.service.ipFamilies | join ", " }}
+  {{- if eq (index .Values.service.ipFamilies 0) "IPv6" }}
+  ⚠ NOTE: IPv6 primary - ensure your probes use httpGet instead of tcpSocket for compatibility
+  {{- end }}
+  {{- if has "IPv6" .Values.service.ipFamilies }}
+  {{- if not .Values.service.ipFamilyPolicy }}
+  ⚠ WARNING: ipFamilies includes IPv6 but ipFamilyPolicy is not set
+  {{- end }}
+  {{- end }}
+{{- end }}
+{{- end }}
