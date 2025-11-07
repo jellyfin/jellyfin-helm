@@ -156,3 +156,24 @@ jobs:
               repo: context.repo.repo,
               body: `✅ Automatically bumped chart version from **${{ steps.bump_version.outputs.old_version }}** to **${{ steps.bump_version.outputs.new_version }}** due to appVersion change.`
             })
+
+      - name: Trigger tests after bot commit
+        if: steps.check_changes.outputs.changed == 'true' && steps.check_version_bumped.outputs.already_bumped == 'false'
+        run: |
+          # Get the commit SHA we just pushed
+          COMMIT_SHA=$(git rev-parse HEAD)
+
+          echo "Triggering tests via repository_dispatch for commit $COMMIT_SHA"
+
+          # Trigger the test workflow via repository_dispatch
+          # This will create commit statuses that are visible in the PR
+          gh api repos/${{ github.repository }}/dispatches \
+            --method POST \
+            --field event_type=test-charts \
+            --field "client_payload[sha]=$COMMIT_SHA" \
+            --field "client_payload[ref]=${{ github.head_ref }}" \
+            --field "client_payload[pr_number]=${{ github.event.pull_request.number }}"
+
+          echo "✅ Test workflow triggered successfully via repository_dispatch"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
