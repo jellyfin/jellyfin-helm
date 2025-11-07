@@ -1,0 +1,32 @@
+Thank you for installing {{ .Chart.Name }}.
+
+Your release is named {{ .Release.Name }}.
+
+To learn more about the release, try:
+
+  $ helm status {{ .Release.Name }}
+  $ helm get all {{ .Release.Name }}
+
+{{- if .Values.ingress.enabled }}
+
+Jellyfin is available via Ingress at:
+{{- range .Values.ingress.hosts }}
+  http{{ if $.Values.ingress.tls }}s{{ end }}://{{ .host }}{{ (index .paths 0).path }}
+{{- end }}
+{{- else }}
+
+To access Jellyfin, you can use port-forwarding:
+
+  $ kubectl port-forward --namespace {{ .Release.Namespace }} svc/{{ include "jellyfin.fullname" . }} {{ .Values.service.port }}:{{ .Values.service.port }}
+
+Then visit http://localhost:{{ .Values.service.port }} in your browser.
+{{- end }}
+
+For troubleshooting common issues, see the README:
+- inotify instance limit errors
+- Hardware acceleration setup
+- Network configuration
+
+Useful resources:
+  Documentation: https://jellyfin.org/docs/
+  Troubleshooting: See README.md in the chart repository
