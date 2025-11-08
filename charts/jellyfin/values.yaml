@@ -91,8 +91,17 @@ service:
   # -- Service type (ClusterIP, NodePort, or LoadBalancer).
   type: ClusterIP
   # -- Configure dual-stack IP family policy. See: https://kubernetes.io/docs/concepts/services-networking/dual-stack/
+  # Options: SingleStack, PreferDualStack, RequireDualStack
+  # For IPv6-only clusters, use "SingleStack" with ipFamilies: ["IPv6"]
+  # For dual-stack, use "PreferDualStack" or "RequireDualStack" with ipFamilies: ["IPv4", "IPv6"] or ["IPv6", "IPv4"]
   ipFamilyPolicy: ""
   # -- Supported IP families (IPv4, IPv6).
+  # Examples:
+  #   IPv4 only: ["IPv4"]
+  #   IPv6 only: ["IPv6"]
+  #   Dual-stack (IPv4 primary): ["IPv4", "IPv6"]
+  #   Dual-stack (IPv6 primary): ["IPv6", "IPv4"]
+  # Note: When using IPv6, ensure your health checks are compatible (consider using httpGet instead of tcpSocket)
   ipFamilies: []
   # -- Specific IP address for the LoadBalancer.
   loadBalancerIP: ""
@@ -153,10 +162,12 @@ startupProbe:
 
 # -- Configure liveness probe for Jellyfin.
 # This probe is disabled during startup (startup probe handles initial checks).
+# Uses httpGet for compatibility with both IPv4 and IPv6.
 livenessProbe:
-  initialDelaySeconds: 10
-  tcpSocket:
+  httpGet:
+    path: /health
     port: http
+  initialDelaySeconds: 10
   # successThreshold: 1
   # failureThreshold: 3
   # timeoutSeconds: 1
@@ -164,10 +175,12 @@ livenessProbe:
 
 # -- Configure readiness probe for Jellyfin.
 # This probe is disabled during startup (startup probe handles initial checks).
+# Uses httpGet for compatibility with both IPv4 and IPv6.
 readinessProbe:
-  initialDelaySeconds: 10
-  tcpSocket:
+  httpGet:
+    path: /health
     port: http
+  initialDelaySeconds: 10
   # successThreshold: 1
   # failureThreshold: 3
   # timeoutSeconds: 1
@@ -236,6 +249,22 @@ persistence:
     # -- PVC specific settings, only used if type is 'pvc'.
     accessMode: ReadWriteOnce
     size: 25Gi
+    # -- Custom annotations to be added to the PVC
+    annotations: {}
+    # -- If undefined (the default) or set to null, no storageClassName spec is set, choosing the default provisioner.
+    storageClass: ''
+    ## -- Use an existing PVC for this mount
+    # existingClaim: ''
+  cache:
+    # -- set to false to use emptyDir
+    enabled: false
+    # -- Type of volume for cache storage (pvc, hostPath, emptyDir). If 'enabled' is false, 'emptyDir' is used regardless of this setting.
+    type: pvc
+    # -- Path on the host node for cache storage, only used if type is 'hostPath'.
+    hostPath: ""
+    # -- PVC specific settings, only used if type is 'pvc'.
+    accessMode: ReadWriteOnce
+    size: 10Gi
     # -- Custom annotations to be added to the PVC
     annotations: {}
     # -- If undefined (the default) or set to null, no storageClassName spec is set, choosing the default provisioner.

@@ -15,4 +15,10 @@ annotations:
     - kind: added
       description: Add startup probe to prevent pod restarts during slow initial startup with large media libraries
     - kind: added
+      description: Add persistence.cache configuration for dedicated cache volume support
+    - kind: added
+      description: Add comprehensive IPv6 and dual-stack networking documentation
+    - kind: changed
+      description: Improve health probe configuration examples for IPv6 compatibility
+    - kind: changed
       description: Add revisionHistoryLimit parameter to control rollback history retention (defaults to 3 instead of Kubernetes default 10)
