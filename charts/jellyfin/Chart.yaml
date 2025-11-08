@@ -19,3 +19,5 @@ annotations:
           url: https://kubernetes.io/docs/concepts/services-networking/network-policies/
     - kind: added
       description: "Add NOTES.txt with deployment status and NetworkPolicy configuration summary"
+    - kind: added
+      description: Add revisionHistoryLimit parameter to control rollback history retention (defaults to 3 instead of Kubernetes default 10)
