@@ -1,0 +1,193 @@
+suite: test httproute
+templates:
+  - httproute.yaml
+tests:
+  - it: should not create HTTPRoute by default
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: should create HTTPRoute when enabled
+    set:
+      httpRoute.enabled: true
+      httpRoute.parentRefs:
+        - name: my-gateway
+          namespace: gateway-system
+      httpRoute.rules:
+        - matches:
+            - path:
+                type: PathPrefix
+                value: /
+    asserts:
+      - hasDocuments:
+          count: 1
+      - isKind:
+          of: HTTPRoute
+      - isAPIVersion:
+          of: gateway.networking.k8s.io/v1
+      - equal:
+          path: metadata.name
+          value: RELEASE-NAME-jellyfin
+
+  - it: should add annotations when specified
+    set:
+      httpRoute.enabled: true
+      httpRoute.annotations:
+        my-annotation: my-value
+      httpRoute.parentRefs:
+        - name: my-gateway
+      httpRoute.rules:
+        - matches:
+            - path:
+                type: PathPrefix
+                value: /
+    asserts:
+      - equal:
+          path: metadata.annotations.my-annotation
+          value: my-value
+
+  - it: should set parentRefs correctly
+    set:
+      httpRoute.enabled: true
+      httpRoute.parentRefs:
+        - name: my-gateway
+          namespace: gateway-system
+          sectionName: https
+      httpRoute.rules:
+        - matches:
+            - path:
+                type: PathPrefix
+                value: /
+    asserts:
+      - equal:
+          path: spec.parentRefs[0].name
+          value: my-gateway
+      - equal:
+          path: spec.parentRefs[0].namespace
+          value: gateway-system
+      - equal:
+          path: spec.parentRefs[0].sectionName
+          value: https
+
+  - it: should set hostnames when specified
+    set:
+      httpRoute.enabled: true
+      httpRoute.hostnames:
+        - jellyfin.example.com
+        - media.example.com
+      httpRoute.parentRefs:
+        - name: my-gateway
+      httpRoute.rules:
+        - matches:
+            - path:
+                type: PathPrefix
+                value: /
+    asserts:
+      - equal:
+          path: spec.hostnames[0]
+          value: jellyfin.example.com
+      - equal:
+          path: spec.hostnames[1]
+          value: media.example.com
+
+  - it: should create rules with path matches
+    set:
+      httpRoute.enabled: true
+      httpRoute.parentRefs:
+        - name: my-gateway
+      httpRoute.rules:
+        - matches:
+            - path:
+                type: PathPrefix
+                value: /jellyfin
+    asserts:
+      - equal:
+          path: spec.rules[0].matches[0].path.type
+          value: PathPrefix
+      - equal:
+          path: spec.rules[0].matches[0].path.value
+          value: /jellyfin
+
+  - it: should set backendRefs to jellyfin service
+    set:
+      httpRoute.enabled: true
+      service.port: 8096
+      httpRoute.parentRefs:
+        - name: my-gateway
+      httpRoute.rules:
+        - matches:
+            - path:
+                type: PathPrefix
+                value: /
+    asserts:
+      - equal:
+          path: spec.rules[0].backendRefs[0].name
+          value: RELEASE-NAME-jellyfin
+      - equal:
+          path: spec.rules[0].backendRefs[0].port
+          value: 8096
+
+  - it: should support multiple rules
+    set:
+      httpRoute.enabled: true
+      httpRoute.parentRefs:
+        - name: my-gateway
+      httpRoute.rules:
+        - matches:
+            - path:
+                type: PathPrefix
+                value: /
+        - matches:
+            - path:
+                type: Exact
+                value: /api
+    asserts:
+      - lengthEqual:
+          path: spec.rules
+          count: 2
+      - equal:
+          path: spec.rules[0].matches[0].path.value
+          value: /
+      - equal:
+          path: spec.rules[1].matches[0].path.value
+          value: /api
+
+  - it: should support multiple matches in single rule
+    set:
+      httpRoute.enabled: true
+      httpRoute.parentRefs:
+        - name: my-gateway
+      httpRoute.rules:
+        - matches:
+            - path:
+                type: PathPrefix
+                value: /api
+            - path:
+                type: PathPrefix
+                value: /web
+    asserts:
+      - lengthEqual:
+          path: spec.rules[0].matches
+          count: 2
+      - equal:
+          path: spec.rules[0].matches[0].path.value
+          value: /api
+      - equal:
+          path: spec.rules[0].matches[1].path.value
+          value: /web
+
+  - it: should use custom service port
+    set:
+      httpRoute.enabled: true
+      service.port: 9000
+      httpRoute.parentRefs:
+        - name: my-gateway
+      httpRoute.rules:
+        - matches:
+            - path:
+                type: PathPrefix
+                value: /
+    asserts:
+      - equal:
+          path: spec.rules[0].backendRefs[0].port
+          value: 9000
