@@ -43,3 +43,26 @@ spec:
   storageClassName: {{ . | quote }}
   {{- end }}
 {{- end }}
+
+{{- if and .Values.persistence.cache.enabled (eq .Values.persistence.cache.type "pvc") (not .Values.persistence.cache.existingClaim) }}
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "jellyfin.fullname" . }}-cache
+  labels:
+    {{- include "jellyfin.labels" . | nindent 4 }}
+  {{- with .Values.persistence.cache.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  accessModes:
+    - {{ .Values.persistence.cache.accessMode | quote }}
+  resources:
+    requests:
+      storage: {{ .Values.persistence.cache.size | quote }}
+  {{- with .Values.persistence.cache.storageClass }}
+  storageClassName: {{ . | quote }}
+  {{- end }}
+{{- end }}

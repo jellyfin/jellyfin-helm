@@ -1,6 +1,6 @@
 # jellyfin
 
-![Version: 2.5.0](https://img.shields.io/badge/Version-2.5.0-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: 10.11.2](https://img.shields.io/badge/AppVersion-10.11.2-informational?style=flat-square)
+![Version: 2.5.1](https://img.shields.io/badge/Version-2.5.1-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: 10.11.2](https://img.shields.io/badge/AppVersion-10.11.2-informational?style=flat-square)
 
 A Helm chart for Jellyfin Media Server
 
@@ -69,7 +69,7 @@ helm install my-jellyfin jellyfin/jellyfin -f values.yaml
 | jellyfin.command | list | `[]` | Custom command to use as container entrypoint. |
 | jellyfin.enableDLNA | bool | `false` | Enable DLNA. Requires host network. See: https://jellyfin.org/docs/general/networking/dlna.html |
 | jellyfin.env | list | `[]` | Additional environment variables for the container. |
-| livenessProbe | object | `{"initialDelaySeconds":10,"tcpSocket":{"port":"http"}}` | Configure liveness probe for Jellyfin. |
+| livenessProbe | object | `{"httpGet":{"path":"/health","port":"http"},"initialDelaySeconds":10}` | Configure liveness probe for Jellyfin. Uses httpGet for compatibility with both IPv4 and IPv6. |
 | metrics | object | `{"enabled":false,"serviceMonitor":{"enabled":false,"interval":"30s","labels":{},"metricRelabelings":[],"namespace":"","path":"/metrics","port":8096,"relabelings":[],"scheme":"http","scrapeTimeout":"30s","targetLabels":[],"tlsConfig":{}}}` | Configuration for metrics collection and monitoring |
 | metrics.enabled | bool | `false` | Enable or disable metrics collection |
 | metrics.serviceMonitor | object | `{"enabled":false,"interval":"30s","labels":{},"metricRelabelings":[],"namespace":"","path":"/metrics","port":8096,"relabelings":[],"scheme":"http","scrapeTimeout":"30s","targetLabels":[],"tlsConfig":{}}` | Configuration for the Prometheus ServiceMonitor |
@@ -87,6 +87,13 @@ helm install my-jellyfin jellyfin/jellyfin -f values.yaml
 | metrics.serviceMonitor.tlsConfig | object | `{}` | TLS configuration for scraping metrics |
 | nameOverride | string | `""` | Override the default name of the chart. |
 | nodeSelector | object | `{}` | Node selector for pod scheduling. |
+| persistence.cache.accessMode | string | `"ReadWriteOnce"` | PVC specific settings, only used if type is 'pvc'. |
+| persistence.cache.annotations | object | `{}` | Custom annotations to be added to the PVC |
+| persistence.cache.enabled | bool | `false` | set to false to use emptyDir |
+| persistence.cache.hostPath | string | `""` | Path on the host node for cache storage, only used if type is 'hostPath'. |
+| persistence.cache.size | string | `"10Gi"` |  |
+| persistence.cache.storageClass | string | `""` | If undefined (the default) or set to null, no storageClassName spec is set, choosing the default provisioner. |
+| persistence.cache.type | string | `"pvc"` | Type of volume for cache storage (pvc, hostPath, emptyDir). If 'enabled' is false, 'emptyDir' is used regardless of this setting. |
 | persistence.config.accessMode | string | `"ReadWriteOnce"` |  |
 | persistence.config.annotations | object | `{}` | Custom annotations to be added to the PVC |
 | persistence.config.enabled | bool | `true` | set to false to use emptyDir |
@@ -107,14 +114,14 @@ helm install my-jellyfin jellyfin/jellyfin -f values.yaml
 | podPrivileges.hostPID | bool | `false` | Enable hostPID namespace. Allows pod to see processes on the host. |
 | podSecurityContext | object | `{}` | Security context for the pod. |
 | priorityClassName | string | `""` | Define a priorityClassName for the pod. |
-| readinessProbe | object | `{"initialDelaySeconds":10,"tcpSocket":{"port":"http"}}` | Configure readiness probe for Jellyfin. |
+| readinessProbe | object | `{"httpGet":{"path":"/health","port":"http"},"initialDelaySeconds":10}` | Configure readiness probe for Jellyfin. Uses httpGet for compatibility with both IPv4 and IPv6. |
 | replicaCount | int | `1` | Number of Jellyfin replicas to start. Should be left at 1. |
 | resources | object | `{}` | Resource requests and limits for the Jellyfin container. |
 | runtimeClassName | string | `""` | Define a custom runtimeClassName for the pod. |
 | securityContext | object | `{}` | Security context for the container. |
 | service.annotations | object | `{}` | Annotations for the service. |
-| service.ipFamilies | list | `[]` | Supported IP families (IPv4, IPv6). |
-| service.ipFamilyPolicy | string | `""` | Configure dual-stack IP family policy. See: https://kubernetes.io/docs/concepts/services-networking/dual-stack/ |
+| service.ipFamilies | list | `[]` | Supported IP families (IPv4, IPv6). Examples:   IPv4 only: ["IPv4"]   IPv6 only: ["IPv6"]   Dual-stack (IPv4 primary): ["IPv4", "IPv6"]   Dual-stack (IPv6 primary): ["IPv6", "IPv4"] Note: When using IPv6, ensure your health checks are compatible (consider using httpGet instead of tcpSocket) |
+| service.ipFamilyPolicy | string | `""` | Configure dual-stack IP family policy. See: https://kubernetes.io/docs/concepts/services-networking/dual-stack/ Options: SingleStack, PreferDualStack, RequireDualStack For IPv6-only clusters, use "SingleStack" with ipFamilies: ["IPv6"] For dual-stack, use "PreferDualStack" or "RequireDualStack" with ipFamilies: ["IPv4", "IPv6"] or ["IPv6", "IPv4"] |
 | service.labels | object | `{}` | Labels for the service. |
 | service.loadBalancerClass | string | `""` | Class of the LoadBalancer. |
 | service.loadBalancerIP | string | `""` | Specific IP address for the LoadBalancer. |
@@ -160,3 +167,32 @@ extraVolumeMounts:
   - name: hwa
     mountPath: /dev/dri
 ```
+
+## IPv6 Configuration
+
+This chart supports IPv6 and dual-stack networking configurations out of the box. Health probes use httpGet by default for compatibility with both IPv4 and IPv6.
+
+### IPv6-only Configuration
+
+For IPv6-only clusters:
+
+```yaml
+service:
+  ipFamilyPolicy: SingleStack
+  ipFamilies:
+    - IPv6
+```
+
+### Dual-stack Configuration
+
+For dual-stack clusters (both IPv4 and IPv6):
+
+```yaml
+service:
+  ipFamilyPolicy: PreferDualStack  # or RequireDualStack
+  ipFamilies:
+    - IPv4
+    - IPv6  # First family in the list is the primary
+```
+
+For more information about Kubernetes dual-stack networking, see: <https://kubernetes.io/docs/concepts/services-networking/dual-stack/>
