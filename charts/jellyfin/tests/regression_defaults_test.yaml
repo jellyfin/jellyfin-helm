@@ -39,7 +39,7 @@ tests:
     asserts:
       - matchRegex:
           path: spec.template.spec.containers[0].image
-          pattern: ^jellyfin/jellyfin:
+          pattern: "^jellyfin/jellyfin:"
 
   - it: should use IfNotPresent pullPolicy by default
     template: deployment.yaml

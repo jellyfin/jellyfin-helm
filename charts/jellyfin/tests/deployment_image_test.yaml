@@ -18,7 +18,7 @@ tests:
     asserts:
       - matchRegex:
           path: spec.template.spec.containers[0].image
-          pattern: ^ghcr\.io/jellyfin/jellyfin:
+          pattern: "^ghcr\\.io/jellyfin/jellyfin:"
 
   - it: should use private registry
     set:
@@ -26,7 +26,7 @@ tests:
     asserts:
       - matchRegex:
           path: spec.template.spec.containers[0].image
-          pattern: ^registry\.example\.com/jellyfin/jellyfin:
+          pattern: "^registry\\.example\\.com/jellyfin/jellyfin:"
 
   # =============================================================================
   # IMAGE TAG
@@ -36,7 +36,7 @@ tests:
     asserts:
       - matchRegex:
           path: spec.template.spec.containers[0].image
-          pattern: :RELEASE-VERSION$
+          pattern: ":RELEASE-VERSION$"
 
   - it: should use custom tag when specified
     set:
