@@ -147,6 +147,15 @@ To access Jellyfin, you can use port-forwarding:
 Then visit http://localhost:{{ .Values.service.port }} in your browser.
 {{- end }}
 
+For troubleshooting common issues, see the README:
+- inotify instance limit errors
+- Hardware acceleration setup
+- Network configuration
+
+Useful resources:
+  Documentation: https://jellyfin.org/docs/
+  Troubleshooting: See README.md in the chart repository
+
 {{- if .Values.jellyfin.envFrom }}
 
 Environment Configuration:
@@ -175,6 +184,8 @@ Startup Configuration:
   ⚠ NOTE: Startup timeout is very long ({{ div $startupTimeout 60 }}+ minutes).
   Consider optimizing your media library or reducing failureThreshold.
   {{- end }}
+{{- end }}
+
 Persistence Configuration:
   Config: {{ if .Values.persistence.config.enabled }}{{ .Values.persistence.config.type | default "pvc" }}{{ if .Values.persistence.config.existingClaim }} (existing: {{ .Values.persistence.config.existingClaim }}){{ end }}{{ else }}emptyDir{{ end }}
   Media: {{ if .Values.persistence.media.enabled }}{{ .Values.persistence.media.type | default "pvc" }}{{ if .Values.persistence.media.existingClaim }} (existing: {{ .Values.persistence.media.existingClaim }}){{ end }}{{ else }}emptyDir{{ end }}
@@ -197,6 +208,8 @@ Cache Volume:
 
 {{- if and .Values.persistence.cache.enabled (eq .Values.persistence.cache.type "hostPath") }}
 ⚠ WARNING: Using hostPath for cache - ensure {{ .Values.persistence.cache.hostPath }} exists on the node
+{{- end }}
+
 {{- if or .Values.service.ipFamilyPolicy .Values.service.ipFamilies }}
 
 Service IP Configuration:

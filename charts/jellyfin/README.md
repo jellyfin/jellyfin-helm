@@ -1,7 +1,6 @@
 # jellyfin
 
-![Version: 2.6.0](https://img.shields.io/badge/Version-2.6.0-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: 10.11.2](https://img.shields.io/badge/AppVersion-10.11.2-informational?style=flat-square)
-![Version: 2.5.1](https://img.shields.io/badge/Version-2.5.1-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: 10.11.2](https://img.shields.io/badge/AppVersion-10.11.2-informational?style=flat-square)
+![Version: 3.0.0](https://img.shields.io/badge/Version-3.0.0-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: 10.11.2](https://img.shields.io/badge/AppVersion-10.11.2-informational?style=flat-square)
 
 A Helm chart for Jellyfin Media Server
 
@@ -59,7 +58,7 @@ helm install my-jellyfin jellyfin/jellyfin -f values.yaml
 | dnsConfig | object | `{}` | Define a dnsConfig. See https://kubernetes.io/docs/concepts/services-networking/dns-pod-service/#pod-dns-config Use this to provide a custom DNS resolver configuration |
 | dnsPolicy | string | `""` | Define a dnsPolicy. See https://kubernetes.io/docs/concepts/services-networking/dns-pod-service/#pod-s-dns-policy |
 | extraContainers | list | `[]` | additional sidecar containers to run inside the pod. |
-| extraInitContainers | list | `[]` | additional init containers to run inside the pod. |
+| extraInitContainers | list | `[]` | Additional init containers to run inside the pod. Init containers run before the main application container starts. See: https://kubernetes.io/docs/concepts/workloads/pods/init-containers/ Example: extraInitContainers:   - name: init-config     image: busybox:1.35     command: ['sh', '-c', 'echo "Initializing..." && sleep 5']     volumeMounts:       - name: config         mountPath: /config |
 | fullnameOverride | string | `""` | Override the default full name of the chart. |
 | httpRoute | object | `{"annotations":{},"enabled":false,"hostnames":[],"parentRefs":[],"rules":[{"matches":[{"path":{"type":"PathPrefix","value":"/"}}]}]}` | HTTPRoute configuration for Gateway API. See: https://gateway-api.sigs.k8s.io/ |
 | httpRoute.hostnames | list | `[]` | Hostnames to match for this HTTPRoute |
@@ -70,11 +69,13 @@ helm install my-jellyfin jellyfin/jellyfin -f values.yaml
 | image.tag | string | `""` | Jellyfin container image tag. Leave empty to automatically use the Chart's app version. |
 | imagePullSecrets | list | `[]` | Image pull secrets to authenticate with private repositories. See: https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/ |
 | ingress | object | `{"annotations":{},"className":"","enabled":false,"hosts":[{"host":"chart-example.local","paths":[{"path":"/","pathType":"ImplementationSpecific"}]}],"tls":[]}` | Ingress configuration. See: https://kubernetes.io/docs/concepts/services-networking/ingress/ |
+| initContainers | list | `[]` | DEPRECATED: Use extraInitContainers instead. Will be removed after 2030. @deprecated - This parameter is deprecated, use extraInitContainers instead |
 | jellyfin.args | list | `[]` | Additional arguments for the entrypoint command. |
 | jellyfin.command | list | `[]` | Custom command to use as container entrypoint. |
 | jellyfin.enableDLNA | bool | `false` | Enable DLNA. Requires host network. See: https://jellyfin.org/docs/general/networking/dlna.html |
-| jellyfin.env | list | `[]` | Additional environment variables for the container. |
-| livenessProbe | object | `{"httpGet":{"path":"/health","port":"http"},"initialDelaySeconds":10}` | Configure liveness probe for Jellyfin. Uses httpGet for compatibility with both IPv4 and IPv6. |
+| jellyfin.env | list | `[]` | Additional environment variables for the container. Example: Workaround for inotify limits (see Troubleshooting section in README) Example: env:   - name: JELLYFIN_CACHE_DIR     value: /cache |
+| jellyfin.envFrom | list | `[]` | Load environment variables from ConfigMap or Secret. See: https://kubernetes.io/docs/tasks/configure-pod-container/configure-pod-configmap/#configure-all-key-value-pairs-in-a-configmap-as-container-environment-variables Example: envFrom:   - configMapRef:       name: jellyfin-config   - secretRef:       name: jellyfin-secrets |
+| livenessProbe | object | `{"httpGet":{"path":"/health","port":"http"},"initialDelaySeconds":10}` | Configure liveness probe for Jellyfin. This probe is disabled during startup (startup probe handles initial checks). Uses httpGet for compatibility with both IPv4 and IPv6. |
 | metrics | object | `{"enabled":false,"serviceMonitor":{"enabled":false,"interval":"30s","labels":{},"metricRelabelings":[],"namespace":"","path":"/metrics","port":8096,"relabelings":[],"scheme":"http","scrapeTimeout":"30s","targetLabels":[],"tlsConfig":{}}}` | Configuration for metrics collection and monitoring |
 | metrics.enabled | bool | `false` | Enable or disable metrics collection |
 | metrics.serviceMonitor | object | `{"enabled":false,"interval":"30s","labels":{},"metricRelabelings":[],"namespace":"","path":"/metrics","port":8096,"relabelings":[],"scheme":"http","scrapeTimeout":"30s","targetLabels":[],"tlsConfig":{}}` | Configuration for the Prometheus ServiceMonitor |
@@ -119,9 +120,10 @@ helm install my-jellyfin jellyfin/jellyfin -f values.yaml
 | podPrivileges.hostPID | bool | `false` | Enable hostPID namespace. Allows pod to see processes on the host. |
 | podSecurityContext | object | `{}` | Security context for the pod. |
 | priorityClassName | string | `""` | Define a priorityClassName for the pod. |
-| readinessProbe | object | `{"httpGet":{"path":"/health","port":"http"},"initialDelaySeconds":10}` | Configure readiness probe for Jellyfin. Uses httpGet for compatibility with both IPv4 and IPv6. |
+| readinessProbe | object | `{"httpGet":{"path":"/health","port":"http"},"initialDelaySeconds":10}` | Configure readiness probe for Jellyfin. This probe is disabled during startup (startup probe handles initial checks). Uses httpGet for compatibility with both IPv4 and IPv6. |
 | replicaCount | int | `1` | Number of Jellyfin replicas to start. Should be left at 1. |
 | resources | object | `{}` | Resource requests and limits for the Jellyfin container. |
+| revisionHistoryLimit | int | `3` | Number of old ReplicaSets to retain for rollback history. Set to 0 to disable revision history (not recommended). If not specified, Kubernetes defaults to 10. See: https://kubernetes.io/docs/concepts/workloads/controllers/deployment/#revision-history-limit |
 | runtimeClassName | string | `""` | Define a custom runtimeClassName for the pod. |
 | securityContext | object | `{}` | Security context for the container. |
 | service.annotations | object | `{}` | Annotations for the service. |
@@ -139,6 +141,7 @@ helm install my-jellyfin jellyfin/jellyfin -f values.yaml
 | serviceAccount.automount | bool | `true` | Automatically mount API credentials for the service account. |
 | serviceAccount.create | bool | `true` | Specifies whether to create a service account. |
 | serviceAccount.name | string | `""` | Custom name for the service account. If left empty, the name will be autogenerated. |
+| startupProbe | object | `{"failureThreshold":30,"initialDelaySeconds":0,"periodSeconds":10,"tcpSocket":{"port":"http"}}` | Configure startup probe for Jellyfin. This probe gives Jellyfin enough time to start, especially with large media libraries. After the startup probe succeeds once, liveness and readiness probes take over. |
 | tolerations | list | `[]` | Tolerations for pod scheduling. |
 | volumeMounts | list | `[]` | Additional volume mounts for the Jellyfin container. |
 | volumes | list | `[]` | Additional volumes to mount in the Jellyfin pod. |
@@ -199,6 +202,47 @@ extraVolumeMounts:
   - name: hwa
     mountPath: /dev/dri
 ```
+
+## Troubleshooting
+
+### inotify Instance Limit Reached
+
+**Problem:** Jellyfin crashes with error:
+```
+System.IO.IOException: The configured user limit (128) on the number of inotify instances has been reached
+```
+
+**Root cause:** The Linux kernel has a limit on inotify instances (file system watchers) per user. Jellyfin uses inotify to monitor media libraries for changes.
+
+**Proper solution (recommended):**
+
+Increase the inotify limit on the Kubernetes nodes:
+
+```bash
+# Temporary (until reboot)
+sysctl -w fs.inotify.max_user_instances=512
+
+# Permanent
+echo "fs.inotify.max_user_instances=512" >> /etc/sysctl.conf
+sysctl -p
+```
+
+Recommended values:
+- `fs.inotify.max_user_instances`: 512 or higher
+- `fs.inotify.max_user_watches`: 524288 or higher (if you have large media libraries)
+
+**Workaround (if you cannot modify host settings):**
+
+If you're running on a managed Kubernetes cluster where you cannot modify node-level settings, you can force Jellyfin to use polling instead of inotify. **Note: This is less efficient and may increase CPU usage and delay change detection.**
+
+```yaml
+jellyfin:
+  env:
+    - name: DOTNET_USE_POLLING_FILE_WATCHER
+      value: "1"
+```
+
+This workaround disables inotify file watching in favor of periodic polling, which doesn't require inotify instances but is less efficient.
 
 ## IPv6 Configuration
 
