@@ -120,3 +120,151 @@ tests:
       - equal:
           path: spec.template.spec.containers[0].envFrom[0].configMapRef.name
           value: jellyfin-config
+
+  # =============================================================================
+  # EDGE CASES AND ADDITIONAL VALIDATIONS
+  # =============================================================================
+
+  - it: should handle empty envFrom array
+    set:
+      jellyfin.envFrom: []
+    asserts:
+      - isNull:
+          path: spec.template.spec.containers[0].envFrom
+
+  - it: should support both configMapRef and secretRef with optional and prefix
+    set:
+      jellyfin.envFrom:
+        - configMapRef:
+            name: my-config
+            optional: true
+          prefix: CFG_
+        - secretRef:
+            name: my-secret
+            optional: false
+          prefix: SEC_
+    asserts:
+      - lengthEqual:
+          path: spec.template.spec.containers[0].envFrom
+          count: 2
+      - equal:
+          path: spec.template.spec.containers[0].envFrom[0].configMapRef.name
+          value: my-config
+      - equal:
+          path: spec.template.spec.containers[0].envFrom[0].configMapRef.optional
+          value: true
+      - equal:
+          path: spec.template.spec.containers[0].envFrom[0].prefix
+          value: CFG_
+      - equal:
+          path: spec.template.spec.containers[0].envFrom[1].secretRef.name
+          value: my-secret
+      - equal:
+          path: spec.template.spec.containers[0].envFrom[1].secretRef.optional
+          value: false
+      - equal:
+          path: spec.template.spec.containers[0].envFrom[1].prefix
+          value: SEC_
+
+  - it: should support multiple ConfigMaps with different prefixes
+    set:
+      jellyfin.envFrom:
+        - configMapRef:
+            name: config-1
+          prefix: APP1_
+        - configMapRef:
+            name: config-2
+          prefix: APP2_
+        - configMapRef:
+            name: config-3
+          prefix: APP3_
+    asserts:
+      - lengthEqual:
+          path: spec.template.spec.containers[0].envFrom
+          count: 3
+      - equal:
+          path: spec.template.spec.containers[0].envFrom[0].prefix
+          value: APP1_
+      - equal:
+          path: spec.template.spec.containers[0].envFrom[1].prefix
+          value: APP2_
+      - equal:
+          path: spec.template.spec.containers[0].envFrom[2].prefix
+          value: APP3_
+
+  - it: should support multiple Secrets with different prefixes
+    set:
+      jellyfin.envFrom:
+        - secretRef:
+            name: secret-1
+          prefix: DB_
+        - secretRef:
+            name: secret-2
+          prefix: API_
+    asserts:
+      - lengthEqual:
+          path: spec.template.spec.containers[0].envFrom
+          count: 2
+      - equal:
+          path: spec.template.spec.containers[0].envFrom[0].prefix
+          value: DB_
+      - equal:
+          path: spec.template.spec.containers[0].envFrom[1].prefix
+          value: API_
+
+  - it: should not have prefix when not specified
+    set:
+      jellyfin.envFrom:
+        - configMapRef:
+            name: no-prefix-config
+    asserts:
+      - isNull:
+          path: spec.template.spec.containers[0].envFrom[0].prefix
+
+  - it: should not have optional field when not specified
+    set:
+      jellyfin.envFrom:
+        - configMapRef:
+            name: required-config
+    asserts:
+      - isNull:
+          path: spec.template.spec.containers[0].envFrom[0].configMapRef.optional
+
+  # Regression: verify envFrom doesn't interfere with other env settings
+  - it: should preserve JELLYFIN_PublishedServerUrl when envFrom is used
+    set:
+      jellyfin.env:
+        - name: JELLYFIN_PublishedServerUrl
+          value: https://jellyfin.example.com
+      jellyfin.envFrom:
+        - configMapRef:
+            name: extra-config
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: JELLYFIN_PublishedServerUrl
+            value: https://jellyfin.example.com
+
+  # Complex scenario with many sources
+  - it: should support large number of envFrom sources
+    set:
+      jellyfin.envFrom:
+        - configMapRef:
+            name: config-1
+        - secretRef:
+            name: secret-1
+        - configMapRef:
+            name: config-2
+          prefix: PREFIX_
+        - secretRef:
+            name: secret-2
+            optional: true
+        - configMapRef:
+            name: config-3
+            optional: true
+          prefix: OPT_
+    asserts:
+      - lengthEqual:
+          path: spec.template.spec.containers[0].envFrom
+          count: 5
