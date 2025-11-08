@@ -1,0 +1,188 @@
+name: Auto-bump Chart Version
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    paths:
+      - 'charts/jellyfin/Chart.yaml'
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  auto-bump:
+    runs-on: ubuntu-latest
+    # Only run for Renovate PRs
+    if: github.actor == 'renovate[bot]' || github.actor == 'renovate-bot'
+    steps:
+      - name: Checkout PR branch
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+          repository: ${{ github.event.pull_request.head.repo.full_name }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
+
+      - name: Install tools
+        run: |
+          # Install yq
+          # renovate: datasource=github-releases depName=mikefarah/yq
+          YQ_VERSION="4.44.3"
+          wget -q https://github.com/mikefarah/yq/releases/download/v${YQ_VERSION}/yq_linux_amd64 -O yq
+          chmod +x yq
+          sudo mv yq /usr/local/bin/yq
+          yq --version
+
+          # Install helm-docs
+          # renovate: datasource=github-releases depName=norwoodj/helm-docs
+          HELM_DOCS_VERSION="1.14.2"
+          wget -q https://github.com/norwoodj/helm-docs/releases/download/v${HELM_DOCS_VERSION}/helm-docs_${HELM_DOCS_VERSION}_Linux_x86_64.tar.gz
+          tar -xzf helm-docs_${HELM_DOCS_VERSION}_Linux_x86_64.tar.gz
+          sudo mv helm-docs /usr/local/bin/
+          sudo chmod +x /usr/local/bin/helm-docs
+          helm-docs --version
+
+      - name: Check if appVersion changed
+        id: check_changes
+        run: |
+          # Get the base branch
+          git fetch origin ${{ github.event.pull_request.base.ref }}
+
+          # Check if appVersion changed
+          BASE_APP_VERSION=$(git show origin/${{ github.event.pull_request.base.ref }}:charts/jellyfin/Chart.yaml | grep '^appVersion:' | awk '{print $2}')
+          CURRENT_APP_VERSION=$(grep '^appVersion:' charts/jellyfin/Chart.yaml | awk '{print $2}')
+
+          echo "Base appVersion: $BASE_APP_VERSION"
+          echo "Current appVersion: $CURRENT_APP_VERSION"
+
+          if [ "$BASE_APP_VERSION" != "$CURRENT_APP_VERSION" ]; then
+            echo "changed=true" >> $GITHUB_OUTPUT
+            echo "appVersion changed from $BASE_APP_VERSION to $CURRENT_APP_VERSION"
+          else
+            echo "changed=false" >> $GITHUB_OUTPUT
+            echo "appVersion did not change"
+          fi
+
+      - name: Check if chart version already bumped
+        if: steps.check_changes.outputs.changed == 'true'
+        id: check_version_bumped
+        run: |
+          # Get versions
+          BASE_CHART_VERSION=$(git show origin/${{ github.event.pull_request.base.ref }}:charts/jellyfin/Chart.yaml | grep '^version:' | awk '{print $2}')
+          CURRENT_CHART_VERSION=$(grep '^version:' charts/jellyfin/Chart.yaml | awk '{print $2}')
+
+          echo "Base chart version: $BASE_CHART_VERSION"
+          echo "Current chart version: $CURRENT_CHART_VERSION"
+
+          if [ "$BASE_CHART_VERSION" != "$CURRENT_CHART_VERSION" ]; then
+            echo "already_bumped=true" >> $GITHUB_OUTPUT
+            echo "Chart version already bumped from $BASE_CHART_VERSION to $CURRENT_CHART_VERSION"
+          else
+            echo "already_bumped=false" >> $GITHUB_OUTPUT
+            echo "Chart version not bumped yet"
+          fi
+
+      - name: Bump chart version
+        if: steps.check_changes.outputs.changed == 'true' && steps.check_version_bumped.outputs.already_bumped == 'false'
+        id: bump_version
+        run: |
+          CHART_FILE='charts/jellyfin/Chart.yaml'
+          CURRENT_VERSION=$(grep '^version:' "$CHART_FILE" | awk '{print $2}')
+
+          # Parse version
+          MAJOR=$(echo "$CURRENT_VERSION" | cut -d. -f1)
+          MINOR=$(echo "$CURRENT_VERSION" | cut -d. -f2)
+          PATCH=$(echo "$CURRENT_VERSION" | cut -d. -f3)
+
+          # Bump patch version
+          NEW_VERSION="$MAJOR.$MINOR.$((PATCH + 1))"
+
+          # Update Chart.yaml
+          sed -i "s/^version:.*/version: $NEW_VERSION/" "$CHART_FILE"
+
+          echo "old_version=$CURRENT_VERSION" >> $GITHUB_OUTPUT
+          echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
+          echo "Bumped chart version from $CURRENT_VERSION to $NEW_VERSION"
+
+      - name: Update changelog annotation
+        if: steps.check_changes.outputs.changed == 'true' && steps.check_version_bumped.outputs.already_bumped == 'false'
+        run: |
+          CHART_FILE='charts/jellyfin/Chart.yaml'
+
+          # Extract description from PR title
+          # Format: "chore(deps): update jellyfin/jellyfin docker tag to v10.11.3" -> "Update jellyfin/jellyfin docker tag to v10.11.3"
+          pr_title="${{ github.event.pull_request.title }}"
+          # Remove conventional commit prefix (e.g., "chore(deps): ") and capitalize first letter
+          changelog_desc=$(echo "$pr_title" | sed -E 's/^[^:]+:\s*//' | sed 's/^./\U&/')
+
+          echo "📝 Updating changelog annotation with: $changelog_desc"
+
+          # Update changelog annotation with PR description
+          export changelog_desc
+          yq eval -i '.annotations."artifacthub.io/changes" = "- kind: changed\n  description: " + env(changelog_desc)' \
+            "$CHART_FILE"
+
+          echo "✅ Updated Chart.yaml changelog"
+
+      - name: Regenerate documentation
+        if: steps.check_changes.outputs.changed == 'true' && steps.check_version_bumped.outputs.already_bumped == 'false'
+        run: |
+          if [ -f "charts/jellyfin/README.md.gotmpl" ]; then
+            echo "📚 Regenerating documentation for charts/jellyfin"
+            helm-docs charts/jellyfin
+            echo "✅ Documentation regenerated"
+          else
+            echo "ℹ️ No README.md.gotmpl found, skipping documentation generation"
+          fi
+
+      - name: Commit and push changes
+        if: steps.check_changes.outputs.changed == 'true' && steps.check_version_bumped.outputs.already_bumped == 'false'
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git add charts/jellyfin/Chart.yaml charts/jellyfin/README.md
+          git commit --message "chore(jellyfin): bump chart version to ${{ steps.bump_version.outputs.new_version }} and regenerate docs"
+          git push
+
+      - name: Comment on PR
+        if: steps.check_changes.outputs.changed == 'true' && steps.check_version_bumped.outputs.already_bumped == 'false'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: `✅ Automatically bumped chart version from **${{ steps.bump_version.outputs.old_version }}** to **${{ steps.bump_version.outputs.new_version }}** due to appVersion change.`
+            })
+
+      - name: Enable auto-merge
+        if: steps.check_changes.outputs.changed == 'true' && steps.check_version_bumped.outputs.already_bumped == 'false'
+        run: |
+          echo "Enabling auto-merge for PR #${{ github.event.pull_request.number }}"
+          gh pr merge --auto --squash ${{ github.event.pull_request.number }}
+          echo "✅ Auto-merge enabled, PR will merge automatically when all checks pass"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Trigger tests after bot commit
+        if: steps.check_changes.outputs.changed == 'true' && steps.check_version_bumped.outputs.already_bumped == 'false'
+        run: |
+          # Get the commit SHA we just pushed
+          COMMIT_SHA=$(git rev-parse HEAD)
+
+          echo "Triggering tests via repository_dispatch for commit $COMMIT_SHA"
+
+          # Trigger the test workflow via repository_dispatch
+          # This will create commit statuses that are visible in the PR
+          gh api repos/${{ github.repository }}/dispatches \
+            --method POST \
+            --field event_type=test-charts \
+            --field "client_payload[sha]=$COMMIT_SHA" \
+            --field "client_payload[ref]=${{ github.head_ref }}" \
+            --field "client_payload[pr_number]=${{ github.event.pull_request.number }}"
+
+          echo "✅ Test workflow triggered successfully via repository_dispatch"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
