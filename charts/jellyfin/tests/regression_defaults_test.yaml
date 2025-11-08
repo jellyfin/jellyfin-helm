@@ -1,0 +1,557 @@
+suite: test regression defaults
+templates:
+  - deployment.yaml
+  - service.yaml
+  - serviceaccount.yaml
+  - ingress.yaml
+  - httpRoute.yaml
+  - networkpolicy.yaml
+  - serviceMonitor.yaml
+  - persistentVolumeClaim.yaml
+tests:
+  # =============================================================================
+  # DEPLOYMENT DEFAULTS
+  # =============================================================================
+
+  - it: should have default replica count of 1
+    template: deployment.yaml
+    asserts:
+      - equal:
+          path: spec.replicas
+          value: 1
+
+  - it: should use RollingUpdate strategy by default
+    template: deployment.yaml
+    asserts:
+      - equal:
+          path: spec.strategy.type
+          value: RollingUpdate
+
+  - it: should have revisionHistoryLimit of 3 by default
+    template: deployment.yaml
+    asserts:
+      - equal:
+          path: spec.revisionHistoryLimit
+          value: 3
+
+  - it: should use default image jellyfin/jellyfin
+    template: deployment.yaml
+    asserts:
+      - matchRegex:
+          path: spec.template.spec.containers[0].image
+          pattern: ^jellyfin/jellyfin:
+
+  - it: should use IfNotPresent pullPolicy by default
+    template: deployment.yaml
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].imagePullPolicy
+          value: IfNotPresent
+
+  - it: should not have resources set by default
+    template: deployment.yaml
+    asserts:
+      - isNull:
+          path: spec.template.spec.containers[0].resources
+
+  - it: should use ClusterFirst dnsPolicy by default
+    template: deployment.yaml
+    asserts:
+      - equal:
+          path: spec.template.spec.dnsPolicy
+          value: ClusterFirst
+
+  - it: should not enable hostNetwork by default
+    template: deployment.yaml
+    asserts:
+      - isNull:
+          path: spec.template.spec.hostNetwork
+
+  - it: should not have podSecurityContext by default
+    template: deployment.yaml
+    asserts:
+      - isNull:
+          path: spec.template.spec.securityContext
+
+  - it: should not have container securityContext by default
+    template: deployment.yaml
+    asserts:
+      - isNull:
+          path: spec.template.spec.containers[0].securityContext
+
+  - it: should expose port 8096 by default
+    template: deployment.yaml
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].ports[0].containerPort
+          value: 8096
+      - equal:
+          path: spec.template.spec.containers[0].ports[0].name
+          value: http
+
+  - it: should have exactly 3 default volumes
+    template: deployment.yaml
+    asserts:
+      - lengthEqual:
+          path: spec.template.spec.volumes
+          count: 3
+
+  - it: should have config, media, and cache volumes by default
+    template: deployment.yaml
+    asserts:
+      - contains:
+          path: spec.template.spec.volumes
+          content:
+            name: config
+      - contains:
+          path: spec.template.spec.volumes
+          content:
+            name: media
+      - contains:
+          path: spec.template.spec.volumes
+          content:
+            name: cache
+            emptyDir: {}
+
+  - it: should mount all three volumes by default
+    template: deployment.yaml
+    asserts:
+      - lengthEqual:
+          path: spec.template.spec.containers[0].volumeMounts
+          count: 3
+      - contains:
+          path: spec.template.spec.containers[0].volumeMounts
+          content:
+            name: config
+            mountPath: /config
+      - contains:
+          path: spec.template.spec.containers[0].volumeMounts
+          content:
+            name: media
+            mountPath: /media
+      - contains:
+          path: spec.template.spec.containers[0].volumeMounts
+          content:
+            name: cache
+            mountPath: /cache
+
+  # =============================================================================
+  # PROBE DEFAULTS
+  # =============================================================================
+
+  - it: should have startup probe by default
+    template: deployment.yaml
+    asserts:
+      - isNotNull:
+          path: spec.template.spec.containers[0].startupProbe
+
+  - it: should use tcpSocket for startup probe by default
+    template: deployment.yaml
+    asserts:
+      - isNotNull:
+          path: spec.template.spec.containers[0].startupProbe.tcpSocket
+
+  - it: should have default startup probe timing
+    template: deployment.yaml
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].startupProbe.initialDelaySeconds
+          value: 0
+      - equal:
+          path: spec.template.spec.containers[0].startupProbe.periodSeconds
+          value: 10
+      - equal:
+          path: spec.template.spec.containers[0].startupProbe.failureThreshold
+          value: 30
+
+  - it: should have liveness probe by default
+    template: deployment.yaml
+    asserts:
+      - isNotNull:
+          path: spec.template.spec.containers[0].livenessProbe
+
+  - it: should use httpGet for liveness probe by default
+    template: deployment.yaml
+    asserts:
+      - isNotNull:
+          path: spec.template.spec.containers[0].livenessProbe.httpGet
+      - equal:
+          path: spec.template.spec.containers[0].livenessProbe.httpGet.path
+          value: /health
+
+  - it: should have default liveness probe initialDelay of 10
+    template: deployment.yaml
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].livenessProbe.initialDelaySeconds
+          value: 10
+
+  - it: should have readiness probe by default
+    template: deployment.yaml
+    asserts:
+      - isNotNull:
+          path: spec.template.spec.containers[0].readinessProbe
+
+  - it: should use httpGet for readiness probe by default
+    template: deployment.yaml
+    asserts:
+      - isNotNull:
+          path: spec.template.spec.containers[0].readinessProbe.httpGet
+      - equal:
+          path: spec.template.spec.containers[0].readinessProbe.httpGet.path
+          value: /health
+
+  # =============================================================================
+  # SERVICE DEFAULTS
+  # =============================================================================
+
+  - it: should create Service by default
+    template: service.yaml
+    asserts:
+      - hasDocuments:
+          count: 1
+
+  - it: should use ClusterIP type by default
+    template: service.yaml
+    asserts:
+      - equal:
+          path: spec.type
+          value: ClusterIP
+
+  - it: should expose port 8096 by default
+    template: service.yaml
+    asserts:
+      - equal:
+          path: spec.ports[0].port
+          value: 8096
+      - equal:
+          path: spec.ports[0].name
+          value: http
+
+  - it: should not have ipFamilyPolicy set by default
+    template: service.yaml
+    asserts:
+      - isNull:
+          path: spec.ipFamilyPolicy
+
+  - it: should not have ipFamilies set by default
+    template: service.yaml
+    asserts:
+      - isNull:
+          path: spec.ipFamilies
+
+  # =============================================================================
+  # SERVICEACCOUNT DEFAULTS
+  # =============================================================================
+
+  - it: should create ServiceAccount by default
+    template: serviceaccount.yaml
+    asserts:
+      - hasDocuments:
+          count: 1
+
+  - it: should enable automount by default
+    template: deployment.yaml
+    asserts:
+      - equal:
+          path: spec.template.spec.automountServiceAccountToken
+          value: true
+
+  # =============================================================================
+  # PERSISTENCE DEFAULTS
+  # =============================================================================
+
+  - it: should create config and media PVCs by default
+    template: persistentVolumeClaim.yaml
+    asserts:
+      - hasDocuments:
+          count: 2
+
+  - it: should have config persistence enabled with size 5Gi by default
+    template: persistentVolumeClaim.yaml
+    documentIndex: 0
+    asserts:
+      - equal:
+          path: metadata.name
+          value: RELEASE-NAME-jellyfin-config
+      - equal:
+          path: spec.resources.requests.storage
+          value: 5Gi
+
+  - it: should have media persistence enabled with size 25Gi by default
+    template: persistentVolumeClaim.yaml
+    documentIndex: 1
+    asserts:
+      - equal:
+          path: metadata.name
+          value: RELEASE-NAME-jellyfin-media
+      - equal:
+          path: spec.resources.requests.storage
+          value: 25Gi
+
+  - it: should use ReadWriteOnce accessMode by default
+    template: persistentVolumeClaim.yaml
+    documentIndex: 0
+    asserts:
+      - contains:
+          path: spec.accessModes
+          content: ReadWriteOnce
+
+  - it: should not create cache PVC by default
+    template: persistentVolumeClaim.yaml
+    asserts:
+      - hasDocuments:
+          count: 2
+
+  - it: should use emptyDir for cache by default
+    template: deployment.yaml
+    asserts:
+      - contains:
+          path: spec.template.spec.volumes
+          content:
+            name: cache
+            emptyDir: {}
+
+  # =============================================================================
+  # OPTIONAL FEATURES DISABLED BY DEFAULT
+  # =============================================================================
+
+  - it: should not create Ingress by default
+    template: ingress.yaml
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: should not create HTTPRoute by default
+    template: httpRoute.yaml
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: should not create NetworkPolicy by default
+    template: networkpolicy.yaml
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: should not create ServiceMonitor by default
+    template: serviceMonitor.yaml
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: should not enable DLNA by default
+    template: deployment.yaml
+    asserts:
+      - isNull:
+          path: spec.template.spec.hostNetwork
+
+  - it: should not enable metrics by default
+    template: deployment.yaml
+    asserts:
+      - isNull:
+          path: spec.template.spec.containers[0].lifecycle
+
+  - it: should not have init containers by default
+    template: deployment.yaml
+    asserts:
+      - isNull:
+          path: spec.template.spec.initContainers
+
+  - it: should not have extra containers by default
+    template: deployment.yaml
+    asserts:
+      - lengthEqual:
+          path: spec.template.spec.containers
+          count: 1
+
+  - it: should not have imagePullSecrets by default
+    template: deployment.yaml
+    asserts:
+      - isNull:
+          path: spec.template.spec.imagePullSecrets
+
+  # =============================================================================
+  # LABEL DEFAULTS
+  # =============================================================================
+
+  - it: should have standard Kubernetes labels on deployment
+    template: deployment.yaml
+    asserts:
+      - equal:
+          path: metadata.labels.app\.kubernetes\.io/name
+          value: jellyfin
+      - equal:
+          path: metadata.labels.app\.kubernetes\.io/instance
+          value: RELEASE-NAME
+      - isNotNull:
+          path: metadata.labels.app\.kubernetes\.io/version
+      - isNotNull:
+          path: metadata.labels.helm\.sh/chart
+
+  - it: should have standard labels on service
+    template: service.yaml
+    asserts:
+      - equal:
+          path: metadata.labels.app\.kubernetes\.io/name
+          value: jellyfin
+      - equal:
+          path: metadata.labels.app\.kubernetes\.io/instance
+          value: RELEASE-NAME
+
+  - it: should have standard labels on serviceaccount
+    template: serviceaccount.yaml
+    asserts:
+      - equal:
+          path: metadata.labels.app\.kubernetes\.io/name
+          value: jellyfin
+      - equal:
+          path: metadata.labels.app\.kubernetes\.io/instance
+          value: RELEASE-NAME
+
+  - it: should have standard labels on PVCs
+    template: persistentVolumeClaim.yaml
+    documentIndex: 0
+    asserts:
+      - equal:
+          path: metadata.labels.app\.kubernetes\.io/name
+          value: jellyfin
+      - equal:
+          path: metadata.labels.app\.kubernetes\.io/instance
+          value: RELEASE-NAME
+
+  # =============================================================================
+  # API VERSIONS
+  # =============================================================================
+
+  - it: should use apps/v1 for Deployment
+    template: deployment.yaml
+    asserts:
+      - equal:
+          path: apiVersion
+          value: apps/v1
+
+  - it: should use v1 for Service
+    template: service.yaml
+    asserts:
+      - equal:
+          path: apiVersion
+          value: v1
+
+  - it: should use v1 for ServiceAccount
+    template: serviceaccount.yaml
+    asserts:
+      - equal:
+          path: apiVersion
+          value: v1
+
+  - it: should use v1 for PersistentVolumeClaim
+    template: persistentVolumeClaim.yaml
+    documentIndex: 0
+    asserts:
+      - equal:
+          path: apiVersion
+          value: v1
+
+  # =============================================================================
+  # REGRESSION: VERIFY NO UNEXPECTED CHANGES
+  # =============================================================================
+
+  - it: should maintain exactly one container by default
+    template: deployment.yaml
+    asserts:
+      - lengthEqual:
+          path: spec.template.spec.containers
+          count: 1
+
+  - it: should maintain container name as jellyfin
+    template: deployment.yaml
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].name
+          value: jellyfin
+
+  - it: should maintain service name pattern
+    template: service.yaml
+    asserts:
+      - equal:
+          path: metadata.name
+          value: RELEASE-NAME-jellyfin
+
+  - it: should maintain serviceAccount name pattern
+    template: serviceaccount.yaml
+    asserts:
+      - equal:
+          path: metadata.name
+          value: RELEASE-NAME-jellyfin
+
+  - it: should maintain deployment name pattern
+    template: deployment.yaml
+    asserts:
+      - equal:
+          path: metadata.name
+          value: RELEASE-NAME-jellyfin
+
+  - it: should maintain PVC naming pattern
+    template: persistentVolumeClaim.yaml
+    asserts:
+      - equal:
+          path: metadata.name
+          documentIndex: 0
+          value: RELEASE-NAME-jellyfin-config
+      - equal:
+          path: metadata.name
+          documentIndex: 1
+          value: RELEASE-NAME-jellyfin-media
+
+  # =============================================================================
+  # CRITICAL DEFAULTS THAT MUST NOT CHANGE
+  # =============================================================================
+
+  - it: should never create multiple replicas by default
+    template: deployment.yaml
+    asserts:
+      - equal:
+          path: spec.replicas
+          value: 1
+
+  - it: should never enable hostNetwork by default
+    template: deployment.yaml
+    asserts:
+      - isNull:
+          path: spec.template.spec.hostNetwork
+
+  - it: should never enable NetworkPolicy by default
+    template: networkpolicy.yaml
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: should always create exactly one service
+    template: service.yaml
+    asserts:
+      - hasDocuments:
+          count: 1
+
+  - it: should always create serviceAccount by default
+    template: serviceaccount.yaml
+    asserts:
+      - hasDocuments:
+          count: 1
+
+  - it: should always have three probes configured
+    template: deployment.yaml
+    asserts:
+      - isNotNull:
+          path: spec.template.spec.containers[0].startupProbe
+      - isNotNull:
+          path: spec.template.spec.containers[0].livenessProbe
+      - isNotNull:
+          path: spec.template.spec.containers[0].readinessProbe
+
+  - it: should always mount all persistence volumes
+    template: deployment.yaml
+    asserts:
+      - lengthEqual:
+          path: spec.template.spec.containers[0].volumeMounts
+          count: 3
