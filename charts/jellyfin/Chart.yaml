@@ -21,6 +21,7 @@ annotations:
       links:
         - name: Documentation
           url: https://kubernetes.io/docs/concepts/services-networking/network-policies/
+    - kind: added
       description: Add troubleshooting documentation for inotify instance limits with workaround example
     - kind: added
       description: Add support for Gateway API HTTPRoute resource
