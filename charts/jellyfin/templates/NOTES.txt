@@ -44,6 +44,23 @@ Cache Volume:
 
 {{- if and .Values.persistence.cache.enabled (eq .Values.persistence.cache.type "hostPath") }}
 ⚠ WARNING: Using hostPath for cache - ensure {{ .Values.persistence.cache.hostPath }} exists on the node
+{{- if or .Values.service.ipFamilyPolicy .Values.service.ipFamilies }}
+
+Service IP Configuration:
+{{- if .Values.service.ipFamilyPolicy }}
+  IP Family Policy: {{ .Values.service.ipFamilyPolicy }}
+{{- end }}
+{{- if .Values.service.ipFamilies }}
+  IP Families: {{ .Values.service.ipFamilies | join ", " }}
+  {{- if eq (index .Values.service.ipFamilies 0) "IPv6" }}
+  ⚠ NOTE: IPv6 primary - ensure your probes use httpGet instead of tcpSocket for compatibility
+  {{- end }}
+  {{- if has "IPv6" .Values.service.ipFamilies }}
+  {{- if not .Values.service.ipFamilyPolicy }}
+  ⚠ WARNING: ipFamilies includes IPv6 but ipFamilyPolicy is not set
+  {{- end }}
+  {{- end }}
+{{- end }}
 {{- end }}
 Deployment Configuration:
   Revision History Limit: {{ .Values.revisionHistoryLimit }}
