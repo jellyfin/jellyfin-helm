@@ -9,10 +9,27 @@ keywords:
   - media
   - self-hosted
 version: 2.6.0
+version: 3.0.0
 appVersion: 10.11.2
 annotations:
   artifacthub.io/changes: |
+    - kind: deprecated
+      description: Deprecate initContainers parameter in favor of extraInitContainers for consistency (will be removed after 2030)
+    - kind: fixed
+      description: Fix extraInitContainers not working (was using wrong parameter name in template)
     - kind: added
       description: Add support for Gateway API HTTPRoute resource
     - kind: added
+      description: Add envFrom support to load environment variables from ConfigMap or Secret
+    - kind: added
+      description: Add NOTES.txt with helpful post-installation information and deprecation warnings
+    - kind: added
+      description: Add startup probe to prevent pod restarts during slow initial startup with large media libraries
+    - kind: added
+      description: Add persistence.cache configuration for dedicated cache volume support
+    - kind: added
+      description: Add comprehensive IPv6 and dual-stack networking documentation
+    - kind: changed
+      description: Improve health probe configuration examples for IPv6 compatibility
+    - kind: changed
       description: Add revisionHistoryLimit parameter to control rollback history retention (defaults to 3 instead of Kubernetes default 10)

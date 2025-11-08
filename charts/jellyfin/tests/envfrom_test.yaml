@@ -1,0 +1,122 @@
+suite: test envFrom
+templates:
+  - deployment.yaml
+tests:
+  - it: should not have envFrom by default
+    asserts:
+      - isNull:
+          path: spec.template.spec.containers[0].envFrom
+
+  - it: should add envFrom from ConfigMap
+    set:
+      jellyfin.envFrom:
+        - configMapRef:
+            name: jellyfin-config
+    asserts:
+      - isNotNull:
+          path: spec.template.spec.containers[0].envFrom
+      - lengthEqual:
+          path: spec.template.spec.containers[0].envFrom
+          count: 1
+      - equal:
+          path: spec.template.spec.containers[0].envFrom[0].configMapRef.name
+          value: jellyfin-config
+
+  - it: should add envFrom from Secret
+    set:
+      jellyfin.envFrom:
+        - secretRef:
+            name: jellyfin-secrets
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].envFrom[0].secretRef.name
+          value: jellyfin-secrets
+
+  - it: should support multiple envFrom sources
+    set:
+      jellyfin.envFrom:
+        - configMapRef:
+            name: jellyfin-config
+        - secretRef:
+            name: jellyfin-secrets
+        - configMapRef:
+            name: jellyfin-extra-config
+    asserts:
+      - lengthEqual:
+          path: spec.template.spec.containers[0].envFrom
+          count: 3
+      - equal:
+          path: spec.template.spec.containers[0].envFrom[0].configMapRef.name
+          value: jellyfin-config
+      - equal:
+          path: spec.template.spec.containers[0].envFrom[1].secretRef.name
+          value: jellyfin-secrets
+      - equal:
+          path: spec.template.spec.containers[0].envFrom[2].configMapRef.name
+          value: jellyfin-extra-config
+
+  - it: should support optional ConfigMap
+    set:
+      jellyfin.envFrom:
+        - configMapRef:
+            name: optional-config
+            optional: true
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].envFrom[0].configMapRef.optional
+          value: true
+
+  - it: should support optional Secret
+    set:
+      jellyfin.envFrom:
+        - secretRef:
+            name: optional-secret
+            optional: true
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].envFrom[0].secretRef.optional
+          value: true
+
+  - it: should support prefix for ConfigMap
+    set:
+      jellyfin.envFrom:
+        - configMapRef:
+            name: my-config
+          prefix: CONFIG_
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].envFrom[0].prefix
+          value: CONFIG_
+
+  - it: should support prefix for Secret
+    set:
+      jellyfin.envFrom:
+        - secretRef:
+            name: my-secret
+          prefix: SECRET_
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].envFrom[0].prefix
+          value: SECRET_
+
+  - it: should work alongside regular env variables
+    set:
+      jellyfin.env:
+        - name: CUSTOM_VAR
+          value: custom-value
+      jellyfin.envFrom:
+        - configMapRef:
+            name: jellyfin-config
+    asserts:
+      - isNotNull:
+          path: spec.template.spec.containers[0].env
+      - isNotNull:
+          path: spec.template.spec.containers[0].envFrom
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: CUSTOM_VAR
+            value: custom-value
+      - equal:
+          path: spec.template.spec.containers[0].envFrom[0].configMapRef.name
+          value: jellyfin-config

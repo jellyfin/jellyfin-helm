@@ -112,3 +112,32 @@ extraVolumeMounts:
   - name: hwa
     mountPath: /dev/dri
 ```
+
+## IPv6 Configuration
+
+This chart supports IPv6 and dual-stack networking configurations out of the box. Health probes use httpGet by default for compatibility with both IPv4 and IPv6.
+
+### IPv6-only Configuration
+
+For IPv6-only clusters:
+
+```yaml
+service:
+  ipFamilyPolicy: SingleStack
+  ipFamilies:
+    - IPv6
+```
+
+### Dual-stack Configuration
+
+For dual-stack clusters (both IPv4 and IPv6):
+
+```yaml
+service:
+  ipFamilyPolicy: PreferDualStack  # or RequireDualStack
+  ipFamilies:
+    - IPv4
+    - IPv6  # First family in the list is the primary
+```
+
+For more information about Kubernetes dual-stack networking, see: <https://kubernetes.io/docs/concepts/services-networking/dual-stack/>

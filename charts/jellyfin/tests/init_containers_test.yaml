@@ -1,0 +1,119 @@
+suite: test init containers
+templates:
+  - deployment.yaml
+tests:
+  - it: should not have init containers by default
+    asserts:
+      - isNull:
+          path: spec.template.spec.initContainers
+
+  - it: should add extraInitContainers when specified
+    set:
+      extraInitContainers:
+        - name: init-config
+          image: busybox:1.35
+          command: ['sh', '-c', 'echo Initializing']
+    asserts:
+      - isNotNull:
+          path: spec.template.spec.initContainers
+      - lengthEqual:
+          path: spec.template.spec.initContainers
+          count: 1
+      - equal:
+          path: spec.template.spec.initContainers[0].name
+          value: init-config
+      - equal:
+          path: spec.template.spec.initContainers[0].image
+          value: busybox:1.35
+
+  - it: should support multiple extraInitContainers
+    set:
+      extraInitContainers:
+        - name: init-1
+          image: busybox:1.35
+        - name: init-2
+          image: alpine:3.18
+    asserts:
+      - lengthEqual:
+          path: spec.template.spec.initContainers
+          count: 2
+      - equal:
+          path: spec.template.spec.initContainers[0].name
+          value: init-1
+      - equal:
+          path: spec.template.spec.initContainers[1].name
+          value: init-2
+
+  - it: should preserve full container spec in extraInitContainers
+    set:
+      extraInitContainers:
+        - name: init-permissions
+          image: busybox:1.35
+          command: ['sh', '-c']
+          args: ['chown -R 1000:1000 /config']
+          volumeMounts:
+            - name: config
+              mountPath: /config
+          securityContext:
+            runAsUser: 0
+    asserts:
+      - equal:
+          path: spec.template.spec.initContainers[0].command[0]
+          value: sh
+      - equal:
+          path: spec.template.spec.initContainers[0].args[0]
+          value: 'chown -R 1000:1000 /config'
+      - equal:
+          path: spec.template.spec.initContainers[0].volumeMounts[0].name
+          value: config
+      - equal:
+          path: spec.template.spec.initContainers[0].securityContext.runAsUser
+          value: 0
+
+  # Deprecated initContainers (backward compatibility)
+  - it: should still support deprecated initContainers parameter
+    set:
+      initContainers:
+        - name: legacy-init
+          image: busybox:1.35
+    asserts:
+      - lengthEqual:
+          path: spec.template.spec.initContainers
+          count: 1
+      - equal:
+          path: spec.template.spec.initContainers[0].name
+          value: legacy-init
+
+  - it: should merge initContainers and extraInitContainers
+    set:
+      initContainers:
+        - name: legacy-init
+          image: busybox:1.35
+      extraInitContainers:
+        - name: new-init
+          image: alpine:3.18
+    asserts:
+      - lengthEqual:
+          path: spec.template.spec.initContainers
+          count: 2
+      - equal:
+          path: spec.template.spec.initContainers[0].name
+          value: legacy-init
+      - equal:
+          path: spec.template.spec.initContainers[1].name
+          value: new-init
+
+  - it: should prioritize extraInitContainers over initContainers
+    set:
+      initContainers:
+        - name: old-way
+          image: busybox:1.35
+      extraInitContainers:
+        - name: new-way
+          image: alpine:3.18
+    asserts:
+      - contains:
+          path: spec.template.spec.initContainers
+          content:
+            name: new-way
+            image: alpine:3.18

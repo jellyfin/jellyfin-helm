@@ -91,8 +91,17 @@ service:
   # -- Service type (ClusterIP, NodePort, or LoadBalancer).
   type: ClusterIP
   # -- Configure dual-stack IP family policy. See: https://kubernetes.io/docs/concepts/services-networking/dual-stack/
+  # Options: SingleStack, PreferDualStack, RequireDualStack
+  # For IPv6-only clusters, use "SingleStack" with ipFamilies: ["IPv6"]
+  # For dual-stack, use "PreferDualStack" or "RequireDualStack" with ipFamilies: ["IPv4", "IPv6"] or ["IPv6", "IPv4"]
   ipFamilyPolicy: ""
   # -- Supported IP families (IPv4, IPv6).
+  # Examples:
+  #   IPv4 only: ["IPv4"]
+  #   IPv6 only: ["IPv6"]
+  #   Dual-stack (IPv4 primary): ["IPv4", "IPv6"]
+  #   Dual-stack (IPv6 primary): ["IPv6", "IPv4"]
+  # Note: When using IPv6, ensure your health checks are compatible (consider using httpGet instead of tcpSocket)
   ipFamilies: []
   # -- Specific IP address for the LoadBalancer.
   loadBalancerIP: ""
@@ -158,21 +167,39 @@ resources: {}
   #   cpu: 100m
   #   memory: 128Mi
 
-# -- Configure liveness probe for Jellyfin.
-livenessProbe:
-  initialDelaySeconds: 10
+# -- Configure startup probe for Jellyfin.
+# This probe gives Jellyfin enough time to start, especially with large media libraries.
+# After the startup probe succeeds once, liveness and readiness probes take over.
+startupProbe:
   tcpSocket:
     port: http
+  initialDelaySeconds: 0
+  periodSeconds: 10
+  failureThreshold: 30
+  # With these defaults, Jellyfin has up to 5 minutes (30 * 10s) to start.
+  # Adjust failureThreshold if you have very large media libraries or slow storage.
+
+# -- Configure liveness probe for Jellyfin.
+# This probe is disabled during startup (startup probe handles initial checks).
+# Uses httpGet for compatibility with both IPv4 and IPv6.
+livenessProbe:
+  httpGet:
+    path: /health
+    port: http
+  initialDelaySeconds: 10
   # successThreshold: 1
   # failureThreshold: 3
   # timeoutSeconds: 1
   # periodSeconds: 10
 
 # -- Configure readiness probe for Jellyfin.
+# This probe is disabled during startup (startup probe handles initial checks).
+# Uses httpGet for compatibility with both IPv4 and IPv6.
 readinessProbe:
-  initialDelaySeconds: 10
-  tcpSocket:
+  httpGet:
+    path: /health
     port: http
+  initialDelaySeconds: 10
   # successThreshold: 1
   # failureThreshold: 3
   # timeoutSeconds: 1
@@ -216,7 +243,20 @@ jellyfin:
   command: []
   # -- Additional arguments for the entrypoint command.
   args: []
+  # -- Load environment variables from ConfigMap or Secret.
+  # See: https://kubernetes.io/docs/tasks/configure-pod-container/configure-pod-configmap/#configure-all-key-value-pairs-in-a-configmap-as-container-environment-variables
+  # Example:
+  # envFrom:
+  #   - configMapRef:
+  #       name: jellyfin-config
+  #   - secretRef:
+  #       name: jellyfin-secrets
+  envFrom: []
   # -- Additional environment variables for the container.
+  # Example:
+  # env:
+  #   - name: JELLYFIN_CACHE_DIR
+  #     value: /cache
   env: []
 
 persistence:
@@ -241,6 +281,22 @@ persistence:
     # -- PVC specific settings, only used if type is 'pvc'.
     accessMode: ReadWriteOnce
     size: 25Gi
+    # -- Custom annotations to be added to the PVC
+    annotations: {}
+    # -- If undefined (the default) or set to null, no storageClassName spec is set, choosing the default provisioner.
+    storageClass: ''
+    ## -- Use an existing PVC for this mount
+    # existingClaim: ''
+  cache:
+    # -- set to false to use emptyDir
+    enabled: false
+    # -- Type of volume for cache storage (pvc, hostPath, emptyDir). If 'enabled' is false, 'emptyDir' is used regardless of this setting.
+    type: pvc
+    # -- Path on the host node for cache storage, only used if type is 'hostPath'.
+    hostPath: ""
+    # -- PVC specific settings, only used if type is 'pvc'.
+    accessMode: ReadWriteOnce
+    size: 10Gi
     # -- Custom annotations to be added to the PVC
     annotations: {}
     # -- If undefined (the default) or set to null, no storageClassName spec is set, choosing the default provisioner.
@@ -279,8 +335,22 @@ metrics:
     # -- Target labels to add to the scraped metrics
     targetLabels: []
 
-# -- additional init containers to run inside the pod.
+# -- DEPRECATED: Use extraInitContainers instead. Will be removed after 2030.
+# @deprecated - This parameter is deprecated, use extraInitContainers instead
+initContainers: []
+
+# -- Additional init containers to run inside the pod.
+# Init containers run before the main application container starts.
+# See: https://kubernetes.io/docs/concepts/workloads/pods/init-containers/
+# Example:
+# extraInitContainers:
+#   - name: init-config
+#     image: busybox:1.35
+#     command: ['sh', '-c', 'echo "Initializing..." && sleep 5']
+#     volumeMounts:
+#       - name: config
+#         mountPath: /config
 extraInitContainers: []
-  
+
 # -- additional sidecar containers to run inside the pod.
 extraContainers: []
