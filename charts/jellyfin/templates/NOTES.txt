@@ -22,6 +22,28 @@ To access Jellyfin, you can use port-forwarding:
 Then visit http://localhost:{{ .Values.service.port }} in your browser.
 {{- end }}
 
+Persistence Configuration:
+  Config: {{ if .Values.persistence.config.enabled }}{{ .Values.persistence.config.type | default "pvc" }}{{ if .Values.persistence.config.existingClaim }} (existing: {{ .Values.persistence.config.existingClaim }}){{ end }}{{ else }}emptyDir{{ end }}
+  Media: {{ if .Values.persistence.media.enabled }}{{ .Values.persistence.media.type | default "pvc" }}{{ if .Values.persistence.media.existingClaim }} (existing: {{ .Values.persistence.media.existingClaim }}){{ end }}{{ else }}emptyDir{{ end }}
+  Cache: {{ if .Values.persistence.cache.enabled }}{{ .Values.persistence.cache.type | default "pvc" }}{{ if .Values.persistence.cache.existingClaim }} (existing: {{ .Values.persistence.cache.existingClaim }}){{ end }}{{ else }}emptyDir{{ end }}
+
+{{- if and .Values.persistence.cache.enabled (eq .Values.persistence.cache.type "pvc") }}
+Cache Volume:
+  Dedicated cache volume is enabled for improved performance.
+  Size: {{ .Values.persistence.cache.size }}
+  Access Mode: {{ .Values.persistence.cache.accessMode }}
+  {{- if .Values.persistence.cache.storageClass }}
+  Storage Class: {{ .Values.persistence.cache.storageClass }}
+  {{- end }}
+
+  Benefits:
+  - Faster transcoding and metadata operations
+  - Separate cache lifecycle from config/media
+  - Can use faster storage class (SSD) for cache
+{{- end }}
+
+{{- if and .Values.persistence.cache.enabled (eq .Values.persistence.cache.type "hostPath") }}
+⚠ WARNING: Using hostPath for cache - ensure {{ .Values.persistence.cache.hostPath }} exists on the node
 {{- if or .Values.service.ipFamilyPolicy .Values.service.ipFamilies }}
 
 Service IP Configuration:
