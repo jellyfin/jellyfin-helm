@@ -38,6 +38,7 @@ Access Jellyfin via Gateway API at:
 
 Note: Ensure your Gateway API CRDs are installed and Gateway is configured.
 {{- else if .Values.ingress.enabled }}
+{{- if .Values.ingress.enabled }}
 
 Jellyfin is available via Ingress at:
 {{- range .Values.ingress.hosts }}
@@ -51,3 +52,15 @@ To access Jellyfin, you can use port-forwarding:
 
 Then visit http://localhost:{{ .Values.service.port }} in your browser.
 {{- end }}
+
+Deployment Configuration:
+  Revision History Limit: {{ .Values.revisionHistoryLimit }}
+  {{- $limit := int .Values.revisionHistoryLimit }}
+  {{- if eq $limit 0 }}
+  ⚠ WARNING: Revision history is disabled - rollback will not be possible!
+  {{- else if eq $limit 1 }}
+  ⚠ NOTE: Only 1 revision kept - limited rollback capability
+  {{- else }}
+  You can rollback to any of the last {{ .Values.revisionHistoryLimit }} revisions using:
+    kubectl rollout undo deployment/{{ include "jellyfin.fullname" . }} --namespace {{ .Release.Namespace }}
+  {{- end }}
