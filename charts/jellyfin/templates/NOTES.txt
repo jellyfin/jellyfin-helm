@@ -34,3 +34,15 @@ Environment Configuration:
   {{- end }}
 {{- end }}
 {{- end }}
+
+Deployment Configuration:
+  Revision History Limit: {{ .Values.revisionHistoryLimit }}
+  {{- $limit := int .Values.revisionHistoryLimit }}
+  {{- if eq $limit 0 }}
+  ⚠ WARNING: Revision history is disabled - rollback will not be possible!
+  {{- else if eq $limit 1 }}
+  ⚠ NOTE: Only 1 revision kept - limited rollback capability
+  {{- else }}
+  You can rollback to any of the last {{ .Values.revisionHistoryLimit }} revisions using:
+    kubectl rollout undo deployment/{{ include "jellyfin.fullname" . }} --namespace {{ .Release.Namespace }}
+  {{- end }}
