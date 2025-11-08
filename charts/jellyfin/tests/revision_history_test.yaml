@@ -1,0 +1,41 @@
+suite: test revision history limit
+templates:
+  - deployment.yaml
+tests:
+  - it: should set revisionHistoryLimit to 3 by default
+    asserts:
+      - equal:
+          path: spec.revisionHistoryLimit
+          value: 3
+
+  - it: should allow custom revisionHistoryLimit
+    set:
+      revisionHistoryLimit: 5
+    asserts:
+      - equal:
+          path: spec.revisionHistoryLimit
+          value: 5
+
+  - it: should allow revisionHistoryLimit of 0
+    set:
+      revisionHistoryLimit: 0
+    asserts:
+      - equal:
+          path: spec.revisionHistoryLimit
+          value: 0
+
+  - it: should allow revisionHistoryLimit of 1
+    set:
+      revisionHistoryLimit: 1
+    asserts:
+      - equal:
+          path: spec.revisionHistoryLimit
+          value: 1
+
+  - it: should allow large revisionHistoryLimit
+    set:
+      revisionHistoryLimit: 100
+    asserts:
+      - equal:
+          path: spec.revisionHistoryLimit
+          value: 100
