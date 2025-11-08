@@ -1,0 +1,493 @@
+suite: test servicemonitor
+templates:
+  - serviceMonitor.yaml
+tests:
+  # =============================================================================
+  # DEFAULT BEHAVIOR
+  # =============================================================================
+
+  - it: should not create ServiceMonitor by default
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: should not create ServiceMonitor when only metrics.enabled
+    set:
+      metrics.enabled: true
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: should not create ServiceMonitor when only serviceMonitor.enabled
+    set:
+      metrics.serviceMonitor.enabled: true
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: should create ServiceMonitor when both metrics and serviceMonitor enabled
+    set:
+      metrics.enabled: true
+      metrics.serviceMonitor.enabled: true
+    asserts:
+      - hasDocuments:
+          count: 1
+      - isKind:
+          of: ServiceMonitor
+      - isAPIVersion:
+          of: monitoring.coreos.com/v1
+
+  # =============================================================================
+  # BASIC CONFIGURATION
+  # =============================================================================
+
+  - it: should have correct default name
+    set:
+      metrics.enabled: true
+      metrics.serviceMonitor.enabled: true
+    asserts:
+      - equal:
+          path: metadata.name
+          value: RELEASE-NAME-jellyfin
+
+  - it: should use release namespace by default
+    set:
+      metrics.enabled: true
+      metrics.serviceMonitor.enabled: true
+    asserts:
+      - equal:
+          path: metadata.namespace
+          value: NAMESPACE
+
+  - it: should use custom namespace when specified
+    set:
+      metrics.enabled: true
+      metrics.serviceMonitor.enabled: true
+      metrics.serviceMonitor.namespace: monitoring
+    asserts:
+      - equal:
+          path: metadata.namespace
+          value: monitoring
+
+  - it: should have correct selector labels
+    set:
+      metrics.enabled: true
+      metrics.serviceMonitor.enabled: true
+    asserts:
+      - equal:
+          path: spec.selector.matchLabels.app\.kubernetes\.io/name
+          value: jellyfin
+      - equal:
+          path: spec.selector.matchLabels.app\.kubernetes\.io/instance
+          value: RELEASE-NAME
+
+  # =============================================================================
+  # LABELS
+  # =============================================================================
+
+  - it: should not have custom labels by default
+    set:
+      metrics.enabled: true
+      metrics.serviceMonitor.enabled: true
+    asserts:
+      - equal:
+          path: metadata.labels.app\.kubernetes\.io/name
+          value: jellyfin
+
+  - it: should add custom labels when specified
+    set:
+      metrics.enabled: true
+      metrics.serviceMonitor.enabled: true
+      metrics.serviceMonitor.labels:
+        prometheus: kube-prometheus
+        team: platform
+    asserts:
+      - equal:
+          path: metadata.labels.prometheus
+          value: kube-prometheus
+      - equal:
+          path: metadata.labels.team
+          value: platform
+
+  - it: should merge custom labels with default labels
+    set:
+      metrics.enabled: true
+      metrics.serviceMonitor.enabled: true
+      metrics.serviceMonitor.labels:
+        custom: label
+    asserts:
+      - equal:
+          path: metadata.labels.app\.kubernetes\.io/name
+          value: jellyfin
+      - equal:
+          path: metadata.labels.custom
+          value: label
+
+  # =============================================================================
+  # ENDPOINT CONFIGURATION
+  # =============================================================================
+
+  - it: should have default endpoint configuration
+    set:
+      metrics.enabled: true
+      metrics.serviceMonitor.enabled: true
+    asserts:
+      - lengthEqual:
+          path: spec.endpoints
+          count: 1
+      - equal:
+          path: spec.endpoints[0].port
+          value: 8096
+      - equal:
+          path: spec.endpoints[0].path
+          value: /metrics
+      - equal:
+          path: spec.endpoints[0].scheme
+          value: http
+      - equal:
+          path: spec.endpoints[0].interval
+          value: 30s
+      - equal:
+          path: spec.endpoints[0].scrapeTimeout
+          value: 30s
+
+  - it: should set custom interval
+    set:
+      metrics.enabled: true
+      metrics.serviceMonitor.enabled: true
+      metrics.serviceMonitor.interval: 60s
+    asserts:
+      - equal:
+          path: spec.endpoints[0].interval
+          value: 60s
+
+  - it: should set custom scrapeTimeout
+    set:
+      metrics.enabled: true
+      metrics.serviceMonitor.enabled: true
+      metrics.serviceMonitor.scrapeTimeout: 15s
+    asserts:
+      - equal:
+          path: spec.endpoints[0].scrapeTimeout
+          value: 15s
+
+  - it: should set custom path
+    set:
+      metrics.enabled: true
+      metrics.serviceMonitor.enabled: true
+      metrics.serviceMonitor.path: /custom/metrics
+    asserts:
+      - equal:
+          path: spec.endpoints[0].path
+          value: /custom/metrics
+
+  - it: should set custom port
+    set:
+      metrics.enabled: true
+      metrics.serviceMonitor.enabled: true
+      metrics.serviceMonitor.port: 9090
+    asserts:
+      - equal:
+          path: spec.endpoints[0].port
+          value: 9090
+
+  - it: should set custom scheme
+    set:
+      metrics.enabled: true
+      metrics.serviceMonitor.enabled: true
+      metrics.serviceMonitor.scheme: https
+    asserts:
+      - equal:
+          path: spec.endpoints[0].scheme
+          value: https
+
+  # =============================================================================
+  # TLS CONFIGURATION
+  # =============================================================================
+
+  - it: should not have tlsConfig by default
+    set:
+      metrics.enabled: true
+      metrics.serviceMonitor.enabled: true
+    asserts:
+      - isNull:
+          path: spec.endpoints[0].tlsConfig
+
+  - it: should add tlsConfig when specified
+    set:
+      metrics.enabled: true
+      metrics.serviceMonitor.enabled: true
+      metrics.serviceMonitor.tlsConfig:
+        insecureSkipVerify: true
+    asserts:
+      - equal:
+          path: spec.endpoints[0].tlsConfig.insecureSkipVerify
+          value: true
+
+  - it: should support complex tlsConfig
+    set:
+      metrics.enabled: true
+      metrics.serviceMonitor.enabled: true
+      metrics.serviceMonitor.tlsConfig:
+        ca:
+          secret:
+            name: prometheus-tls-ca
+            key: ca.crt
+        cert:
+          secret:
+            name: prometheus-tls-cert
+            key: tls.crt
+        keySecret:
+          name: prometheus-tls-key
+          key: tls.key
+    asserts:
+      - equal:
+          path: spec.endpoints[0].tlsConfig.ca.secret.name
+          value: prometheus-tls-ca
+      - equal:
+          path: spec.endpoints[0].tlsConfig.cert.secret.name
+          value: prometheus-tls-cert
+
+  # =============================================================================
+  # RELABELING
+  # =============================================================================
+
+  - it: should not have relabelings by default
+    set:
+      metrics.enabled: true
+      metrics.serviceMonitor.enabled: true
+    asserts:
+      - isNull:
+          path: spec.endpoints[0].relabelings
+
+  - it: should add relabelings when specified
+    set:
+      metrics.enabled: true
+      metrics.serviceMonitor.enabled: true
+      metrics.serviceMonitor.relabelings:
+        - sourceLabels: [__meta_kubernetes_pod_name]
+          targetLabel: pod
+    asserts:
+      - lengthEqual:
+          path: spec.endpoints[0].relabelings
+          count: 1
+      - contains:
+          path: spec.endpoints[0].relabelings[0].sourceLabels
+          content: __meta_kubernetes_pod_name
+      - equal:
+          path: spec.endpoints[0].relabelings[0].targetLabel
+          value: pod
+
+  - it: should support multiple relabelings
+    set:
+      metrics.enabled: true
+      metrics.serviceMonitor.enabled: true
+      metrics.serviceMonitor.relabelings:
+        - sourceLabels: [__meta_kubernetes_pod_name]
+          targetLabel: pod
+        - sourceLabels: [__meta_kubernetes_namespace]
+          targetLabel: namespace
+        - action: drop
+          regex: temp.*
+          sourceLabels: [__meta_kubernetes_pod_label_temp]
+    asserts:
+      - lengthEqual:
+          path: spec.endpoints[0].relabelings
+          count: 3
+
+  - it: should not have metricRelabelings by default
+    set:
+      metrics.enabled: true
+      metrics.serviceMonitor.enabled: true
+    asserts:
+      - isNull:
+          path: spec.endpoints[0].metricRelabelings
+
+  - it: should add metricRelabelings when specified
+    set:
+      metrics.enabled: true
+      metrics.serviceMonitor.enabled: true
+      metrics.serviceMonitor.metricRelabelings:
+        - sourceLabels: [__name__]
+          regex: 'http_.*'
+          action: keep
+    asserts:
+      - lengthEqual:
+          path: spec.endpoints[0].metricRelabelings
+          count: 1
+      - contains:
+          path: spec.endpoints[0].metricRelabelings[0].sourceLabels
+          content: __name__
+      - equal:
+          path: spec.endpoints[0].metricRelabelings[0].action
+          value: keep
+
+  # =============================================================================
+  # TARGET LABELS
+  # =============================================================================
+
+  - it: should not have targetLabels by default
+    set:
+      metrics.enabled: true
+      metrics.serviceMonitor.enabled: true
+    asserts:
+      - isNull:
+          path: spec.targetLabels
+
+  - it: should add targetLabels when specified
+    set:
+      metrics.enabled: true
+      metrics.serviceMonitor.enabled: true
+      metrics.serviceMonitor.targetLabels:
+        - app
+        - version
+    asserts:
+      - lengthEqual:
+          path: spec.targetLabels
+          count: 2
+      - contains:
+          path: spec.targetLabels
+          content: app
+      - contains:
+          path: spec.targetLabels
+          content: version
+
+  # =============================================================================
+  # EDGE CASES
+  # =============================================================================
+
+  # Interval format validation (these should work with Prometheus)
+  - it: should accept various interval formats
+    set:
+      metrics.enabled: true
+      metrics.serviceMonitor.enabled: true
+      metrics.serviceMonitor.interval: 1m
+    asserts:
+      - equal:
+          path: spec.endpoints[0].interval
+          value: 1m
+
+  - it: should accept interval in hours
+    set:
+      metrics.enabled: true
+      metrics.serviceMonitor.enabled: true
+      metrics.serviceMonitor.interval: 1h
+    asserts:
+      - equal:
+          path: spec.endpoints[0].interval
+          value: 1h
+
+  # Empty configurations
+  - it: should handle empty labels object
+    set:
+      metrics.enabled: true
+      metrics.serviceMonitor.enabled: true
+      metrics.serviceMonitor.labels: {}
+    asserts:
+      - equal:
+          path: metadata.labels.app\.kubernetes\.io/name
+          value: jellyfin
+
+  - it: should handle empty relabelings array
+    set:
+      metrics.enabled: true
+      metrics.serviceMonitor.enabled: true
+      metrics.serviceMonitor.relabelings: []
+    asserts:
+      - isNull:
+          path: spec.endpoints[0].relabelings
+
+  # =============================================================================
+  # COMPLETE SCENARIOS
+  # =============================================================================
+
+  - it: should create complete ServiceMonitor with all features
+    set:
+      metrics.enabled: true
+      metrics.serviceMonitor.enabled: true
+      metrics.serviceMonitor.namespace: monitoring
+      metrics.serviceMonitor.labels:
+        prometheus: kube-prometheus
+      metrics.serviceMonitor.interval: 1m
+      metrics.serviceMonitor.scrapeTimeout: 30s
+      metrics.serviceMonitor.path: /metrics
+      metrics.serviceMonitor.port: 8096
+      metrics.serviceMonitor.scheme: https
+      metrics.serviceMonitor.tlsConfig:
+        insecureSkipVerify: true
+      metrics.serviceMonitor.relabelings:
+        - sourceLabels: [__meta_kubernetes_pod_name]
+          targetLabel: pod
+      metrics.serviceMonitor.metricRelabelings:
+        - action: drop
+          regex: 'unnecessary_metric_.*'
+          sourceLabels: [__name__]
+      metrics.serviceMonitor.targetLabels:
+        - app
+    asserts:
+      - equal:
+          path: metadata.namespace
+          value: monitoring
+      - equal:
+          path: metadata.labels.prometheus
+          value: kube-prometheus
+      - equal:
+          path: spec.endpoints[0].interval
+          value: 1m
+      - equal:
+          path: spec.endpoints[0].scheme
+          value: https
+      - isNotNull:
+          path: spec.endpoints[0].tlsConfig
+      - lengthEqual:
+          path: spec.endpoints[0].relabelings
+          count: 1
+      - lengthEqual:
+          path: spec.endpoints[0].metricRelabelings
+          count: 1
+      - lengthEqual:
+          path: spec.targetLabels
+          count: 1
+
+  # =============================================================================
+  # REGRESSION TESTS
+  # =============================================================================
+
+  - it: should always use monitoring.coreos.com/v1 API version
+    set:
+      metrics.enabled: true
+      metrics.serviceMonitor.enabled: true
+    asserts:
+      - equal:
+          path: apiVersion
+          value: monitoring.coreos.com/v1
+
+  - it: should always have correct chart labels
+    set:
+      metrics.enabled: true
+      metrics.serviceMonitor.enabled: true
+    asserts:
+      - equal:
+          path: metadata.labels.app\.kubernetes\.io/name
+          value: jellyfin
+      - equal:
+          path: metadata.labels.app\.kubernetes\.io/instance
+          value: RELEASE-NAME
+
+  - it: should always have exactly one endpoint
+    set:
+      metrics.enabled: true
+      metrics.serviceMonitor.enabled: true
+    asserts:
+      - lengthEqual:
+          path: spec.endpoints
+          count: 1
+
+  # Verify dependency on metrics.enabled
+  - it: should require both metrics.enabled and serviceMonitor.enabled
+    set:
+      metrics.enabled: false
+      metrics.serviceMonitor.enabled: true
+    asserts:
+      - hasDocuments:
+          count: 0

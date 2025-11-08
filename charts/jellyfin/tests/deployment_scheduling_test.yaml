@@ -1,0 +1,203 @@
+suite: test deployment scheduling
+templates:
+  - deployment.yaml
+tests:
+  # NODE SELECTOR
+  - it: should not have nodeSelector by default
+    asserts:
+      - isNull:
+          path: spec.template.spec.nodeSelector
+
+  - it: should set single nodeSelector
+    set:
+      nodeSelector:
+        disktype: ssd
+    asserts:
+      - equal:
+          path: spec.template.spec.nodeSelector.disktype
+          value: ssd
+
+  - it: should set multiple nodeSelectors
+    set:
+      nodeSelector:
+        disktype: ssd
+        zone: us-west1-a
+        instance-type: n1-standard-4
+    asserts:
+      - equal:
+          path: spec.template.spec.nodeSelector.disktype
+          value: ssd
+      - equal:
+          path: spec.template.spec.nodeSelector.zone
+          value: us-west1-a
+
+  # TOLERATIONS
+  - it: should not have tolerations by default
+    asserts:
+      - isNull:
+          path: spec.template.spec.tolerations
+
+  - it: should set toleration with Equal operator
+    set:
+      tolerations:
+        - key: key1
+          operator: Equal
+          value: value1
+          effect: NoSchedule
+    asserts:
+      - lengthEqual:
+          path: spec.template.spec.tolerations
+          count: 1
+      - equal:
+          path: spec.template.spec.tolerations[0].key
+          value: key1
+      - equal:
+          path: spec.template.spec.tolerations[0].operator
+          value: Equal
+
+  - it: should set toleration with Exists operator
+    set:
+      tolerations:
+        - key: special
+          operator: Exists
+          effect: NoExecute
+    asserts:
+      - equal:
+          path: spec.template.spec.tolerations[0].operator
+          value: Exists
+
+  - it: should support multiple tolerations
+    set:
+      tolerations:
+        - key: key1
+          operator: Equal
+          value: value1
+          effect: NoSchedule
+        - key: key2
+          operator: Exists
+          effect: NoExecute
+        - key: key3
+          operator: Equal
+          value: value3
+          effect: PreferNoSchedule
+    asserts:
+      - lengthEqual:
+          path: spec.template.spec.tolerations
+          count: 3
+
+  # AFFINITY
+  - it: should not have affinity by default
+    asserts:
+      - isNull:
+          path: spec.template.spec.affinity
+
+  - it: should set nodeAffinity
+    set:
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: disktype
+                    operator: In
+                    values: [ssd]
+    asserts:
+      - isNotNull:
+          path: spec.template.spec.affinity.nodeAffinity
+
+  - it: should set podAffinity
+    set:
+      affinity:
+        podAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector:
+                matchLabels:
+                  app: cache
+              topologyKey: kubernetes.io/hostname
+    asserts:
+      - isNotNull:
+          path: spec.template.spec.affinity.podAffinity
+
+  - it: should set podAntiAffinity
+    set:
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchLabels:
+                    app: jellyfin
+                topologyKey: kubernetes.io/hostname
+    asserts:
+      - isNotNull:
+          path: spec.template.spec.affinity.podAntiAffinity
+
+  # DNS CONFIGURATION
+  - it: should use ClusterFirst dnsPolicy by default
+    asserts:
+      - equal:
+          path: spec.template.spec.dnsPolicy
+          value: ClusterFirst
+
+  - it: should set custom dnsPolicy
+    set:
+      dnsPolicy: None
+    asserts:
+      - equal:
+          path: spec.template.spec.dnsPolicy
+          value: None
+
+  - it: should not have dnsConfig by default
+    asserts:
+      - isNull:
+          path: spec.template.spec.dnsConfig
+
+  - it: should set dnsConfig when specified
+    set:
+      dnsConfig:
+        nameservers: [1.1.1.1, 8.8.8.8]
+        searches: [example.com]
+        options:
+          - name: ndots
+            value: "2"
+    asserts:
+      - contains:
+          path: spec.template.spec.dnsConfig.nameservers
+          content: 1.1.1.1
+      - contains:
+          path: spec.template.spec.dnsConfig.searches
+          content: example.com
+
+  # COMPLETE SCENARIOS
+  - it: should combine nodeSelector, tolerations, and affinity
+    set:
+      nodeSelector:
+        disktype: ssd
+      tolerations:
+        - key: dedicated
+          operator: Equal
+          value: jellyfin
+          effect: NoSchedule
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector:
+                matchLabels:
+                  app.kubernetes.io/name: jellyfin
+              topologyKey: kubernetes.io/hostname
+    asserts:
+      - isNotNull:
+          path: spec.template.spec.nodeSelector
+      - lengthEqual:
+          path: spec.template.spec.tolerations
+          count: 1
+      - isNotNull:
+          path: spec.template.spec.affinity.podAntiAffinity
+
+  # REGRESSION
+  - it: should maintain ClusterFirst dnsPolicy when hostNetwork not enabled
+    asserts:
+      - equal:
+          path: spec.template.spec.dnsPolicy
+          value: ClusterFirst
