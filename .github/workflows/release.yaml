@@ -32,9 +32,128 @@ jobs:
         env:
           GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
 
+      - name: Install yq
+        run: |
+          # renovate: datasource=github-releases depName=mikefarah/yq
+          YQ_VERSION="4.44.3"
+          wget -q https://github.com/mikefarah/yq/releases/download/v${YQ_VERSION}/yq_linux_amd64 -O yq
+          chmod +x yq
+          sudo mv yq /usr/local/bin/yq
+          yq --version
+
       - name: Run chart-releaser
         uses: helm/chart-releaser-action@cae68fefc6b5f367a0275617c9f83181ba54714f # v1.7.0
         env:
           CR_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
         with:
           config: .github/cr.yaml
+
+      - name: Extract chart metadata and format release notes
+        id: release-notes
+        run: |
+          CHART_PATH="charts/jellyfin"
+          CHART_NAME=$(yq eval '.name' "${CHART_PATH}/Chart.yaml")
+          CHART_VERSION=$(yq eval '.version' "${CHART_PATH}/Chart.yaml")
+          APP_VERSION=$(yq eval '.appVersion' "${CHART_PATH}/Chart.yaml")
+          RELEASE_TAG="${CHART_NAME}-${CHART_VERSION}"
+
+          echo "tag=${RELEASE_TAG}" >> $GITHUB_OUTPUT
+
+          CHANGELOG_RAW=$(yq eval '.annotations."artifacthub.io/changes"' "${CHART_PATH}/Chart.yaml")
+
+          # Build changelog section
+          CHANGELOG_SECTION=""
+          if [ "$CHANGELOG_RAW" != "null" ] && [ -n "$CHANGELOG_RAW" ]; then
+            CHANGELOG_SECTION="## What's Changed
+
+          "
+            TEMP_FILE=$(mktemp)
+            SEPARATOR="|"
+            echo "$CHANGELOG_RAW" | yq eval ".[] | .kind + \"${SEPARATOR}\" + .description" - > "$TEMP_FILE"
+
+            while IFS="${SEPARATOR}" read -r kind description; do
+              case "$kind" in
+                "added")
+                  emoji="✨"
+                  label="Added"
+                  ;;
+                "changed")
+                  emoji="🔄"
+                  label="Changed"
+                  ;;
+                "deprecated")
+                  emoji="⚠️"
+                  label="Deprecated"
+                  ;;
+                "removed")
+                  emoji="🗑️"
+                  label="Removed"
+                  ;;
+                "fixed")
+                  emoji="🐛"
+                  label="Fixed"
+                  ;;
+                "security")
+                  emoji="🔒"
+                  label="Security"
+                  ;;
+                *)
+                  emoji="📝"
+                  label="Changed"
+                  ;;
+              esac
+              CHANGELOG_SECTION="${CHANGELOG_SECTION}- ${emoji} **${label}**: ${description}
+          "
+            done < "$TEMP_FILE"
+
+            rm -f "$TEMP_FILE"
+            CHANGELOG_SECTION="${CHANGELOG_SECTION}
+          "
+          fi
+
+          # Build release body
+          RELEASE_BODY="## Jellyfin Helm Chart v${CHART_VERSION}
+
+          **Application Version**: \`${APP_VERSION}\`
+
+          ${CHANGELOG_SECTION}## Installation
+
+          Add the Jellyfin Helm repository:
+
+          \`\`\`bash
+          helm repo add jellyfin https://jellyfin.github.io/jellyfin-helm
+          helm repo update
+          \`\`\`
+
+          Install the chart:
+
+          \`\`\`bash
+          helm install my-jellyfin jellyfin/jellyfin --version ${CHART_VERSION}
+          \`\`\`
+
+          ## Upgrade
+
+          \`\`\`bash
+          helm upgrade my-jellyfin jellyfin/jellyfin --version ${CHART_VERSION}
+          \`\`\`
+
+          ---
+
+          📦 **Chart**: \`jellyfin\` v${CHART_VERSION}
+          🎬 **Jellyfin**: v${APP_VERSION}
+          📖 **Documentation**: https://github.com/jellyfin/jellyfin-helm/blob/main/charts/jellyfin/README.md
+          "
+
+          # Save to file
+          echo "$RELEASE_BODY" > release-notes.md
+
+      - name: Update release notes
+        env:
+          GH_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+        run: |
+          RELEASE_TAG="${{ steps.release-notes.outputs.tag }}"
+
+          # Update release notes
+          gh release edit "$RELEASE_TAG" --notes-file release-notes.md
+
+          echo "✅ Updated release notes for $RELEASE_TAG"

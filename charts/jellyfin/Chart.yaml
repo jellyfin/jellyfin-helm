@@ -14,3 +14,5 @@ annotations:
   artifacthub.io/changes: |
     - kind: added
       description: Add troubleshooting documentation for inotify instance limits with workaround example
+    - kind: added
+      description: Add revisionHistoryLimit parameter to control rollback history retention (defaults to 3 instead of Kubernetes default 10)
