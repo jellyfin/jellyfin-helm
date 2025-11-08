@@ -424,6 +424,46 @@ networkPolicy:
 - Either disable NetworkPolicy or disable host networking
 
 For more configuration options, see the full values documentation in [values.yaml](values.yaml).
+## Troubleshooting
+
+### inotify Instance Limit Reached
+
+**Problem:** Jellyfin crashes with error:
+```
+System.IO.IOException: The configured user limit (128) on the number of inotify instances has been reached
+```
+
+**Root cause:** The Linux kernel has a limit on inotify instances (file system watchers) per user. Jellyfin uses inotify to monitor media libraries for changes.
+
+**Proper solution (recommended):**
+
+Increase the inotify limit on the Kubernetes nodes:
+
+```bash
+# Temporary (until reboot)
+sysctl -w fs.inotify.max_user_instances=512
+
+# Permanent
+echo "fs.inotify.max_user_instances=512" >> /etc/sysctl.conf
+sysctl -p
+```
+
+Recommended values:
+- `fs.inotify.max_user_instances`: 512 or higher
+- `fs.inotify.max_user_watches`: 524288 or higher (if you have large media libraries)
+
+**Workaround (if you cannot modify host settings):**
+
+If you're running on a managed Kubernetes cluster where you cannot modify node-level settings, you can force Jellyfin to use polling instead of inotify. **Note: This is less efficient and may increase CPU usage and delay change detection.**
+
+```yaml
+jellyfin:
+  env:
+    - name: DOTNET_USE_POLLING_FILE_WATCHER
+      value: "1"
+```
+
+This workaround disables inotify file watching in favor of periodic polling, which doesn't require inotify instances but is less efficient.
 
 ## IPv6 Configuration
 

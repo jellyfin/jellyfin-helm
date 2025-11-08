@@ -211,6 +211,14 @@ Network Policy is ENABLED:
 Network Policy is DISABLED (default).
 To enable network isolation, set networkPolicy.enabled=true in your values.
 {{- end }}
+For troubleshooting common issues, see the README:
+- inotify instance limit errors
+- Hardware acceleration setup
+- Network configuration
+
+Useful resources:
+  Documentation: https://jellyfin.org/docs/
+  Troubleshooting: See README.md in the chart repository
 
 {{- if .Values.jellyfin.envFrom }}
 
