@@ -1,108 +1,134 @@
 {
   "$schema": "https://json-schema.org/draft-07/schema#",
   "title": "Jellyfin Helm Chart Values",
-  "description": "Schema for Jellyfin Helm chart values.yaml with validation for conflicting configurations",
+  "description": "JSON Schema for Jellyfin Helm chart values.yaml with comprehensive validation and mutual exclusivity checks",
   "type": "object",
   "properties": {
     "replicaCount": {
       "type": "integer",
       "minimum": 1,
       "default": 1,
-      "description": "Number of Jellyfin replicas to start. Should be left at 1."
+      "description": "Number of Jellyfin replicas. Should remain at 1 as Jellyfin does not support horizontal scaling."
     },
     "revisionHistoryLimit": {
       "type": "integer",
       "minimum": 0,
       "default": 3,
-      "description": "Number of old ReplicaSets to retain for rollback history"
+      "description": "Number of old ReplicaSets to retain for rollback history. Set to 0 to disable (not recommended)."
     },
     "imagePullSecrets": {
       "type": "array",
       "default": [],
       "items": {
-        "type": "object"
+        "type": "object",
+        "required": ["name"],
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Name of the secret containing registry credentials"
+          }
+        }
       },
-      "description": "Image pull secrets to authenticate with private repositories"
+      "description": "Image pull secrets for authenticating with private container registries"
     },
     "image": {
       "type": "object",
+      "required": ["repository", "pullPolicy"],
       "properties": {
         "repository": {
           "type": "string",
-          "default": "docker.io/jellyfin/jellyfin"
+          "default": "docker.io/jellyfin/jellyfin",
+          "pattern": "^[a-z0-9.-]+(/[a-z0-9._-]+)*$",
+          "description": "Container image repository for Jellyfin"
         },
         "tag": {
           "type": "string",
-          "default": ""
+          "default": "",
+          "description": "Image tag. Leave empty to use appVersion from Chart.yaml"
         },
         "pullPolicy": {
           "type": "string",
           "enum": ["Always", "IfNotPresent", "Never"],
-          "default": "IfNotPresent"
+          "default": "IfNotPresent",
+          "description": "Image pull policy"
         }
       }
     },
     "nameOverride": {
       "type": "string",
-      "default": ""
+      "default": "",
+      "description": "Override the chart name in resource names"
     },
     "fullnameOverride": {
       "type": "string",
-      "default": ""
+      "default": "",
+      "description": "Override the full resource name (namespace-name)"
     },
     "serviceAccount": {
       "type": "object",
       "properties": {
         "create": {
           "type": "boolean",
-          "default": true
+          "default": true,
+          "description": "Create a dedicated service account"
         },
         "automount": {
           "type": "boolean",
-          "default": true
+          "default": true,
+          "description": "Automatically mount service account token"
         },
         "annotations": {
           "type": "object",
-          "default": {}
+          "default": {},
+          "description": "Annotations to add to the service account"
         },
         "name": {
           "type": "string",
-          "default": ""
+          "default": "",
+          "description": "Custom name for service account. Auto-generated if empty."
         }
       }
     },
     "podAnnotations": {
       "type": "object",
-      "default": {}
+      "default": {},
+      "description": "Annotations to add to Jellyfin pods"
     },
     "podLabels": {
       "type": "object",
-      "default": {}
+      "default": {},
+      "description": "Additional labels for Jellyfin pods"
     },
     "podSecurityContext": {
       "type": "object",
-      "default": {}
+      "default": {},
+      "description": "Security context for the pod (fsGroup, runAsUser, etc.)"
     },
     "securityContext": {
       "type": "object",
-      "default": {}
+      "default": {},
+      "description": "Security context for the container (capabilities, readOnlyRootFilesystem, etc.)"
     },
     "runtimeClassName": {
       "type": "string",
-      "default": ""
+      "default": "",
+      "description": "RuntimeClass for the pod (e.g., nvidia, kata)"
     },
     "priorityClassName": {
       "type": "string",
-      "default": ""
+      "default": "",
+      "description": "PriorityClass name for pod scheduling priority"
     },
     "dnsConfig": {
       "type": "object",
-      "default": {}
+      "default": {},
+      "description": "Custom DNS configuration for the pod"
     },
     "dnsPolicy": {
       "type": "string",
       "default": "",
-      "enum": ["", "ClusterFirst", "ClusterFirstWithHostNet", "Default", "None"]
+      "enum": ["", "ClusterFirst", "ClusterFirstWithHostNet", "Default", "None"],
+      "description": "DNS policy for the pod"
     },
     "deploymentStrategy": {
       "type": "object",
@@ -110,13 +136,15 @@
         "type": {
           "type": "string",
           "enum": ["RollingUpdate", "Recreate"],
-          "default": "RollingUpdate"
+          "default": "RollingUpdate",
+          "description": "Deployment update strategy"
         }
       }
     },
     "deploymentAnnotations": {
       "type": "object",
-      "default": {}
+      "default": {},
+      "description": "Annotations for the Deployment resource"
     },
     "service": {
       "type": "object",
@@ -124,16 +152,32 @@
         "type": {
           "type": "string",
           "enum": ["ClusterIP", "NodePort", "LoadBalancer"],
-          "default": "ClusterIP"
+          "default": "ClusterIP",
+          "description": "Kubernetes service type"
         },
         "port": {
           "type": "integer",
-          "default": 8096
+          "minimum": 1,
+          "maximum": 65535,
+          "default": 8096,
+          "description": "Service port for Jellyfin web interface"
+        },
+        "nodePort": {
+          "type": "integer",
+          "minimum": 30000,
+          "maximum": 32767,
+          "description": "NodePort when service type is NodePort"
+        },
+        "annotations": {
+          "type": "object",
+          "default": {},
+          "description": "Service annotations"
         },
         "ipFamilyPolicy": {
           "type": "string",
           "enum": ["", "SingleStack", "PreferDualStack", "RequireDualStack"],
-          "default": ""
+          "default": "",
+          "description": "IP family policy for dual-stack support"
         },
         "ipFamilies": {
           "type": "array",
@@ -141,7 +185,10 @@
             "type": "string",
             "enum": ["IPv4", "IPv6"]
           },
-          "default": []
+          "uniqueItems": true,
+          "maxItems": 2,
+          "default": [],
+          "description": "IP families (IPv4, IPv6, or both)"
         }
       }
     },
@@ -150,7 +197,54 @@
       "properties": {
         "enabled": {
           "type": "boolean",
-          "default": false
+          "default": false,
+          "description": "Enable Ingress resource"
+        },
+        "className": {
+          "type": "string",
+          "description": "IngressClass name (e.g., nginx, traefik)"
+        },
+        "annotations": {
+          "type": "object",
+          "default": {},
+          "description": "Ingress annotations"
+        },
+        "hosts": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["host"],
+            "properties": {
+              "host": {
+                "type": "string",
+                "format": "hostname",
+                "description": "Hostname for Ingress"
+              },
+              "paths": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "path": {
+                      "type": "string",
+                      "description": "URL path"
+                    },
+                    "pathType": {
+                      "type": "string",
+                      "enum": ["Prefix", "Exact", "ImplementationSpecific"],
+                      "description": "Path matching type"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tls": {
+          "type": "array",
+          "items": {
+            "type": "object"
+          }
         }
       }
     },
@@ -159,43 +253,81 @@
       "properties": {
         "enabled": {
           "type": "boolean",
-          "default": false
+          "default": false,
+          "description": "Enable Gateway API HTTPRoute"
+        },
+        "parentRefs": {
+          "type": "array",
+          "items": {
+            "type": "object"
+          }
+        },
+        "hostnames": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "hostname"
+          }
+        },
+        "rules": {
+          "type": "array",
+          "items": {
+            "type": "object"
+          }
         }
       }
     },
     "resources": {
       "type": "object",
-      "default": {}
+      "default": {},
+      "description": "CPU/Memory resource requests and limits"
     },
     "startupProbe": {
       "type": ["object", "null"],
-      "default": null
+      "default": null,
+      "description": "Startup probe configuration. Useful for large media libraries with slow startup."
     },
     "livenessProbe": {
-      "type": "object"
+      "type": "object",
+      "description": "Liveness probe configuration"
     },
     "readinessProbe": {
-      "type": "object"
+      "type": "object",
+      "description": "Readiness probe configuration"
     },
     "volumes": {
       "type": "array",
-      "default": []
+      "default": [],
+      "items": {
+        "type": "object"
+      },
+      "description": "Additional volumes for the pod"
     },
     "volumeMounts": {
       "type": "array",
-      "default": []
+      "default": [],
+      "items": {
+        "type": "object"
+      },
+      "description": "Additional volume mounts for the container"
     },
     "nodeSelector": {
       "type": "object",
-      "default": {}
+      "default": {},
+      "description": "Node labels for pod assignment"
     },
     "tolerations": {
       "type": "array",
-      "default": []
+      "default": [],
+      "items": {
+        "type": "object"
+      },
+      "description": "Tolerations for pod assignment"
     },
     "affinity": {
       "type": "object",
-      "default": {}
+      "default": {},
+      "description": "Affinity rules for pod assignment"
     },
     "podPrivileges": {
       "type": "object",
@@ -203,12 +335,12 @@
         "hostIPC": {
           "type": "boolean",
           "default": false,
-          "description": "Enable hostIPC namespace"
+          "description": "Enable hostIPC namespace. Required for NVIDIA MPS GPU sharing."
         },
         "hostNetwork": {
           "type": "boolean",
           "default": false,
-          "description": "Enable hostNetwork. Mutually exclusive with NetworkPolicy."
+          "description": "Enable hostNetwork. Required for DLNA. Mutually exclusive with NetworkPolicy."
         },
         "hostPID": {
           "type": "boolean",
@@ -223,23 +355,78 @@
         "enableDLNA": {
           "type": "boolean",
           "default": false,
-          "description": "Enable DLNA. Requires host network. Mutually exclusive with NetworkPolicy."
+          "description": "Enable DLNA support. Requires hostNetwork=true. Mutually exclusive with NetworkPolicy."
         },
         "command": {
           "type": "array",
-          "default": []
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "description": "Override container entrypoint"
         },
         "args": {
           "type": "array",
-          "default": []
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "description": "Additional arguments for entrypoint"
         },
         "envFrom": {
           "type": "array",
-          "default": []
+          "default": [],
+          "items": {
+            "type": "object",
+            "properties": {
+              "configMapRef": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string"
+                  },
+                  "optional": {
+                    "type": "boolean"
+                  }
+                }
+              },
+              "secretRef": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string"
+                  },
+                  "optional": {
+                    "type": "boolean"
+                  }
+                }
+              },
+              "prefix": {
+                "type": "string"
+              }
+            }
+          },
+          "description": "Load environment variables from ConfigMap or Secret"
         },
         "env": {
           "type": "array",
-          "default": []
+          "default": [],
+          "items": {
+            "type": "object",
+            "required": ["name"],
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "value": {
+                "type": "string"
+              },
+              "valueFrom": {
+                "type": "object"
+              }
+            }
+          },
+          "description": "Additional environment variables"
         }
       }
     },
@@ -251,7 +438,44 @@
           "properties": {
             "enabled": {
               "type": "boolean",
-              "default": true
+              "default": true,
+              "description": "Enable persistent storage for config. False uses emptyDir."
+            },
+            "type": {
+              "type": "string",
+              "enum": ["pvc", "hostPath", "emptyDir"],
+              "default": "pvc",
+              "description": "Storage type: pvc, hostPath, or emptyDir"
+            },
+            "accessMode": {
+              "type": "string",
+              "enum": ["ReadWriteOnce", "ReadOnlyMany", "ReadWriteMany", "ReadWriteOncePod"],
+              "default": "ReadWriteOnce",
+              "description": "PVC access mode"
+            },
+            "size": {
+              "type": "string",
+              "pattern": "^[0-9]+(\\.[0-9]+)?(Ki|Mi|Gi|Ti|Pi|Ei|K|M|G|T|P|E)?$",
+              "default": "5Gi",
+              "description": "PVC size (e.g., 5Gi, 10Gi)"
+            },
+            "storageClass": {
+              "type": "string",
+              "default": "",
+              "description": "StorageClass name. Empty uses default provisioner."
+            },
+            "existingClaim": {
+              "type": "string",
+              "description": "Use existing PVC instead of creating new"
+            },
+            "hostPath": {
+              "type": "string",
+              "description": "Host path when type is hostPath"
+            },
+            "annotations": {
+              "type": "object",
+              "default": {},
+              "description": "PVC annotations"
             }
           }
         },
@@ -260,7 +484,44 @@
           "properties": {
             "enabled": {
               "type": "boolean",
-              "default": true
+              "default": true,
+              "description": "Enable persistent storage for media"
+            },
+            "type": {
+              "type": "string",
+              "enum": ["pvc", "hostPath", "emptyDir"],
+              "default": "pvc",
+              "description": "Storage type: pvc, hostPath, or emptyDir"
+            },
+            "accessMode": {
+              "type": "string",
+              "enum": ["ReadWriteOnce", "ReadOnlyMany", "ReadWriteMany", "ReadWriteOncePod"],
+              "default": "ReadWriteOnce",
+              "description": "PVC access mode"
+            },
+            "size": {
+              "type": "string",
+              "pattern": "^[0-9]+(\\.[0-9]+)?(Ki|Mi|Gi|Ti|Pi|Ei|K|M|G|T|P|E)?$",
+              "default": "25Gi",
+              "description": "PVC size"
+            },
+            "storageClass": {
+              "type": "string",
+              "default": "",
+              "description": "StorageClass name"
+            },
+            "existingClaim": {
+              "type": "string",
+              "description": "Use existing PVC"
+            },
+            "hostPath": {
+              "type": "string",
+              "description": "Host path when type is hostPath"
+            },
+            "annotations": {
+              "type": "object",
+              "default": {},
+              "description": "PVC annotations"
             }
           }
         },
@@ -269,7 +530,44 @@
           "properties": {
             "enabled": {
               "type": "boolean",
-              "default": false
+              "default": false,
+              "description": "Enable dedicated cache volume for better performance"
+            },
+            "type": {
+              "type": "string",
+              "enum": ["pvc", "hostPath", "emptyDir"],
+              "default": "pvc",
+              "description": "Storage type"
+            },
+            "accessMode": {
+              "type": "string",
+              "enum": ["ReadWriteOnce", "ReadOnlyMany", "ReadWriteMany", "ReadWriteOncePod"],
+              "default": "ReadWriteOnce",
+              "description": "PVC access mode"
+            },
+            "size": {
+              "type": "string",
+              "pattern": "^[0-9]+(\\.[0-9]+)?(Ki|Mi|Gi|Ti|Pi|Ei|K|M|G|T|P|E)?$",
+              "default": "10Gi",
+              "description": "PVC size"
+            },
+            "storageClass": {
+              "type": "string",
+              "default": "",
+              "description": "StorageClass name (can use faster storage)"
+            },
+            "existingClaim": {
+              "type": "string",
+              "description": "Use existing PVC"
+            },
+            "hostPath": {
+              "type": "string",
+              "description": "Host path when type is hostPath"
+            },
+            "annotations": {
+              "type": "object",
+              "default": {},
+              "description": "PVC annotations"
             }
           }
         }
@@ -280,14 +578,34 @@
       "properties": {
         "enabled": {
           "type": "boolean",
-          "default": false
+          "default": false,
+          "description": "Enable metrics collection"
         },
         "serviceMonitor": {
           "type": "object",
           "properties": {
             "enabled": {
               "type": "boolean",
-              "default": false
+              "default": false,
+              "description": "Create Prometheus ServiceMonitor"
+            },
+            "interval": {
+              "type": "string",
+              "pattern": "^[0-9]+(s|m|h)$",
+              "description": "Scrape interval (e.g., 30s, 1m)"
+            },
+            "scrapeTimeout": {
+              "type": "string",
+              "pattern": "^[0-9]+(s|m|h)$",
+              "description": "Scrape timeout"
+            },
+            "labels": {
+              "type": "object",
+              "description": "Additional labels for ServiceMonitor"
+            },
+            "annotations": {
+              "type": "object",
+              "description": "ServiceMonitor annotations"
             }
           }
         }
@@ -296,15 +614,26 @@
     "initContainers": {
       "type": "array",
       "default": [],
-      "description": "DEPRECATED: Use extraInitContainers instead"
+      "items": {
+        "type": "object"
+      },
+      "description": "DEPRECATED: Use extraInitContainers instead. Will be removed after 2030."
     },
     "extraInitContainers": {
       "type": "array",
-      "default": []
+      "default": [],
+      "items": {
+        "type": "object"
+      },
+      "description": "Additional init containers"
     },
     "extraContainers": {
       "type": "array",
-      "default": []
+      "default": [],
+      "items": {
+        "type": "object"
+      },
+      "description": "Additional sidecar containers"
     },
     "networkPolicy": {
       "type": "object",
@@ -312,7 +641,7 @@
         "enabled": {
           "type": "boolean",
           "default": false,
-          "description": "Enable NetworkPolicy. Mutually exclusive with hostNetwork and DLNA."
+          "description": "Enable NetworkPolicy for network isolation. Mutually exclusive with hostNetwork and DLNA."
         },
         "policyTypes": {
           "type": "array",
@@ -320,26 +649,36 @@
             "type": "string",
             "enum": ["Ingress", "Egress"]
           },
-          "default": ["Ingress", "Egress"]
+          "uniqueItems": true,
+          "minItems": 1,
+          "default": ["Ingress", "Egress"],
+          "description": "Policy types to enforce"
         },
         "ingress": {
           "type": "object",
           "properties": {
             "allowExternal": {
               "type": "boolean",
-              "default": true
+              "default": true,
+              "description": "Allow access from any pod/namespace. Set false for production."
             },
             "podSelector": {
               "type": "object",
-              "default": {}
+              "default": {},
+              "description": "Pod selector for allowed ingress (when allowExternal=false)"
             },
             "namespaceSelector": {
               "type": "object",
-              "default": {}
+              "default": {},
+              "description": "Namespace selector for allowed ingress"
             },
             "customRules": {
               "type": "array",
-              "default": []
+              "default": [],
+              "items": {
+                "type": "object"
+              },
+              "description": "Additional custom ingress rules"
             }
           }
         },
@@ -348,45 +687,58 @@
           "properties": {
             "allowDNS": {
               "type": "boolean",
-              "default": true
+              "default": true,
+              "description": "Allow DNS resolution. Highly recommended."
             },
             "dnsNamespace": {
               "type": "string",
-              "default": "kube-system"
+              "default": "kube-system",
+              "description": "Namespace where DNS service runs"
             },
             "dnsPodSelector": {
               "type": "object",
               "default": {
                 "k8s-app": "kube-dns"
-              }
+              },
+              "description": "Pod selector for DNS pods"
             },
             "allowAllEgress": {
               "type": "boolean",
-              "default": true
+              "default": true,
+              "description": "Allow all internet access for metadata/subtitles"
             },
             "restrictedEgress": {
               "type": "object",
               "properties": {
                 "allowMetadata": {
                   "type": "boolean",
-                  "default": true
+                  "default": true,
+                  "description": "Allow HTTPS/443 for metadata providers"
                 },
                 "allowInCluster": {
                   "type": "boolean",
-                  "default": true
+                  "default": true,
+                  "description": "Allow pod-to-pod communication"
                 },
                 "allowedCIDRs": {
                   "type": "array",
+                  "default": [],
                   "items": {
-                    "type": "string"
+                    "type": "string",
+                    "pattern": "^([0-9]{1,3}\\.){3}[0-9]{1,3}/[0-9]{1,2}$|^([0-9a-fA-F]{0,4}:){2,7}[0-9a-fA-F]{0,4}/[0-9]{1,3}$",
+                    "description": "CIDR notation (e.g., 10.0.0.0/8)"
                   },
-                  "default": []
+                  "description": "Additional allowed IP ranges"
                 }
               }
             },
             "customRules": {
               "type": "array",
-              "default": []
+              "default": [],
+              "items": {
+                "type": "object"
+              },
+              "description": "Additional custom egress rules"
             }
           }
         },
@@ -395,13 +747,15 @@
           "properties": {
             "namespace": {
               "type": "string",
-              "default": ""
+              "default": "",
+              "description": "Prometheus namespace. Empty uses same as Jellyfin."
             },
             "podSelector": {
               "type": "object",
               "default": {
                 "app.kubernetes.io/name": "prometheus"
-              }
+              },
+              "description": "Prometheus pod selector"
             }
           }
         }
@@ -417,9 +771,11 @@
               "enabled": {
                 "const": true
               }
-            }
+            },
+            "required": ["enabled"]
           }
-        }
+        },
+        "required": ["networkPolicy"]
       },
       "then": {
         "not": {
@@ -431,9 +787,11 @@
                     "enableDLNA": {
                       "const": true
                     }
-                  }
+                  },
+                  "required": ["enableDLNA"]
                 }
-              }
+              },
+              "required": ["jellyfin"]
             },
             {
               "properties": {
@@ -442,9 +800,11 @@
                     "hostNetwork": {
                       "const": true
                     }
-                  }
+                  },
+                  "required": ["hostNetwork"]
                 }
-              }
+              },
+              "required": ["podPrivileges"]
             }
           ]
         }
