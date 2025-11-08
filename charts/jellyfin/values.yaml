@@ -224,7 +224,20 @@ jellyfin:
   command: []
   # -- Additional arguments for the entrypoint command.
   args: []
+  # -- Load environment variables from ConfigMap or Secret.
+  # See: https://kubernetes.io/docs/tasks/configure-pod-container/configure-pod-configmap/#configure-all-key-value-pairs-in-a-configmap-as-container-environment-variables
+  # Example:
+  # envFrom:
+  #   - configMapRef:
+  #       name: jellyfin-config
+  #   - secretRef:
+  #       name: jellyfin-secrets
+  envFrom: []
   # -- Additional environment variables for the container.
+  # Example:
+  # env:
+  #   - name: JELLYFIN_CACHE_DIR
+  #     value: /cache
   env: []
 
 persistence:

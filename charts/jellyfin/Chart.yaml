@@ -8,6 +8,7 @@ keywords:
   - jellyfin
   - media
   - self-hosted
+version: 2.6.0
 version: 3.0.0
 appVersion: 10.11.2
 annotations:
@@ -16,6 +17,8 @@ annotations:
       description: Deprecate initContainers parameter in favor of extraInitContainers for consistency (will be removed after 2030)
     - kind: fixed
       description: Fix extraInitContainers not working (was using wrong parameter name in template)
+    - kind: added
+      description: Add envFrom support to load environment variables from ConfigMap or Secret
     - kind: added
       description: Add NOTES.txt with helpful post-installation information and deprecation warnings
     - kind: added

@@ -116,6 +116,19 @@ To access Jellyfin, you can use port-forwarding:
 Then visit http://localhost:{{ .Values.service.port }} in your browser.
 {{- end }}
 
+{{- if .Values.jellyfin.envFrom }}
+
+Environment Configuration:
+  Loading environment variables from {{ len .Values.jellyfin.envFrom }} source(s):
+{{- range .Values.jellyfin.envFrom }}
+  {{- if .configMapRef }}
+    - ConfigMap: {{ .configMapRef.name }}{{ if .configMapRef.optional }} (optional){{ end }}{{ if .prefix }} with prefix: {{ .prefix }}{{ end }}
+  {{- else if .secretRef }}
+    - Secret: {{ .secretRef.name }}{{ if .secretRef.optional }} (optional){{ end }}{{ if .prefix }} with prefix: {{ .prefix }}{{ end }}
+  {{- end }}
+{{- end }}
+{{- end }}
+
 {{- if .Values.startupProbe }}
 {{- $startupTimeout := mul (default 10 .Values.startupProbe.periodSeconds) (default 30 .Values.startupProbe.failureThreshold) }}
 
