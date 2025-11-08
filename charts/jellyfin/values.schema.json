@@ -38,7 +38,7 @@
         "repository": {
           "type": "string",
           "default": "docker.io/jellyfin/jellyfin",
-          "pattern": "^[a-z0-9.-]+(/[a-z0-9._-]+)*$",
+          "pattern": "^[a-z0-9.-]+(:[0-9]+)?(/[a-z0-9._-]+)*$",
           "description": "Container image repository for Jellyfin"
         },
         "tag": {
@@ -151,7 +151,7 @@
       "properties": {
         "type": {
           "type": "string",
-          "enum": ["ClusterIP", "NodePort", "LoadBalancer"],
+          "enum": ["ClusterIP", "NodePort", "LoadBalancer", "ExternalName"],
           "default": "ClusterIP",
           "description": "Kubernetes service type"
         },

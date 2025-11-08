@@ -241,7 +241,7 @@ tests:
       replicaCount: 3
       persistence.config.accessMode: ReadWriteMany
       persistence.media.accessMode: ReadWriteMany
-      persistence.media.type: nfs
+      persistence.media.type: hostPath
       persistence.media.hostPath: /nfs/jellyfin/media
       affinity:
         podAntiAffinity:

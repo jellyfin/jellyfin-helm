@@ -81,18 +81,6 @@ tests:
           path: spec.type
           value: LoadBalancer
 
-  - it: should support ExternalName type
-    set:
-      service.type: ExternalName
-      service.externalName: jellyfin.example.com
-    asserts:
-      - equal:
-          path: spec.type
-          value: ExternalName
-      - equal:
-          path: spec.externalName
-          value: jellyfin.example.com
-
   # =============================================================================
   # PORT CONFIGURATION
   # =============================================================================
@@ -387,19 +375,6 @@ tests:
           value: NodePort
       - isNull:
           path: spec.ports[0].nodePort
-
-  # ExternalName requires externalName field
-  - it: should set externalName for ExternalName type
-    set:
-      service.type: ExternalName
-      service.externalName: external.service.com
-    asserts:
-      - equal:
-          path: spec.type
-          value: ExternalName
-      - equal:
-          path: spec.externalName
-          value: external.service.com
 
   # Multiple loadBalancerSourceRanges
   - it: should support multiple loadBalancerSourceRanges

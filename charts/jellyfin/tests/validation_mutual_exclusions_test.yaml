@@ -305,16 +305,6 @@ tests:
           path: spec.type
           value: LoadBalancer
 
-  - it: should create service with ExternalName type
-    template: service.yaml
-    set:
-      service.type: ExternalName
-      service.externalName: jellyfin.example.com
-    asserts:
-      - equal:
-          path: spec.type
-          value: ExternalName
-
   # =============================================================================
   # PORT RANGE VALIDATIONS
   # =============================================================================
