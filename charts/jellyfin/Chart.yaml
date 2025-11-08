@@ -18,3 +18,5 @@ annotations:
       description: Fix extraInitContainers not working (was using wrong parameter name in template)
     - kind: added
       description: Add NOTES.txt with helpful post-installation information and deprecation warnings
+    - kind: added
+      description: Add revisionHistoryLimit parameter to control rollback history retention (defaults to 3 instead of Kubernetes default 10)
