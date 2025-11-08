@@ -14,3 +14,5 @@ annotations:
   artifacthub.io/changes: |
     - kind: added
       description: Add startup probe to prevent pod restarts during slow initial startup with large media libraries
+    - kind: added
+      description: Add revisionHistoryLimit parameter to control rollback history retention (defaults to 3 instead of Kubernetes default 10)
