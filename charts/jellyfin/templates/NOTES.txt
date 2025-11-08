@@ -1,12 +1,137 @@
-Thank you for installing {{ .Chart.Name }}.
+{{- if .Values.initContainers }}
+#############################################################################
+##                            ⚠️  WARNING  ⚠️                              ##
+##                                                                         ##
+##  The 'initContainers' parameter is DEPRECATED!                         ##
+##  Please migrate to 'extraInitContainers' instead.                      ##
+##                                                                         ##
+##  Support for 'initContainers' will be removed after 2030.              ##
+##                                                                         ##
+##  Migration guide:                                                      ##
+##    Old: initContainers: [...]                                          ##
+##    New: extraInitContainers: [...]                                     ##
+##                                                                         ##
+#############################################################################
+
+{{- end }}
+Thank you for installing {{ .Chart.Name }}!
 
 Your release is named {{ .Release.Name }}.
 
 To learn more about the release, try:
 
+  $ helm status {{ .Release.Name }} --namespace {{ .Release.Namespace }}
+  $ helm get all {{ .Release.Name }} --namespace {{ .Release.Namespace }}
+
+{{- if .Values.ingress.enabled }}
+{{- range $host := .Values.ingress.hosts }}
+  {{- range .paths }}
+
+Jellyfin is available at:
+  http{{ if $.Values.ingress.tls }}s{{ end }}://{{ $host.host }}{{ .path }}
+  {{- end }}
+{{- end }}
+{{- else if contains "NodePort" .Values.service.type }}
+
+Get the Jellyfin URL by running:
+
+  export NODE_PORT=$(kubectl get --namespace {{ .Release.Namespace }} -o jsonpath="{.spec.ports[0].nodePort}" services {{ include "jellyfin.fullname" . }})
+  export NODE_IP=$(kubectl get nodes --namespace {{ .Release.Namespace }} -o jsonpath="{.items[0].status.addresses[0].address}")
+  echo "Jellyfin URL: http://$NODE_IP:$NODE_PORT"
+
+{{- else if contains "LoadBalancer" .Values.service.type }}
+
+Get the Jellyfin URL by running:
+
+  NOTE: It may take a few minutes for the LoadBalancer IP to be available.
+        You can watch the status by running:
+        kubectl get --namespace {{ .Release.Namespace }} svc -w {{ include "jellyfin.fullname" . }}
+
+  export SERVICE_IP=$(kubectl get svc --namespace {{ .Release.Namespace }} {{ include "jellyfin.fullname" . }} --template "{{"{{ range (index .status.loadBalancer.ingress 0) }}{{.}}{{ end }}"}}")
+  echo "Jellyfin URL: http://$SERVICE_IP:{{ .Values.service.port }}"
+
+{{- else if contains "ClusterIP" .Values.service.type }}
+
+Get the Jellyfin URL by running:
+
+  export POD_NAME=$(kubectl get pods --namespace {{ .Release.Namespace }} -l "app.kubernetes.io/name={{ include "jellyfin.name" . }},app.kubernetes.io/instance={{ .Release.Name }}" -o jsonpath="{.items[0].metadata.name}")
+  export CONTAINER_PORT=$(kubectl get pod --namespace {{ .Release.Namespace }} $POD_NAME -o jsonpath="{.spec.containers[0].ports[0].containerPort}")
+  echo "Jellyfin URL: http://127.0.0.1:8080"
+  kubectl --namespace {{ .Release.Namespace }} port-forward $POD_NAME 8080:$CONTAINER_PORT
+
+{{- end }}
+
+{{- if .Values.persistence.config.enabled }}
+
+Configuration is persisted to:
+{{- if .Values.persistence.config.existingClaim }}
+  Existing PVC: {{ .Values.persistence.config.existingClaim }}
+{{- else }}
+  PVC: {{ include "jellyfin.fullname" . }}-config
+{{- end }}
+{{- else }}
+
+WARNING: Configuration persistence is disabled!
+         Data will be lost when the pod is restarted.
+         Enable persistence.config.enabled to persist your configuration.
+{{- end }}
+
+{{- if .Values.persistence.media.enabled }}
+
+Media is {{ if eq .Values.persistence.media.type "hostPath" }}mounted from host path{{ else if eq .Values.persistence.media.type "pvc" }}persisted to PVC{{ else }}stored in emptyDir{{ end }}:
+{{- if eq .Values.persistence.media.type "hostPath" }}
+  Host path: {{ .Values.persistence.media.hostPath }}
+{{- else if eq .Values.persistence.media.type "pvc" }}
+  {{- if .Values.persistence.media.existingClaim }}
+  Existing PVC: {{ .Values.persistence.media.existingClaim }}
+  {{- else }}
+  PVC: {{ include "jellyfin.fullname" . }}-media
+  {{- end }}
+{{- end }}
+{{- else }}
+
+WARNING: Media persistence is disabled!
+         Your media files will be lost when the pod is restarted.
+         Enable persistence.media.enabled to persist your media.
+{{- end }}
+
+For more information and documentation:
+  Repository: https://github.com/jellyfin/jellyfin-helm
+  Jellyfin Docs: https://jellyfin.org/docs/
   $ helm status {{ .Release.Name }}
   $ helm get all {{ .Release.Name }}
 
+{{- if .Values.httpRoute.enabled }}
+
+HTTPRoute (Gateway API) is ENABLED:
+{{- if .Values.httpRoute.parentRefs }}
+  Gateway References:
+  {{- range .Values.httpRoute.parentRefs }}
+    - {{ .name }}{{ if .namespace }} (namespace: {{ .namespace }}){{ end }}{{ if .sectionName }} [{{ .sectionName }}]{{ end }}
+  {{- end }}
+{{- else }}
+  ⚠ WARNING: No parentRefs defined - HTTPRoute will not attach to any Gateway!
+{{- end }}
+{{- if .Values.httpRoute.hostnames }}
+  Hostnames:
+  {{- range .Values.httpRoute.hostnames }}
+    - {{ . }}
+  {{- end }}
+{{- end }}
+  Rules: {{ len .Values.httpRoute.rules }} route(s) configured
+  Backend: {{ include "jellyfin.fullname" . }}:{{ .Values.service.port }}
+
+Access Jellyfin via Gateway API at:
+{{- if .Values.httpRoute.hostnames }}
+{{- range .Values.httpRoute.hostnames }}
+  https://{{ . }}{{ (index $.Values.httpRoute.rules 0).matches 0 .path.value }}
+{{- end }}
+{{- else }}
+  (Configure httpRoute.hostnames for external access)
+{{- end }}
+
+Note: Ensure your Gateway API CRDs are installed and Gateway is configured.
+{{- else if .Values.ingress.enabled }}
 {{- if .Values.ingress.enabled }}
 
 Jellyfin is available via Ingress at:
@@ -30,6 +155,79 @@ For troubleshooting common issues, see the README:
 Useful resources:
   Documentation: https://jellyfin.org/docs/
   Troubleshooting: See README.md in the chart repository
+
+{{- if .Values.jellyfin.envFrom }}
+
+Environment Configuration:
+  Loading environment variables from {{ len .Values.jellyfin.envFrom }} source(s):
+{{- range .Values.jellyfin.envFrom }}
+  {{- if .configMapRef }}
+    - ConfigMap: {{ .configMapRef.name }}{{ if .configMapRef.optional }} (optional){{ end }}{{ if .prefix }} with prefix: {{ .prefix }}{{ end }}
+  {{- else if .secretRef }}
+    - Secret: {{ .secretRef.name }}{{ if .secretRef.optional }} (optional){{ end }}{{ if .prefix }} with prefix: {{ .prefix }}{{ end }}
+  {{- end }}
+{{- end }}
+{{- end }}
+
+{{- if .Values.startupProbe }}
+{{- $startupTimeout := mul (default 10 .Values.startupProbe.periodSeconds) (default 30 .Values.startupProbe.failureThreshold) }}
+
+Startup Configuration:
+  Startup Probe: Enabled
+  Max Startup Time: {{ $startupTimeout }}s ({{ div $startupTimeout 60 }} minutes)
+
+  The startup probe gives Jellyfin enough time to initialize, especially
+  with large media libraries. After startup succeeds, liveness and
+  readiness probes take over for health monitoring.
+
+  {{- if gt $startupTimeout 600 }}
+  ⚠ NOTE: Startup timeout is very long ({{ div $startupTimeout 60 }}+ minutes).
+  Consider optimizing your media library or reducing failureThreshold.
+  {{- end }}
+{{- end }}
+
+Persistence Configuration:
+  Config: {{ if .Values.persistence.config.enabled }}{{ .Values.persistence.config.type | default "pvc" }}{{ if .Values.persistence.config.existingClaim }} (existing: {{ .Values.persistence.config.existingClaim }}){{ end }}{{ else }}emptyDir{{ end }}
+  Media: {{ if .Values.persistence.media.enabled }}{{ .Values.persistence.media.type | default "pvc" }}{{ if .Values.persistence.media.existingClaim }} (existing: {{ .Values.persistence.media.existingClaim }}){{ end }}{{ else }}emptyDir{{ end }}
+  Cache: {{ if .Values.persistence.cache.enabled }}{{ .Values.persistence.cache.type | default "pvc" }}{{ if .Values.persistence.cache.existingClaim }} (existing: {{ .Values.persistence.cache.existingClaim }}){{ end }}{{ else }}emptyDir{{ end }}
+
+{{- if and .Values.persistence.cache.enabled (eq .Values.persistence.cache.type "pvc") }}
+Cache Volume:
+  Dedicated cache volume is enabled for improved performance.
+  Size: {{ .Values.persistence.cache.size }}
+  Access Mode: {{ .Values.persistence.cache.accessMode }}
+  {{- if .Values.persistence.cache.storageClass }}
+  Storage Class: {{ .Values.persistence.cache.storageClass }}
+  {{- end }}
+
+  Benefits:
+  - Faster transcoding and metadata operations
+  - Separate cache lifecycle from config/media
+  - Can use faster storage class (SSD) for cache
+{{- end }}
+
+{{- if and .Values.persistence.cache.enabled (eq .Values.persistence.cache.type "hostPath") }}
+⚠ WARNING: Using hostPath for cache - ensure {{ .Values.persistence.cache.hostPath }} exists on the node
+{{- end }}
+
+{{- if or .Values.service.ipFamilyPolicy .Values.service.ipFamilies }}
+
+Service IP Configuration:
+{{- if .Values.service.ipFamilyPolicy }}
+  IP Family Policy: {{ .Values.service.ipFamilyPolicy }}
+{{- end }}
+{{- if .Values.service.ipFamilies }}
+  IP Families: {{ .Values.service.ipFamilies | join ", " }}
+  {{- if eq (index .Values.service.ipFamilies 0) "IPv6" }}
+  ⚠ NOTE: IPv6 primary - ensure your probes use httpGet instead of tcpSocket for compatibility
+  {{- end }}
+  {{- if has "IPv6" .Values.service.ipFamilies }}
+  {{- if not .Values.service.ipFamilyPolicy }}
+  ⚠ WARNING: ipFamilies includes IPv6 but ipFamilyPolicy is not set
+  {{- end }}
+  {{- end }}
+{{- end }}
+{{- end }}
 Deployment Configuration:
   Revision History Limit: {{ .Values.revisionHistoryLimit }}
   {{- $limit := int .Values.revisionHistoryLimit }}
