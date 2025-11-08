@@ -59,6 +59,33 @@ helm install my-jellyfin jellyfin/jellyfin -f values.yaml
 
 {{ template "helm-docs.versionFooter" . }}
 
+## Gateway API HTTPRoute
+
+This chart supports the Kubernetes Gateway API HTTPRoute resource as a modern alternative to Ingress.
+
+To use HTTPRoute, you need to have Gateway API CRDs installed in your cluster and a Gateway resource configured.
+
+Example configuration:
+
+```yaml
+httpRoute:
+  enabled: true
+  annotations: {}
+  parentRefs:
+    - name: my-gateway
+      namespace: gateway-system
+      sectionName: https
+  hostnames:
+    - jellyfin.example.com
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /
+```
+
+For more information about Gateway API, see: <https://gateway-api.sigs.k8s.io/>
+
 ## Hardware acceleration
 
 Out of the box the pod does not have the necessary permissions to enable hardware acceleration (HWA) in Jellyfin.

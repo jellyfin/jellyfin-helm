@@ -18,6 +18,8 @@ annotations:
     - kind: fixed
       description: Fix extraInitContainers not working (was using wrong parameter name in template)
     - kind: added
+      description: Add support for Gateway API HTTPRoute resource
+    - kind: added
       description: Add envFrom support to load environment variables from ConfigMap or Secret
     - kind: added
       description: Add NOTES.txt with helpful post-installation information and deprecation warnings

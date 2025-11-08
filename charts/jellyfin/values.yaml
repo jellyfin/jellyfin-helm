@@ -139,6 +139,25 @@ ingress:
   #    hosts:
   #      - chart-example.local
 
+# -- HTTPRoute configuration for Gateway API. See: https://gateway-api.sigs.k8s.io/
+httpRoute:
+  enabled: false
+  annotations: {}
+  # -- Gateway references to attach this HTTPRoute to
+  parentRefs: []
+    # - name: my-gateway
+    #   namespace: gateway-system
+    #   sectionName: https
+  # -- Hostnames to match for this HTTPRoute
+  hostnames: []
+    # - jellyfin.example.com
+  # -- Rules for routing traffic
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /
+
 # -- Resource requests and limits for the Jellyfin container.
 resources: {}
   # limits:

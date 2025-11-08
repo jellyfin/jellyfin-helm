@@ -101,6 +101,37 @@ For more information and documentation:
   $ helm status {{ .Release.Name }}
   $ helm get all {{ .Release.Name }}
 
+{{- if .Values.httpRoute.enabled }}
+
+HTTPRoute (Gateway API) is ENABLED:
+{{- if .Values.httpRoute.parentRefs }}
+  Gateway References:
+  {{- range .Values.httpRoute.parentRefs }}
+    - {{ .name }}{{ if .namespace }} (namespace: {{ .namespace }}){{ end }}{{ if .sectionName }} [{{ .sectionName }}]{{ end }}
+  {{- end }}
+{{- else }}
+  ⚠ WARNING: No parentRefs defined - HTTPRoute will not attach to any Gateway!
+{{- end }}
+{{- if .Values.httpRoute.hostnames }}
+  Hostnames:
+  {{- range .Values.httpRoute.hostnames }}
+    - {{ . }}
+  {{- end }}
+{{- end }}
+  Rules: {{ len .Values.httpRoute.rules }} route(s) configured
+  Backend: {{ include "jellyfin.fullname" . }}:{{ .Values.service.port }}
+
+Access Jellyfin via Gateway API at:
+{{- if .Values.httpRoute.hostnames }}
+{{- range .Values.httpRoute.hostnames }}
+  https://{{ . }}{{ (index $.Values.httpRoute.rules 0).matches 0 .path.value }}
+{{- end }}
+{{- else }}
+  (Configure httpRoute.hostnames for external access)
+{{- end }}
+
+Note: Ensure your Gateway API CRDs are installed and Gateway is configured.
+{{- else if .Values.ingress.enabled }}
 {{- if .Values.ingress.enabled }}
 
 Jellyfin is available via Ingress at:
