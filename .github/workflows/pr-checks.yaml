@@ -28,7 +28,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.14'
+          python-version: '3.13'
 
       # Check 1: Verify helm-docs is up to date
       - name: Verify helm-docs up to date
