@@ -240,6 +240,7 @@ tests:
             name: media
             hostPath:
               path: /mnt/nas/media
+              type: Directory
 
   - it: should not create media PVC when type is hostPath
     template: persistentVolumeClaim.yaml
@@ -428,6 +429,7 @@ tests:
             name: cache
             hostPath:
               path: /mnt/jellyfin-cache
+              type: Directory
 
   - it: should not create cache PVC when type is hostPath
     template: persistentVolumeClaim.yaml
@@ -543,6 +545,7 @@ tests:
             name: media
             hostPath:
               path: /mnt/media
+              type: Directory
       - contains:
           path: spec.template.spec.volumes
           content:

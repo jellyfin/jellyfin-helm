@@ -3,7 +3,7 @@ templates:
   - deployment.yaml
   - service.yaml
   - ingress.yaml
-  - httpRoute.yaml
+  - httproute.yaml
   - networkpolicy.yaml
   - serviceMonitor.yaml
   - serviceaccount.yaml
@@ -36,6 +36,7 @@ tests:
             name: media
             hostPath:
               path: /mnt/nas/media
+              type: Directory
       - template: service.yaml
         equal:
           path: spec.type
@@ -164,9 +165,9 @@ tests:
           path: spec.ipFamilies[0]
           value: IPv6
       - template: persistentVolumeClaim.yaml
+        documentIndex: 1
         equal:
           path: spec.resources.requests.storage
-          documentIndex: 1
           value: 1Ti
 
   # =============================================================================
@@ -402,14 +403,14 @@ tests:
         - media.example.com
       networkPolicy.enabled: true
     asserts:
-      - template: httpRoute.yaml
+      - template: httproute.yaml
         hasDocuments:
           count: 1
-      - template: httpRoute.yaml
+      - template: httproute.yaml
         lengthEqual:
           path: spec.parentRefs
           count: 1
-      - template: httpRoute.yaml
+      - template: httproute.yaml
         lengthEqual:
           path: spec.hostnames
           count: 2

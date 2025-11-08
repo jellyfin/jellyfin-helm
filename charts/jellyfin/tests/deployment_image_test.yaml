@@ -8,9 +8,9 @@ tests:
 
   - it: should use default image repository
     asserts:
-      - equal:
+      - matchRegex:
           path: spec.template.spec.containers[0].image
-          value: jellyfin/jellyfin:RELEASE-VERSION
+          pattern: "^docker\\.io/jellyfin/jellyfin:"
 
   - it: should use custom image repository
     set:
@@ -36,7 +36,7 @@ tests:
     asserts:
       - matchRegex:
           path: spec.template.spec.containers[0].image
-          pattern: ":RELEASE-VERSION$"
+          pattern: ":[0-9]+\\.[0-9]+\\.[0-9]+$"
 
   - it: should use custom tag when specified
     set:
@@ -44,7 +44,7 @@ tests:
     asserts:
       - equal:
           path: spec.template.spec.containers[0].image
-          value: jellyfin/jellyfin:10.8.13
+          value: docker.io/jellyfin/jellyfin:10.8.13
 
   - it: should support latest tag
     set:
@@ -52,7 +52,7 @@ tests:
     asserts:
       - equal:
           path: spec.template.spec.containers[0].image
-          value: jellyfin/jellyfin:latest
+          value: docker.io/jellyfin/jellyfin:latest
 
   - it: should support beta tags
     set:
@@ -60,7 +60,7 @@ tests:
     asserts:
       - equal:
           path: spec.template.spec.containers[0].image
-          value: jellyfin/jellyfin:10.9.0-beta1
+          value: docker.io/jellyfin/jellyfin:10.9.0-beta1
 
   - it: should support sha256 digest
     set:
@@ -68,7 +68,7 @@ tests:
     asserts:
       - equal:
           path: spec.template.spec.containers[0].image
-          value: jellyfin/jellyfin:sha256:abc123def456
+          value: docker.io/jellyfin/jellyfin:sha256:abc123def456
 
   - it: should combine custom repository and tag
     set:
@@ -198,7 +198,7 @@ tests:
     asserts:
       - matchRegex:
           path: spec.template.spec.containers[0].image
-          pattern: :RELEASE-VERSION$
+          pattern: ":[0-9]+\\.[0-9]+\\.[0-9]+$"
 
   # =============================================================================
   # COMPLETE SCENARIOS
@@ -283,7 +283,7 @@ tests:
     asserts:
       - matchRegex:
           path: spec.template.spec.containers[0].image
-          pattern: ^jellyfin/jellyfin:RELEASE-VERSION$
+          pattern: '^docker\.io/jellyfin/jellyfin:[0-9]+\.[0-9]+\.[0-9]+$'
 
   - it: should not have imagePullSecrets when not specified
     asserts:

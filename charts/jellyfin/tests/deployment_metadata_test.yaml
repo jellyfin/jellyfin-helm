@@ -95,15 +95,22 @@ tests:
           value: custom-value
 
   - it: should support multiple deployment annotations
+    template: deployment.yaml
     set:
       deploymentAnnotations:
         annotation1: value1
         annotation2: value2
         annotation3: value3
     asserts:
-      - lengthEqual:
-          path: metadata.annotations
-          count: 3
+      - equal:
+          path: metadata.annotations.annotation1
+          value: value1
+      - equal:
+          path: metadata.annotations.annotation2
+          value: value2
+      - equal:
+          path: metadata.annotations.annotation3
+          value: value3
 
   # =============================================================================
   # POD ANNOTATIONS

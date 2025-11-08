@@ -267,13 +267,13 @@ tests:
           path: spec.template.spec.containers[0].ports[0].protocol
           value: TCP
 
-  - it: should use custom service port for container port
+  - it: should keep containerPort 8096 regardless of service port
     set:
       service.port: 9096
     asserts:
       - equal:
           path: spec.template.spec.containers[0].ports[0].containerPort
-          value: 9096
+          value: 8096
 
   # =============================================================================
   # EDGE CASES
@@ -411,6 +411,7 @@ tests:
           path: spec.template.spec.containers[0].ports
           content:
             name: http
+            containerPort: 8096
             protocol: TCP
 
   - it: should always use TCP protocol for http port

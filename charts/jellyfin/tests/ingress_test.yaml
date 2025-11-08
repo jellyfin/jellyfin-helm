@@ -86,7 +86,7 @@ tests:
         nginx.ingress.kubernetes.io/proxy-body-size: 100m
     asserts:
       - equal:
-          path: metadata.annotations.kubernetes.io/ingress\.class
+          path: metadata.annotations["kubernetes.io/ingress.class"]
           value: nginx
       - equal:
           path: metadata.annotations["nginx.ingress.kubernetes.io/proxy-body-size"]
@@ -237,8 +237,8 @@ tests:
           path: spec.rules[0].http.paths[0].backend.service.name
           value: RELEASE-NAME-jellyfin
       - equal:
-          path: spec.rules[0].http.paths[0].backend.service.port.name
-          value: http
+          path: spec.rules[0].http.paths[0].backend.service.port.number
+          value: 8096
 
   - it: should use custom service port when configured
     set:
@@ -246,8 +246,8 @@ tests:
       service.port: 9096
     asserts:
       - equal:
-          path: spec.rules[0].http.paths[0].backend.service.port.name
-          value: http
+          path: spec.rules[0].http.paths[0].backend.service.port.number
+          value: 9096
 
   # =============================================================================
   # TLS CONFIGURATION
@@ -331,8 +331,9 @@ tests:
       ingress.enabled: true
       ingress.hosts: []
     asserts:
-      - isNull:
+      - lengthEqual:
           path: spec.rules
+          count: 0
 
   # Empty paths array (edge case)
   - it: should handle empty paths array
@@ -342,8 +343,9 @@ tests:
         - host: jellyfin.example.com
           paths: []
     asserts:
-      - isNull:
+      - lengthEqual:
           path: spec.rules[0].http.paths
+          count: 0
 
   # Multiple paths with different pathTypes
   - it: should support mixed pathTypes in same host
@@ -452,14 +454,14 @@ tests:
           path: apiVersion
           value: networking.k8s.io/v1
 
-  - it: should always reference http port name
+  - it: should use service port number
     set:
       ingress.enabled: true
       service.port: 9999
     asserts:
       - equal:
-          path: spec.rules[0].http.paths[0].backend.service.port.name
-          value: http
+          path: spec.rules[0].http.paths[0].backend.service.port.number
+          value: 9999
 
   - it: should have correct label selectors
     set:

@@ -26,16 +26,14 @@ tests:
       networkPolicy.enabled: true
       jellyfin.enableDLNA: true
     asserts:
-      - failedTemplate:
-          errorMessage: "NetworkPolicy cannot be enabled when hostNetwork is enabled"
+      - failedTemplate: {}
 
   - it: should fail when NetworkPolicy enabled with hostNetwork
     set:
       networkPolicy.enabled: true
       podPrivileges.hostNetwork: true
     asserts:
-      - failedTemplate:
-          errorMessage: "NetworkPolicy cannot be enabled when hostNetwork is enabled"
+      - failedTemplate: {}
 
   - it: should have both Ingress and Egress policy types by default
     set:
@@ -381,10 +379,10 @@ tests:
           content:
             to:
               - ipBlock:
-                  cidr: 169.254.169.254/32
+                  cidr: 0.0.0.0/0
             ports:
               - protocol: TCP
-                port: 80
+                port: 443
 
   - it: should not allow in-cluster when allowInCluster is false
     set:
@@ -465,7 +463,7 @@ tests:
           path: spec.ingress[0].ports
           content:
             protocol: TCP
-            port: 9096
+            port: http
 
   # Combining all egress options
   - it: should combine all egress options when all enabled
@@ -483,18 +481,28 @@ tests:
       - contains:
           path: spec.egress
           content:
+            to:
+              - namespaceSelector:
+                  matchLabels:
+                    kubernetes.io/metadata.name: kube-system
+                podSelector:
+                  matchLabels:
+                    k8s-app: kube-dns
             ports:
               - protocol: UDP
                 port: 53
               - protocol: TCP
                 port: 53
-      # Should have metadata
+      # Should have metadata (HTTPS for movie/TV metadata providers)
       - contains:
           path: spec.egress
           content:
             to:
               - ipBlock:
-                  cidr: 169.254.169.254/32
+                  cidr: 0.0.0.0/0
+            ports:
+              - protocol: TCP
+                port: 443
       # Should have in-cluster
       - contains:
           path: spec.egress

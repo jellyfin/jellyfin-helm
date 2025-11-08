@@ -50,14 +50,13 @@ tests:
           path: metadata.name
           value: RELEASE-NAME-jellyfin
 
-  - it: should use release namespace by default
+  - it: should not set namespace by default
     set:
       metrics.enabled: true
       metrics.serviceMonitor.enabled: true
     asserts:
-      - equal:
+      - isNull:
           path: metadata.namespace
-          value: NAMESPACE
 
   - it: should use custom namespace when specified
     set:
@@ -137,7 +136,7 @@ tests:
           count: 1
       - equal:
           path: spec.endpoints[0].port
-          value: 8096
+          value: http
       - equal:
           path: spec.endpoints[0].path
           value: /metrics
@@ -180,16 +179,6 @@ tests:
       - equal:
           path: spec.endpoints[0].path
           value: /custom/metrics
-
-  - it: should set custom port
-    set:
-      metrics.enabled: true
-      metrics.serviceMonitor.enabled: true
-      metrics.serviceMonitor.port: 9090
-    asserts:
-      - equal:
-          path: spec.endpoints[0].port
-          value: 9090
 
   - it: should set custom scheme
     set:

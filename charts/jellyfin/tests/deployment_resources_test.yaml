@@ -477,14 +477,19 @@ tests:
           path: spec.template.spec.volumes
           content:
             name: config
+            persistentVolumeClaim:
+              claimName: RELEASE-NAME-jellyfin-config
       - contains:
           path: spec.template.spec.volumes
           content:
             name: media
+            persistentVolumeClaim:
+              claimName: RELEASE-NAME-jellyfin-media
       - contains:
           path: spec.template.spec.volumes
           content:
             name: cache
+            emptyDir: {}
 
   - it: should always have default volume mounts
     asserts:

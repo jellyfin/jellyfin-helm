@@ -14,8 +14,8 @@ spec:
     {{- toYaml . | trim | nindent 4 }}
   {{- end }}
   replicas: {{ .Values.replicaCount }}
-  {{- with .Values.revisionHistoryLimit }}
-  revisionHistoryLimit: {{ . }}
+  {{- if not (eq .Values.revisionHistoryLimit nil) }}
+  revisionHistoryLimit: {{ .Values.revisionHistoryLimit }}
   {{- end }}
   selector:
     matchLabels:
@@ -38,8 +38,10 @@ spec:
       {{- end }}
       serviceAccountName: {{ include "jellyfin.serviceAccountName" . }}
       automountServiceAccountToken: {{ .Values.serviceAccount.automount }}
+      {{- with .Values.podSecurityContext }}
       securityContext:
-        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
       {{- if or .Values.jellyfin.enableDLNA .Values.podPrivileges.hostNetwork }}
       hostNetwork: true
       {{- end }}
@@ -51,8 +53,10 @@ spec:
       {{- end }}
       containers:
         - name: {{ .Chart.Name }}
+          {{- with .Values.securityContext }}
           securityContext:
-            {{- toYaml .Values.securityContext | nindent 12 }}
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           {{- with .Values.jellyfin.command }}
@@ -124,8 +128,10 @@ spec:
             {{- toYaml .Values.livenessProbe | nindent 12 }}
           readinessProbe:
             {{- toYaml .Values.readinessProbe | nindent 12 }}
+          {{- with .Values.resources }}
           resources:
-            {{- toYaml .Values.resources | nindent 12 }}
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
           volumeMounts:
             - mountPath: /config
               name: config
@@ -213,6 +219,8 @@ spec:
       dnsConfig:
         {{- toYaml . | nindent 8}}
       {{- end }}
-      {{- with .Values.dnsPolicy }}
-      dnsPolicy: {{ . | quote }}
+      {{- if .Values.dnsPolicy }}
+      dnsPolicy: {{ .Values.dnsPolicy | quote }}
+      {{- else if or .Values.jellyfin.enableDLNA .Values.podPrivileges.hostNetwork }}
+      dnsPolicy: ClusterFirstWithHostNet
       {{- end }}

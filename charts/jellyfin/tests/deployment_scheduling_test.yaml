@@ -134,11 +134,10 @@ tests:
           path: spec.template.spec.affinity.podAntiAffinity
 
   # DNS CONFIGURATION
-  - it: should use ClusterFirst dnsPolicy by default
+  - it: should not have dnsPolicy set by default (Kubernetes uses ClusterFirst)
     asserts:
-      - equal:
+      - isNull:
           path: spec.template.spec.dnsPolicy
-          value: ClusterFirst
 
   - it: should set custom dnsPolicy
     set:
@@ -196,8 +195,7 @@ tests:
           path: spec.template.spec.affinity.podAntiAffinity
 
   # REGRESSION
-  - it: should maintain ClusterFirst dnsPolicy when hostNetwork not enabled
+  - it: should not set dnsPolicy when hostNetwork not enabled
     asserts:
-      - equal:
+      - isNull:
           path: spec.template.spec.dnsPolicy
-          value: ClusterFirst

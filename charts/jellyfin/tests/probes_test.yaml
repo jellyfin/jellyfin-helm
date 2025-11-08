@@ -200,7 +200,7 @@ tests:
           path: spec.template.spec.containers[0].livenessProbe.exec
       - contains:
           path: spec.template.spec.containers[0].livenessProbe.exec.command
-          content: 'pgrep'
+          content: 'pgrep jellyfin'
 
   - it: should support custom httpGet path for liveness probe
     set:
