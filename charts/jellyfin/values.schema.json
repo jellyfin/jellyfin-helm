@@ -1,0 +1,454 @@
+{
+  "$schema": "https://json-schema.org/draft-07/schema#",
+  "title": "Jellyfin Helm Chart Values",
+  "description": "Schema for Jellyfin Helm chart values.yaml with validation for conflicting configurations",
+  "type": "object",
+  "properties": {
+    "replicaCount": {
+      "type": "integer",
+      "minimum": 1,
+      "default": 1,
+      "description": "Number of Jellyfin replicas to start. Should be left at 1."
+    },
+    "revisionHistoryLimit": {
+      "type": "integer",
+      "minimum": 0,
+      "default": 3,
+      "description": "Number of old ReplicaSets to retain for rollback history"
+    },
+    "imagePullSecrets": {
+      "type": "array",
+      "default": [],
+      "items": {
+        "type": "object"
+      },
+      "description": "Image pull secrets to authenticate with private repositories"
+    },
+    "image": {
+      "type": "object",
+      "properties": {
+        "repository": {
+          "type": "string",
+          "default": "docker.io/jellyfin/jellyfin"
+        },
+        "tag": {
+          "type": "string",
+          "default": ""
+        },
+        "pullPolicy": {
+          "type": "string",
+          "enum": ["Always", "IfNotPresent", "Never"],
+          "default": "IfNotPresent"
+        }
+      }
+    },
+    "nameOverride": {
+      "type": "string",
+      "default": ""
+    },
+    "fullnameOverride": {
+      "type": "string",
+      "default": ""
+    },
+    "serviceAccount": {
+      "type": "object",
+      "properties": {
+        "create": {
+          "type": "boolean",
+          "default": true
+        },
+        "automount": {
+          "type": "boolean",
+          "default": true
+        },
+        "annotations": {
+          "type": "object",
+          "default": {}
+        },
+        "name": {
+          "type": "string",
+          "default": ""
+        }
+      }
+    },
+    "podAnnotations": {
+      "type": "object",
+      "default": {}
+    },
+    "podLabels": {
+      "type": "object",
+      "default": {}
+    },
+    "podSecurityContext": {
+      "type": "object",
+      "default": {}
+    },
+    "securityContext": {
+      "type": "object",
+      "default": {}
+    },
+    "runtimeClassName": {
+      "type": "string",
+      "default": ""
+    },
+    "priorityClassName": {
+      "type": "string",
+      "default": ""
+    },
+    "dnsConfig": {
+      "type": "object",
+      "default": {}
+    },
+    "dnsPolicy": {
+      "type": "string",
+      "default": "",
+      "enum": ["", "ClusterFirst", "ClusterFirstWithHostNet", "Default", "None"]
+    },
+    "deploymentStrategy": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["RollingUpdate", "Recreate"],
+          "default": "RollingUpdate"
+        }
+      }
+    },
+    "deploymentAnnotations": {
+      "type": "object",
+      "default": {}
+    },
+    "service": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["ClusterIP", "NodePort", "LoadBalancer"],
+          "default": "ClusterIP"
+        },
+        "port": {
+          "type": "integer",
+          "default": 8096
+        },
+        "ipFamilyPolicy": {
+          "type": "string",
+          "enum": ["", "SingleStack", "PreferDualStack", "RequireDualStack"],
+          "default": ""
+        },
+        "ipFamilies": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": ["IPv4", "IPv6"]
+          },
+          "default": []
+        }
+      }
+    },
+    "ingress": {
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "default": false
+        }
+      }
+    },
+    "httpRoute": {
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "default": false
+        }
+      }
+    },
+    "resources": {
+      "type": "object",
+      "default": {}
+    },
+    "startupProbe": {
+      "type": ["object", "null"],
+      "default": null
+    },
+    "livenessProbe": {
+      "type": "object"
+    },
+    "readinessProbe": {
+      "type": "object"
+    },
+    "volumes": {
+      "type": "array",
+      "default": []
+    },
+    "volumeMounts": {
+      "type": "array",
+      "default": []
+    },
+    "nodeSelector": {
+      "type": "object",
+      "default": {}
+    },
+    "tolerations": {
+      "type": "array",
+      "default": []
+    },
+    "affinity": {
+      "type": "object",
+      "default": {}
+    },
+    "podPrivileges": {
+      "type": "object",
+      "properties": {
+        "hostIPC": {
+          "type": "boolean",
+          "default": false,
+          "description": "Enable hostIPC namespace"
+        },
+        "hostNetwork": {
+          "type": "boolean",
+          "default": false,
+          "description": "Enable hostNetwork. Mutually exclusive with NetworkPolicy."
+        },
+        "hostPID": {
+          "type": "boolean",
+          "default": false,
+          "description": "Enable hostPID namespace"
+        }
+      }
+    },
+    "jellyfin": {
+      "type": "object",
+      "properties": {
+        "enableDLNA": {
+          "type": "boolean",
+          "default": false,
+          "description": "Enable DLNA. Requires host network. Mutually exclusive with NetworkPolicy."
+        },
+        "command": {
+          "type": "array",
+          "default": []
+        },
+        "args": {
+          "type": "array",
+          "default": []
+        },
+        "envFrom": {
+          "type": "array",
+          "default": []
+        },
+        "env": {
+          "type": "array",
+          "default": []
+        }
+      }
+    },
+    "persistence": {
+      "type": "object",
+      "properties": {
+        "config": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "default": true
+            }
+          }
+        },
+        "media": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "default": true
+            }
+          }
+        },
+        "cache": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "default": false
+            }
+          }
+        }
+      }
+    },
+    "metrics": {
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "default": false
+        },
+        "serviceMonitor": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "default": false
+            }
+          }
+        }
+      }
+    },
+    "initContainers": {
+      "type": "array",
+      "default": [],
+      "description": "DEPRECATED: Use extraInitContainers instead"
+    },
+    "extraInitContainers": {
+      "type": "array",
+      "default": []
+    },
+    "extraContainers": {
+      "type": "array",
+      "default": []
+    },
+    "networkPolicy": {
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "default": false,
+          "description": "Enable NetworkPolicy. Mutually exclusive with hostNetwork and DLNA."
+        },
+        "policyTypes": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": ["Ingress", "Egress"]
+          },
+          "default": ["Ingress", "Egress"]
+        },
+        "ingress": {
+          "type": "object",
+          "properties": {
+            "allowExternal": {
+              "type": "boolean",
+              "default": true
+            },
+            "podSelector": {
+              "type": "object",
+              "default": {}
+            },
+            "namespaceSelector": {
+              "type": "object",
+              "default": {}
+            },
+            "customRules": {
+              "type": "array",
+              "default": []
+            }
+          }
+        },
+        "egress": {
+          "type": "object",
+          "properties": {
+            "allowDNS": {
+              "type": "boolean",
+              "default": true
+            },
+            "dnsNamespace": {
+              "type": "string",
+              "default": "kube-system"
+            },
+            "dnsPodSelector": {
+              "type": "object",
+              "default": {
+                "k8s-app": "kube-dns"
+              }
+            },
+            "allowAllEgress": {
+              "type": "boolean",
+              "default": true
+            },
+            "restrictedEgress": {
+              "type": "object",
+              "properties": {
+                "allowMetadata": {
+                  "type": "boolean",
+                  "default": true
+                },
+                "allowInCluster": {
+                  "type": "boolean",
+                  "default": true
+                },
+                "allowedCIDRs": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "default": []
+                }
+              }
+            },
+            "customRules": {
+              "type": "array",
+              "default": []
+            }
+          }
+        },
+        "metrics": {
+          "type": "object",
+          "properties": {
+            "namespace": {
+              "type": "string",
+              "default": ""
+            },
+            "podSelector": {
+              "type": "object",
+              "default": {
+                "app.kubernetes.io/name": "prometheus"
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "networkPolicy": {
+            "properties": {
+              "enabled": {
+                "const": true
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "not": {
+          "anyOf": [
+            {
+              "properties": {
+                "jellyfin": {
+                  "properties": {
+                    "enableDLNA": {
+                      "const": true
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "properties": {
+                "podPrivileges": {
+                  "properties": {
+                    "hostNetwork": {
+                      "const": true
+                    }
+                  }
+                }
+              }
+            }
+          ]
+        }
+      }
+    }
+  ]
+}
