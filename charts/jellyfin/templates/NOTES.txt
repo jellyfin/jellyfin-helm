@@ -147,6 +147,70 @@ To access Jellyfin, you can use port-forwarding:
 Then visit http://localhost:{{ .Values.service.port }} in your browser.
 {{- end }}
 
+{{- if .Values.networkPolicy.enabled }}
+
+Network Policy is ENABLED:
+{{- if or .Values.jellyfin.enableDLNA .Values.podPrivileges.hostNetwork }}
+  WARNING: NetworkPolicy is incompatible with hostNetwork (DLNA mode).
+  The deployment will FAIL. Please disable networkPolicy.enabled or hostNetwork.
+{{- else }}
+
+  Ingress Policy:
+  {{- if .Values.networkPolicy.ingress.allowExternal }}
+    - ✓ Allowing connections from ANY pod in ANY namespace
+  {{- else }}
+    {{- if or .Values.networkPolicy.ingress.podSelector .Values.networkPolicy.ingress.namespaceSelector }}
+    - ✓ Allowing connections ONLY from pods matching:
+      {{- if .Values.networkPolicy.ingress.podSelector }}
+      Pod Labels: {{ .Values.networkPolicy.ingress.podSelector | toYaml | nindent 8 }}
+      {{- end }}
+      {{- if .Values.networkPolicy.ingress.namespaceSelector }}
+      Namespace Labels: {{ .Values.networkPolicy.ingress.namespaceSelector | toYaml | nindent 8 }}
+      {{- end }}
+    {{- else }}
+    - ⚠ WARNING: allowExternal=false but no selectors defined - NO pods can connect!
+    {{- end }}
+  {{- end }}
+  {{- if and .Values.metrics.enabled .Values.metrics.serviceMonitor.enabled }}
+    - ✓ Allowing Prometheus metrics scraping from {{ .Values.networkPolicy.metrics.podSelector | toYaml }}
+  {{- end }}
+  {{- if .Values.networkPolicy.ingress.customRules }}
+    - ✓ Custom ingress rules applied ({{ len .Values.networkPolicy.ingress.customRules }} rules)
+  {{- end }}
+
+  Egress Policy:
+  {{- if .Values.networkPolicy.egress.allowDNS }}
+    - ✓ DNS resolution allowed ({{ .Values.networkPolicy.egress.dnsNamespace }}/{{ .Values.networkPolicy.egress.dnsPodSelector | toYaml }})
+  {{- else }}
+    - ⚠ WARNING: DNS is DISABLED - Jellyfin will NOT function properly!
+  {{- end }}
+  {{- if .Values.networkPolicy.egress.allowAllEgress }}
+    - ✓ All egress allowed (metadata, subtitles, images)
+  {{- else }}
+    {{- if .Values.networkPolicy.egress.restrictedEgress.allowMetadata }}
+    - ✓ HTTPS/443 allowed (metadata providers)
+    {{- end }}
+    {{- if .Values.networkPolicy.egress.restrictedEgress.allowInCluster }}
+    - ✓ In-cluster communication allowed
+    {{- end }}
+    {{- if .Values.networkPolicy.egress.restrictedEgress.allowedCIDRs }}
+    - ✓ Custom CIDRs allowed: {{ .Values.networkPolicy.egress.restrictedEgress.allowedCIDRs | join ", " }}
+    {{- end }}
+    {{- if not (or .Values.networkPolicy.egress.restrictedEgress.allowMetadata .Values.networkPolicy.egress.restrictedEgress.allowInCluster .Values.networkPolicy.egress.restrictedEgress.allowedCIDRs) }}
+    - ⚠ WARNING: No egress rules defined - Jellyfin cannot download metadata!
+    {{- end }}
+  {{- end }}
+  {{- if .Values.networkPolicy.egress.customRules }}
+    - ✓ Custom egress rules applied ({{ len .Values.networkPolicy.egress.customRules }} rules)
+  {{- end }}
+
+  Note: NetworkPolicy requires a CNI plugin with NetworkPolicy support (Calico, Cilium, etc.)
+{{- end }}
+{{- else }}
+
+Network Policy is DISABLED (default).
+To enable network isolation, set networkPolicy.enabled=true in your values.
+{{- end }}
 For troubleshooting common issues, see the README:
 - inotify instance limit errors
 - Hardware acceleration setup

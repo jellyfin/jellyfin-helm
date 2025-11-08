@@ -73,7 +73,7 @@ helm install my-jellyfin jellyfin/jellyfin -f values.yaml
 | jellyfin.args | list | `[]` | Additional arguments for the entrypoint command. |
 | jellyfin.command | list | `[]` | Custom command to use as container entrypoint. |
 | jellyfin.enableDLNA | bool | `false` | Enable DLNA. Requires host network. See: https://jellyfin.org/docs/general/networking/dlna.html |
-| jellyfin.env | list | `[]` | Additional environment variables for the container. Example: Workaround for inotify limits (see Troubleshooting section in README) Example: env:   - name: JELLYFIN_CACHE_DIR     value: /cache |
+| jellyfin.env | list | `[]` | Additional environment variables for the container. Example: env:   - name: JELLYFIN_CACHE_DIR     value: /cache |
 | jellyfin.envFrom | list | `[]` | Load environment variables from ConfigMap or Secret. See: https://kubernetes.io/docs/tasks/configure-pod-container/configure-pod-configmap/#configure-all-key-value-pairs-in-a-configmap-as-container-environment-variables Example: envFrom:   - configMapRef:       name: jellyfin-config   - secretRef:       name: jellyfin-secrets |
 | livenessProbe | object | `{"httpGet":{"path":"/health","port":"http"},"initialDelaySeconds":10}` | Configure liveness probe for Jellyfin. This probe is disabled during startup (startup probe handles initial checks). Uses httpGet for compatibility with both IPv4 and IPv6. |
 | metrics | object | `{"enabled":false,"serviceMonitor":{"enabled":false,"interval":"30s","labels":{},"metricRelabelings":[],"namespace":"","path":"/metrics","port":8096,"relabelings":[],"scheme":"http","scrapeTimeout":"30s","targetLabels":[],"tlsConfig":{}}}` | Configuration for metrics collection and monitoring |
@@ -92,6 +92,27 @@ helm install my-jellyfin jellyfin/jellyfin -f values.yaml
 | metrics.serviceMonitor.targetLabels | list | `[]` | Target labels to add to the scraped metrics |
 | metrics.serviceMonitor.tlsConfig | object | `{}` | TLS configuration for scraping metrics |
 | nameOverride | string | `""` | Override the default name of the chart. |
+| networkPolicy | object | `{"egress":{"allowAllEgress":true,"allowDNS":true,"customRules":[],"dnsNamespace":"kube-system","dnsPodSelector":{"k8s-app":"kube-dns"},"restrictedEgress":{"allowInCluster":true,"allowMetadata":true,"allowedCIDRs":[]}},"enabled":false,"ingress":{"allowExternal":true,"customRules":[],"namespaceSelector":{},"podSelector":{}},"metrics":{"namespace":"","podSelector":{"app.kubernetes.io/name":"prometheus"}},"policyTypes":["Ingress","Egress"]}` | Network Policy configuration for network isolation and security. Requires a CNI plugin that supports NetworkPolicy (Calico, Cilium, Weave, etc.). WARNING: NetworkPolicy cannot be enabled when hostNetwork is used (DLNA mode). The chart will fail with an error if both are enabled simultaneously. |
+| networkPolicy.egress | object | `{"allowAllEgress":true,"allowDNS":true,"customRules":[],"dnsNamespace":"kube-system","dnsPodSelector":{"k8s-app":"kube-dns"},"restrictedEgress":{"allowInCluster":true,"allowMetadata":true,"allowedCIDRs":[]}}` | Egress rules configuration - controls what external connections Jellyfin can make. |
+| networkPolicy.egress.allowAllEgress | bool | `true` | Allow all egress traffic (internet access for metadata, subtitles, images). When true, Jellyfin can connect to any external destination (0.0.0.0/0). This is the recommended default as Jellyfin needs internet access for: - Downloading movie/TV show metadata (TMDB, TheTVDB, OMDb) - Fetching poster images, fanart, and other artwork - Downloading subtitles (OpenSubtitles) - Updating plugins When false, you must configure restrictedEgress or customRules. |
+| networkPolicy.egress.allowDNS | bool | `true` | Allow DNS resolution (required for Jellyfin to function). This adds an egress rule for kube-system namespace with kube-dns pods. DNS is required for resolving metadata provider domains and subtitle services. It is highly recommended to keep this enabled. |
+| networkPolicy.egress.customRules | list | `[]` | Additional custom egress rules. Allows for complex scenarios not covered by the standard template. These rules are added as-is to the NetworkPolicy egress section. Example - allow connections to specific database:   customRules:     - to:       - podSelector:           matchLabels:             app: postgresql       ports:       - protocol: TCP         port: 5432 |
+| networkPolicy.egress.dnsNamespace | string | `"kube-system"` | DNS namespace where DNS service is running. Usually "kube-system" but can differ in some Kubernetes distributions. |
+| networkPolicy.egress.dnsPodSelector | object | `{"k8s-app":"kube-dns"}` | DNS pod selector labels. Default selector is for kube-dns, but CoreDNS or other DNS providers may use different labels. Adjust if needed. Common alternatives:   k8s-app: kube-dns (default)   k8s-app: coredns   app.kubernetes.io/name: coredns |
+| networkPolicy.egress.restrictedEgress | object | `{"allowInCluster":true,"allowMetadata":true,"allowedCIDRs":[]}` | Restricted egress mode for security-conscious deployments. Only used when allowAllEgress is false. Provides fine-grained control over outbound connections. |
+| networkPolicy.egress.restrictedEgress.allowInCluster | bool | `true` | Allow communication within the cluster (pod-to-pod). Useful if Jellyfin needs to connect to other services in the cluster. This allows connections to any pod in any namespace. |
+| networkPolicy.egress.restrictedEgress.allowMetadata | bool | `true` | Allow HTTPS (443/TCP) for metadata providers. Most metadata providers (TMDB, TheTVDB, OpenSubtitles, Fanart.tv) use HTTPS, so this covers the majority of use cases. This allows connections to any IP on port 443. |
+| networkPolicy.egress.restrictedEgress.allowedCIDRs | list | `[]` | Additional IP CIDR blocks to allow egress. Useful for allowing specific IP ranges for metadata providers or other external services. Example - allow entire internet except private networks:   allowedCIDRs:     - 0.0.0.0/0 Example - allow specific metadata provider IP ranges:   allowedCIDRs:     - 13.224.0.0/14  # CloudFront (used by many CDNs) |
+| networkPolicy.enabled | bool | `false` | Enable NetworkPolicy for the Jellyfin pod. By default, this is disabled to maintain backward compatibility. When enabled, you can control which pods can access Jellyfin (ingress) and what external connections Jellyfin can make (egress). |
+| networkPolicy.ingress | object | `{"allowExternal":true,"customRules":[],"namespaceSelector":{},"podSelector":{}}` | Ingress rules configuration - controls which pods/namespaces can access Jellyfin. |
+| networkPolicy.ingress.allowExternal | bool | `true` | Allow external access from any namespace and any pod. When true, any pod in the cluster can access Jellyfin (default behavior). When false, only pods matching podSelector/namespaceSelector can access. Set to false for production environments to restrict access. |
+| networkPolicy.ingress.customRules | list | `[]` | Additional custom ingress rules. Allows for complex scenarios not covered by the standard template. These rules are added as-is to the NetworkPolicy ingress section. Example - allow from monitoring namespace:   customRules:     - from:       - namespaceSelector:           matchLabels:             name: monitoring       ports:       - protocol: TCP         port: 8096 |
+| networkPolicy.ingress.namespaceSelector | object | `{}` | Namespace selector to allow cross-namespace ingress. Only used when allowExternal is false. Allows you to specify which namespaces can access Jellyfin. Example - only allow from ingress-nginx namespace:   namespaceSelector:     matchLabels:       name: ingress-nginx |
+| networkPolicy.ingress.podSelector | object | `{}` | Custom pod selector for allowed ingress traffic. Only used when allowExternal is false. Allows you to specify which pods can access Jellyfin based on labels. Example - only allow pods with specific label:   podSelector:     matchLabels:       jellyfin-client: "true" |
+| networkPolicy.metrics | object | `{"namespace":"","podSelector":{"app.kubernetes.io/name":"prometheus"}}` | Prometheus metrics scraping configuration. Automatically allows ingress from Prometheus when metrics.serviceMonitor.enabled is true. This ensures Prometheus can scrape metrics without additional configuration. |
+| networkPolicy.metrics.namespace | string | `""` | Namespace where Prometheus is running. Leave empty to use the same namespace as Jellyfin. Set to the monitoring namespace if Prometheus is in a different namespace. Example: "monitoring" or "prometheus" |
+| networkPolicy.metrics.podSelector | object | `{"app.kubernetes.io/name":"prometheus"}` | Pod selector for Prometheus pods. These labels must match your Prometheus deployment. The chart will automatically add an ingress rule for pods matching these labels. Default selector works with prometheus-operator and kube-prometheus-stack. Adjust if your Prometheus uses different labels. |
+| networkPolicy.policyTypes | list | `["Ingress","Egress"]` | Policy types to enforce. Both ingress and egress policies can be enabled. See: https://kubernetes.io/docs/concepts/services-networking/network-policies/#policy-types |
 | nodeSelector | object | `{}` | Node selector for pod scheduling. |
 | persistence.cache.accessMode | string | `"ReadWriteOnce"` | PVC specific settings, only used if type is 'pvc'. |
 | persistence.cache.annotations | object | `{}` | Custom annotations to be added to the PVC |
@@ -203,6 +224,206 @@ extraVolumeMounts:
     mountPath: /dev/dri
 ```
 
+## Network Security
+
+Jellyfin chart supports Kubernetes NetworkPolicy for network isolation and security hardening. NetworkPolicy allows you to control which pods can access Jellyfin (ingress) and what external connections Jellyfin can make (egress).
+
+### Requirements
+
+- **CNI Plugin**: NetworkPolicy requires a Container Network Interface (CNI) plugin that supports NetworkPolicies, such as:
+  - Calico
+  - Cilium
+  - Weave Net
+  - Canal
+
+  Check with your cluster administrator if NetworkPolicy is supported in your cluster.
+
+- **DLNA Incompatibility**: NetworkPolicy cannot be enabled when `enableDLNA: true` or `podPrivileges.hostNetwork: true` is set, as pods using `hostNetwork` bypass NetworkPolicy rules. The chart will fail deployment with a clear error message if both are enabled.
+
+### Basic Usage
+
+By default, NetworkPolicy is disabled to maintain backward compatibility. To enable basic network isolation:
+
+```yaml
+networkPolicy:
+  enabled: true
+```
+
+This will create a NetworkPolicy with the following defaults:
+- **Ingress**: Allow connections from any pod in any namespace
+- **Egress**: Allow DNS resolution and all internet access (required for metadata)
+
+### Production Configuration - Restrict to Ingress Controller
+
+For production environments, you typically want to restrict access to only allow traffic through the Ingress controller:
+
+```yaml
+networkPolicy:
+  enabled: true
+  ingress:
+    allowExternal: false
+    namespaceSelector:
+      matchLabels:
+        name: ingress-nginx
+    podSelector:
+      matchLabels:
+        app.kubernetes.io/name: ingress-nginx
+
+ingress:
+  enabled: true
+  className: nginx
+  hosts:
+    - host: jellyfin.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+```
+
+### High Security Configuration - Restricted Egress
+
+For security-conscious deployments that need to limit outbound connections:
+
+```yaml
+networkPolicy:
+  enabled: true
+  ingress:
+    allowExternal: false
+    podSelector:
+      matchLabels:
+        jellyfin-client: "true"  # Only pods with this label can access
+  egress:
+    allowDNS: true  # Always needed
+    allowAllEgress: false  # Block unrestricted internet
+    restrictedEgress:
+      allowMetadata: true  # Allow HTTPS/443 for metadata providers (TMDB, etc.)
+      allowInCluster: false  # Block pod-to-pod communication
+```
+
+**Note**: With this configuration, Jellyfin can only:
+- Resolve DNS queries
+- Connect to HTTPS (port 443) endpoints for metadata providers
+- Cannot connect to other pods in the cluster
+- Cannot access non-HTTPS services
+
+### Monitoring Integration
+
+If you're using Prometheus for monitoring, the chart automatically allows ingress from Prometheus pods when metrics are enabled:
+
+```yaml
+networkPolicy:
+  enabled: true
+metrics:
+  enabled: true
+  serviceMonitor:
+    enabled: true
+```
+
+By default, the chart allows ingress from pods with label `app.kubernetes.io/name: prometheus`. If your Prometheus uses different labels, customize the selector:
+
+```yaml
+networkPolicy:
+  enabled: true
+  metrics:
+    namespace: monitoring  # If Prometheus is in a different namespace
+    podSelector:
+      app: my-prometheus
+```
+
+### Advanced Configuration
+
+#### Multiple Namespaces Access
+
+Allow access from multiple namespaces using custom rules:
+
+```yaml
+networkPolicy:
+  enabled: true
+  ingress:
+    allowExternal: false
+    customRules:
+      # Frontend namespace
+      - from:
+          - namespaceSelector:
+              matchLabels:
+                name: frontend
+            podSelector:
+              matchLabels:
+                access-jellyfin: "true"
+        ports:
+          - protocol: TCP
+            port: 8096
+
+      # Admin tools namespace
+      - from:
+          - namespaceSelector:
+              matchLabels:
+                name: admin-tools
+        ports:
+          - protocol: TCP
+            port: 8096
+```
+
+#### Custom Egress Rules
+
+Allow connections to specific external services:
+
+```yaml
+networkPolicy:
+  enabled: true
+  egress:
+    allowAllEgress: false
+    restrictedEgress:
+      allowMetadata: true
+      allowedCIDRs:
+        - 10.0.0.0/8  # Internal network
+        - 192.168.0.0/16  # Another internal network
+    customRules:
+      # Allow connection to external database
+      - to:
+          - ipBlock:
+              cidr: 203.0.113.0/24
+        ports:
+          - protocol: TCP
+            port: 5432
+```
+
+### Security Considerations
+
+1. **Metadata Providers**: Jellyfin requires internet access to download metadata (movie posters, descriptions, etc.) from:
+   - TheMovieDB (api.themoviedb.org)
+   - TheTVDB (api.thetvdb.com)
+   - OpenSubtitles (api.opensubtitles.com)
+   - Fanart.tv (fanart.tv)
+
+   If you use `restrictedEgress.allowMetadata: true`, these will work as they all use HTTPS (port 443).
+
+2. **DNS Access**: DNS resolution is critical for Jellyfin operation. The chart prevents accidental DNS blocking by defaulting `allowDNS: true`.
+
+3. **Local Metadata**: If you want to completely block internet access, you can use local metadata (NFO files and local images). This requires manual setup and is not the default Jellyfin behavior.
+
+4. **Testing**: Always test NetworkPolicy changes in a development environment first. Misconfigured policies can block legitimate traffic.
+
+### Troubleshooting
+
+**Jellyfin can't download metadata/images:**
+- Check that `egress.allowAllEgress: true` or `restrictedEgress.allowMetadata: true` is set
+- Verify DNS egress is allowed: `egress.allowDNS: true`
+
+**Can't access Jellyfin web interface:**
+- Verify ingress rules allow traffic from your access point (Ingress controller, LoadBalancer, etc.)
+- Check NOTES.txt after deployment for detailed NetworkPolicy status
+
+**Prometheus can't scrape metrics:**
+- Ensure `metrics.enabled: true` and `metrics.serviceMonitor.enabled: true`
+- Verify `networkPolicy.metrics.podSelector` matches your Prometheus labels
+- Set `networkPolicy.metrics.namespace` if Prometheus is in a different namespace
+
+**Deployment fails with "NetworkPolicy cannot be enabled...":**
+- You have both `networkPolicy.enabled: true` and `hostNetwork: true` (or `enableDLNA: true`)
+- NetworkPolicy doesn't work with host networking
+- Either disable NetworkPolicy or disable host networking
+
+For more configuration options, see the full values documentation in [values.yaml](values.yaml).
 ## Troubleshooting
 
 ### inotify Instance Limit Reached

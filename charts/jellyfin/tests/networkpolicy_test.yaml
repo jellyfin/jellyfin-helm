@@ -1,0 +1,297 @@
+suite: test networkpolicy
+templates:
+  - networkpolicy.yaml
+tests:
+  - it: should not create NetworkPolicy by default
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: should create NetworkPolicy when enabled
+    set:
+      networkPolicy.enabled: true
+    asserts:
+      - hasDocuments:
+          count: 1
+      - isKind:
+          of: NetworkPolicy
+      - isAPIVersion:
+          of: networking.k8s.io/v1
+      - equal:
+          path: metadata.name
+          value: RELEASE-NAME-jellyfin
+
+  - it: should fail when NetworkPolicy enabled with DLNA
+    set:
+      networkPolicy.enabled: true
+      jellyfin.enableDLNA: true
+    asserts:
+      - failedTemplate:
+          errorMessage: "NetworkPolicy cannot be enabled when hostNetwork is enabled"
+
+  - it: should fail when NetworkPolicy enabled with hostNetwork
+    set:
+      networkPolicy.enabled: true
+      podPrivileges.hostNetwork: true
+    asserts:
+      - failedTemplate:
+          errorMessage: "NetworkPolicy cannot be enabled when hostNetwork is enabled"
+
+  - it: should have both Ingress and Egress policy types by default
+    set:
+      networkPolicy.enabled: true
+    asserts:
+      - contains:
+          path: spec.policyTypes
+          content: Ingress
+      - contains:
+          path: spec.policyTypes
+          content: Egress
+
+  - it: should allow external ingress by default
+    set:
+      networkPolicy.enabled: true
+    asserts:
+      - isNotNull:
+          path: spec.ingress
+      # When allowExternal is true, there should be no 'from' in first ingress rule
+      - isNull:
+          path: spec.ingress[0].from
+
+  - it: should restrict ingress when allowExternal is false
+    set:
+      networkPolicy.enabled: true
+      networkPolicy.ingress.allowExternal: false
+      networkPolicy.ingress.podSelector:
+        matchLabels:
+          app: test
+    asserts:
+      - isNotNull:
+          path: spec.ingress[0].from
+      - equal:
+          path: spec.ingress[0].from[0].podSelector.matchLabels.app
+          value: test
+
+  - it: should add namespace selector for ingress when specified
+    set:
+      networkPolicy.enabled: true
+      networkPolicy.ingress.allowExternal: false
+      networkPolicy.ingress.namespaceSelector:
+        matchLabels:
+          name: frontend
+    asserts:
+      - equal:
+          path: spec.ingress[0].from[0].namespaceSelector.matchLabels.name
+          value: frontend
+
+  - it: should create Prometheus ingress rule when metrics enabled
+    set:
+      networkPolicy.enabled: true
+      metrics.enabled: true
+      metrics.serviceMonitor.enabled: true
+      metrics.serviceMonitor.port: 8096
+    asserts:
+      - contains:
+          path: spec.ingress
+          content:
+            ports:
+              - protocol: TCP
+                port: 8096
+            from:
+              - podSelector:
+                  app.kubernetes.io/name: prometheus
+
+  - it: should add Prometheus namespace selector when specified
+    set:
+      networkPolicy.enabled: true
+      metrics.enabled: true
+      metrics.serviceMonitor.enabled: true
+      networkPolicy.metrics.namespace: monitoring
+    asserts:
+      - isNotNull:
+          path: spec.ingress[1].from[0].namespaceSelector
+      - equal:
+          path: spec.ingress[1].from[0].namespaceSelector.matchLabels.kubernetes.io/metadata.name
+          value: monitoring
+
+  - it: should add custom ingress rules
+    set:
+      networkPolicy.enabled: true
+      networkPolicy.ingress.customRules:
+        - from:
+            - namespaceSelector:
+                matchLabels:
+                  name: custom
+          ports:
+            - protocol: TCP
+              port: 9999
+    asserts:
+      - contains:
+          path: spec.ingress
+          content:
+            from:
+              - namespaceSelector:
+                  matchLabels:
+                    name: custom
+            ports:
+              - protocol: TCP
+                port: 9999
+
+  - it: should allow DNS egress by default
+    set:
+      networkPolicy.enabled: true
+    asserts:
+      - contains:
+          path: spec.egress
+          content:
+            to:
+              - namespaceSelector:
+                  matchLabels:
+                    kubernetes.io/metadata.name: kube-system
+                podSelector:
+                  matchLabels:
+                    k8s-app: kube-dns
+            ports:
+              - protocol: UDP
+                port: 53
+              - protocol: TCP
+                port: 53
+
+  - it: should allow custom DNS namespace
+    set:
+      networkPolicy.enabled: true
+      networkPolicy.egress.dnsNamespace: custom-dns-ns
+    asserts:
+      - equal:
+          path: spec.egress[0].to[0].namespaceSelector.matchLabels.kubernetes.io/metadata.name
+          value: custom-dns-ns
+
+  - it: should allow custom DNS pod selector
+    set:
+      networkPolicy.enabled: true
+      networkPolicy.egress.dnsPodSelector:
+        k8s-app: coredns
+    asserts:
+      - equal:
+          path: spec.egress[0].to[0].podSelector.matchLabels.k8s-app
+          value: coredns
+
+  - it: should allow all egress by default
+    set:
+      networkPolicy.enabled: true
+    asserts:
+      - contains:
+          path: spec.egress
+          content:
+            to:
+              - ipBlock:
+                  cidr: 0.0.0.0/0
+
+  - it: should not allow all egress when allowAllEgress is false
+    set:
+      networkPolicy.enabled: true
+      networkPolicy.egress.allowAllEgress: false
+    asserts:
+      - notContains:
+          path: spec.egress
+          content:
+            to:
+              - ipBlock:
+                  cidr: 0.0.0.0/0
+
+  - it: should allow HTTPS when restrictedEgress.allowMetadata is true
+    set:
+      networkPolicy.enabled: true
+      networkPolicy.egress.allowAllEgress: false
+      networkPolicy.egress.restrictedEgress.allowMetadata: true
+    asserts:
+      - contains:
+          path: spec.egress
+          content:
+            to:
+              - ipBlock:
+                  cidr: 0.0.0.0/0
+            ports:
+              - protocol: TCP
+                port: 443
+
+  - it: should allow in-cluster communication when restrictedEgress.allowInCluster is true
+    set:
+      networkPolicy.enabled: true
+      networkPolicy.egress.allowAllEgress: false
+      networkPolicy.egress.restrictedEgress.allowInCluster: true
+    asserts:
+      - contains:
+          path: spec.egress
+          content:
+            to:
+              - podSelector: {}
+
+  - it: should add custom CIDR blocks
+    set:
+      networkPolicy.enabled: true
+      networkPolicy.egress.allowAllEgress: false
+      networkPolicy.egress.restrictedEgress.allowedCIDRs:
+        - 10.0.0.0/8
+        - 192.168.0.0/16
+    asserts:
+      - contains:
+          path: spec.egress
+          content:
+            to:
+              - ipBlock:
+                  cidr: 10.0.0.0/8
+      - contains:
+          path: spec.egress
+          content:
+            to:
+              - ipBlock:
+                  cidr: 192.168.0.0/16
+
+  - it: should add custom egress rules
+    set:
+      networkPolicy.enabled: true
+      networkPolicy.egress.customRules:
+        - to:
+            - podSelector:
+                matchLabels:
+                  app: database
+          ports:
+            - protocol: TCP
+              port: 5432
+    asserts:
+      - contains:
+          path: spec.egress
+          content:
+            to:
+              - podSelector:
+                  matchLabels:
+                    app: database
+            ports:
+              - protocol: TCP
+                port: 5432
+
+  - it: should not create DNS egress when allowDNS is false
+    set:
+      networkPolicy.enabled: true
+      networkPolicy.egress.allowDNS: false
+    asserts:
+      - notContains:
+          path: spec.egress
+          content:
+            ports:
+              - protocol: UDP
+                port: 53
+              - protocol: TCP
+                port: 53
+
+  - it: should use correct pod selector labels
+    set:
+      networkPolicy.enabled: true
+    asserts:
+      - equal:
+          path: spec.podSelector.matchLabels.app\.kubernetes\.io/name
+          value: jellyfin
+      - equal:
+          path: spec.podSelector.matchLabels.app\.kubernetes\.io/instance
+          value: RELEASE-NAME

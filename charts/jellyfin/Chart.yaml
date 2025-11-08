@@ -17,6 +17,10 @@ annotations:
     - kind: fixed
       description: Fix extraInitContainers not working (was using wrong parameter name in template)
     - kind: added
+      description: Add NetworkPolicy support for network isolation and security hardening
+      links:
+        - name: Documentation
+          url: https://kubernetes.io/docs/concepts/services-networking/network-policies/
       description: Add troubleshooting documentation for inotify instance limits with workaround example
     - kind: added
       description: Add support for Gateway API HTTPRoute resource

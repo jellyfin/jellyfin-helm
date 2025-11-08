@@ -357,3 +357,150 @@ extraInitContainers: []
 
 # -- additional sidecar containers to run inside the pod.
 extraContainers: []
+
+# -- Network Policy configuration for network isolation and security.
+# Requires a CNI plugin that supports NetworkPolicy (Calico, Cilium, Weave, etc.).
+# WARNING: NetworkPolicy cannot be enabled when hostNetwork is used (DLNA mode).
+# The chart will fail with an error if both are enabled simultaneously.
+networkPolicy:
+  # -- Enable NetworkPolicy for the Jellyfin pod.
+  # By default, this is disabled to maintain backward compatibility.
+  # When enabled, you can control which pods can access Jellyfin (ingress)
+  # and what external connections Jellyfin can make (egress).
+  enabled: false
+
+  # -- Policy types to enforce. Both ingress and egress policies can be enabled.
+  # See: https://kubernetes.io/docs/concepts/services-networking/network-policies/#policy-types
+  policyTypes:
+    - Ingress
+    - Egress
+
+  # -- Ingress rules configuration - controls which pods/namespaces can access Jellyfin.
+  ingress:
+    # -- Allow external access from any namespace and any pod.
+    # When true, any pod in the cluster can access Jellyfin (default behavior).
+    # When false, only pods matching podSelector/namespaceSelector can access.
+    # Set to false for production environments to restrict access.
+    allowExternal: true
+
+    # -- Custom pod selector for allowed ingress traffic.
+    # Only used when allowExternal is false.
+    # Allows you to specify which pods can access Jellyfin based on labels.
+    # Example - only allow pods with specific label:
+    #   podSelector:
+    #     matchLabels:
+    #       jellyfin-client: "true"
+    podSelector: {}
+
+    # -- Namespace selector to allow cross-namespace ingress.
+    # Only used when allowExternal is false.
+    # Allows you to specify which namespaces can access Jellyfin.
+    # Example - only allow from ingress-nginx namespace:
+    #   namespaceSelector:
+    #     matchLabels:
+    #       name: ingress-nginx
+    namespaceSelector: {}
+
+    # -- Additional custom ingress rules.
+    # Allows for complex scenarios not covered by the standard template.
+    # These rules are added as-is to the NetworkPolicy ingress section.
+    # Example - allow from monitoring namespace:
+    #   customRules:
+    #     - from:
+    #       - namespaceSelector:
+    #           matchLabels:
+    #             name: monitoring
+    #       ports:
+    #       - protocol: TCP
+    #         port: 8096
+    customRules: []
+
+  # -- Egress rules configuration - controls what external connections Jellyfin can make.
+  egress:
+    # -- Allow DNS resolution (required for Jellyfin to function).
+    # This adds an egress rule for kube-system namespace with kube-dns pods.
+    # DNS is required for resolving metadata provider domains and subtitle services.
+    # It is highly recommended to keep this enabled.
+    allowDNS: true
+
+    # -- DNS namespace where DNS service is running.
+    # Usually "kube-system" but can differ in some Kubernetes distributions.
+    dnsNamespace: kube-system
+
+    # -- DNS pod selector labels.
+    # Default selector is for kube-dns, but CoreDNS or other DNS providers
+    # may use different labels. Adjust if needed.
+    # Common alternatives:
+    #   k8s-app: kube-dns (default)
+    #   k8s-app: coredns
+    #   app.kubernetes.io/name: coredns
+    dnsPodSelector:
+      k8s-app: kube-dns
+
+    # -- Allow all egress traffic (internet access for metadata, subtitles, images).
+    # When true, Jellyfin can connect to any external destination (0.0.0.0/0).
+    # This is the recommended default as Jellyfin needs internet access for:
+    # - Downloading movie/TV show metadata (TMDB, TheTVDB, OMDb)
+    # - Fetching poster images, fanart, and other artwork
+    # - Downloading subtitles (OpenSubtitles)
+    # - Updating plugins
+    # When false, you must configure restrictedEgress or customRules.
+    allowAllEgress: true
+
+    # -- Restricted egress mode for security-conscious deployments.
+    # Only used when allowAllEgress is false.
+    # Provides fine-grained control over outbound connections.
+    restrictedEgress:
+      # -- Allow HTTPS (443/TCP) for metadata providers.
+      # Most metadata providers (TMDB, TheTVDB, OpenSubtitles, Fanart.tv)
+      # use HTTPS, so this covers the majority of use cases.
+      # This allows connections to any IP on port 443.
+      allowMetadata: true
+
+      # -- Allow communication within the cluster (pod-to-pod).
+      # Useful if Jellyfin needs to connect to other services in the cluster.
+      # This allows connections to any pod in any namespace.
+      allowInCluster: true
+
+      # -- Additional IP CIDR blocks to allow egress.
+      # Useful for allowing specific IP ranges for metadata providers
+      # or other external services.
+      # Example - allow entire internet except private networks:
+      #   allowedCIDRs:
+      #     - 0.0.0.0/0
+      # Example - allow specific metadata provider IP ranges:
+      #   allowedCIDRs:
+      #     - 13.224.0.0/14  # CloudFront (used by many CDNs)
+      allowedCIDRs: []
+
+    # -- Additional custom egress rules.
+    # Allows for complex scenarios not covered by the standard template.
+    # These rules are added as-is to the NetworkPolicy egress section.
+    # Example - allow connections to specific database:
+    #   customRules:
+    #     - to:
+    #       - podSelector:
+    #           matchLabels:
+    #             app: postgresql
+    #       ports:
+    #       - protocol: TCP
+    #         port: 5432
+    customRules: []
+
+  # -- Prometheus metrics scraping configuration.
+  # Automatically allows ingress from Prometheus when metrics.serviceMonitor.enabled is true.
+  # This ensures Prometheus can scrape metrics without additional configuration.
+  metrics:
+    # -- Namespace where Prometheus is running.
+    # Leave empty to use the same namespace as Jellyfin.
+    # Set to the monitoring namespace if Prometheus is in a different namespace.
+    # Example: "monitoring" or "prometheus"
+    namespace: ""
+
+    # -- Pod selector for Prometheus pods.
+    # These labels must match your Prometheus deployment.
+    # The chart will automatically add an ingress rule for pods matching these labels.
+    # Default selector works with prometheus-operator and kube-prometheus-stack.
+    # Adjust if your Prometheus uses different labels.
+    podSelector:
+      app.kubernetes.io/name: prometheus
