@@ -403,7 +403,7 @@ networkPolicy:
 
 4. **Testing**: Always test NetworkPolicy changes in a development environment first. Misconfigured policies can block legitimate traffic.
 
-### Troubleshooting
+### NetworkPolicy Troubleshooting
 
 **Jellyfin can't download metadata/images:**
 - Check that `egress.allowAllEgress: true` or `restrictedEgress.allowMetadata: true` is set
