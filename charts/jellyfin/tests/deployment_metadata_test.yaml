@@ -44,32 +44,32 @@ tests:
   - it: should have default labels
     asserts:
       - equal:
-          path: metadata.labels.app\.kubernetes\.io/name
+          path: metadata.labels["app.kubernetes.io/name"]
           value: jellyfin
       - equal:
-          path: metadata.labels.app\.kubernetes\.io/instance
+          path: metadata.labels["app.kubernetes.io/instance"]
           value: RELEASE-NAME
       - isNotNull:
-          path: metadata.labels.app\.kubernetes\.io/version
+          path: metadata.labels["app.kubernetes.io/version"]
       - isNotNull:
-          path: metadata.labels.helm\.sh/chart
+          path: metadata.labels["helm.sh/chart"]
 
   - it: should propagate labels to pod template
     asserts:
       - equal:
-          path: spec.template.metadata.labels.app\.kubernetes\.io/name
+          path: spec.template.metadata.labels["app.kubernetes.io/name"]
           value: jellyfin
       - equal:
-          path: spec.template.metadata.labels.app\.kubernetes\.io/instance
+          path: spec.template.metadata.labels["app.kubernetes.io/instance"]
           value: RELEASE-NAME
 
   - it: should use labels in selector
     asserts:
       - equal:
-          path: spec.selector.matchLabels.app\.kubernetes\.io/name
+          path: spec.selector.matchLabels["app.kubernetes.io/name"]
           value: jellyfin
       - equal:
-          path: spec.selector.matchLabels.app\.kubernetes\.io/instance
+          path: spec.selector.matchLabels["app.kubernetes.io/instance"]
           value: RELEASE-NAME
 
   # =============================================================================
@@ -88,7 +88,7 @@ tests:
         custom-annotation: custom-value
     asserts:
       - equal:
-          path: metadata.annotations.deployment\.kubernetes\.io/revision
+          path: metadata.annotations["deployment.kubernetes.io/revision"]
           value: "1"
       - equal:
           path: metadata.annotations.custom-annotation
@@ -121,10 +121,10 @@ tests:
         prometheus.io/port: "8096"
     asserts:
       - equal:
-          path: spec.template.metadata.annotations.prometheus\.io/scrape
+          path: spec.template.metadata.annotations["prometheus.io/scrape"]
           value: "true"
       - equal:
-          path: spec.template.metadata.annotations.prometheus\.io/port
+          path: spec.template.metadata.annotations["prometheus.io/port"]
           value: "8096"
 
   - it: should support multiple pod annotations
@@ -135,10 +135,10 @@ tests:
         custom-annotation: custom-value
     asserts:
       - equal:
-          path: spec.template.metadata.annotations.vault\.hashicorp\.com/agent-inject
+          path: spec.template.metadata.annotations["vault.hashicorp.com/agent-inject"]
           value: "true"
       - equal:
-          path: spec.template.metadata.annotations.vault\.hashicorp\.com/role
+          path: spec.template.metadata.annotations["vault.hashicorp.com/role"]
           value: jellyfin
 
   # =============================================================================
@@ -148,10 +148,10 @@ tests:
   - it: should have default pod labels
     asserts:
       - equal:
-          path: spec.template.metadata.labels.app\.kubernetes\.io/name
+          path: spec.template.metadata.labels["app.kubernetes.io/name"]
           value: jellyfin
       - equal:
-          path: spec.template.metadata.labels.app\.kubernetes\.io/instance
+          path: spec.template.metadata.labels["app.kubernetes.io/instance"]
           value: RELEASE-NAME
 
   - it: should add custom pod labels when specified
@@ -173,7 +173,7 @@ tests:
         custom: label
     asserts:
       - equal:
-          path: spec.template.metadata.labels.app\.kubernetes\.io/name
+          path: spec.template.metadata.labels["app.kubernetes.io/name"]
           value: jellyfin
       - equal:
           path: spec.template.metadata.labels.custom
@@ -298,7 +298,7 @@ tests:
       podLabels: {}
     asserts:
       - isNotNull:
-          path: spec.template.metadata.labels.app\.kubernetes\.io/name
+          path: spec.template.metadata.labels["app.kubernetes.io/name"]
 
   - it: should handle empty deploymentAnnotations object
     set:
@@ -340,10 +340,10 @@ tests:
           path: metadata.name
           value: jellyfin-prod
       - equal:
-          path: metadata.annotations.deployment\.kubernetes\.io/revision
+          path: metadata.annotations["deployment.kubernetes.io/revision"]
           value: "5"
       - equal:
-          path: spec.template.metadata.annotations.prometheus\.io/scrape
+          path: spec.template.metadata.annotations["prometheus.io/scrape"]
           value: "true"
       - equal:
           path: spec.template.metadata.labels.environment
@@ -387,10 +387,10 @@ tests:
         vault.hashicorp.com/role: jellyfin-role
     asserts:
       - equal:
-          path: spec.template.metadata.annotations.vault\.hashicorp\.com/agent-inject
+          path: spec.template.metadata.annotations["vault.hashicorp.com/agent-inject"]
           value: "true"
       - equal:
-          path: spec.template.metadata.annotations.vault\.hashicorp\.com/role
+          path: spec.template.metadata.annotations["vault.hashicorp.com/role"]
           value: jellyfin-role
 
   # =============================================================================
@@ -400,21 +400,21 @@ tests:
   - it: should always have standard Kubernetes labels
     asserts:
       - isNotNull:
-          path: metadata.labels.app\.kubernetes\.io/name
+          path: metadata.labels["app.kubernetes.io/name"]
       - isNotNull:
-          path: metadata.labels.app\.kubernetes\.io/instance
+          path: metadata.labels["app.kubernetes.io/instance"]
       - isNotNull:
-          path: metadata.labels.app\.kubernetes\.io/version
+          path: metadata.labels["app.kubernetes.io/version"]
       - isNotNull:
-          path: metadata.labels.helm\.sh/chart
+          path: metadata.labels["helm.sh/chart"]
 
   - it: should always have matching selectors
     asserts:
       - equal:
-          path: spec.selector.matchLabels.app\.kubernetes\.io/name
+          path: spec.selector.matchLabels["app.kubernetes.io/name"]
           value: jellyfin
       - equal:
-          path: spec.selector.matchLabels.app\.kubernetes\.io/instance
+          path: spec.selector.matchLabels["app.kubernetes.io/instance"]
           value: RELEASE-NAME
 
   - it: should always have spec.strategy defined

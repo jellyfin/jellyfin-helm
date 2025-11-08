@@ -111,7 +111,7 @@ tests:
       - isNotNull:
           path: spec.ingress[1].from[0].namespaceSelector
       - equal:
-          path: spec.ingress[1].from[0].namespaceSelector.matchLabels.kubernetes.io/metadata.name
+          path: spec.ingress[1].from[0].namespaceSelector.matchLabels["kubernetes.io/metadata.name"]
           value: monitoring
 
   - it: should add custom ingress rules
@@ -163,7 +163,7 @@ tests:
       networkPolicy.egress.dnsNamespace: custom-dns-ns
     asserts:
       - equal:
-          path: spec.egress[0].to[0].namespaceSelector.matchLabels.kubernetes.io/metadata.name
+          path: spec.egress[0].to[0].namespaceSelector.matchLabels["kubernetes.io/metadata.name"]
           value: custom-dns-ns
 
   - it: should allow custom DNS pod selector
@@ -290,10 +290,10 @@ tests:
       networkPolicy.enabled: true
     asserts:
       - equal:
-          path: spec.podSelector.matchLabels.app\.kubernetes\.io/name
+          path: spec.podSelector.matchLabels["app.kubernetes.io/name"]
           value: jellyfin
       - equal:
-          path: spec.podSelector.matchLabels.app\.kubernetes\.io/instance
+          path: spec.podSelector.matchLabels["app.kubernetes.io/instance"]
           value: RELEASE-NAME
 
   # =============================================================================

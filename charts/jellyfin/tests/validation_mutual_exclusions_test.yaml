@@ -3,6 +3,10 @@ templates:
   - deployment.yaml
   - networkpolicy.yaml
   - serviceMonitor.yaml
+  - service.yaml
+  - ingress.yaml
+  - httpRoute.yaml
+  - persistentVolumeClaim.yaml
 tests:
   # =============================================================================
   # NETWORKPOLICY MUTUAL EXCLUSIONS

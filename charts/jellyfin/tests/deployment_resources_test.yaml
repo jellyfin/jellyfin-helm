@@ -81,7 +81,7 @@ tests:
           nvidia.com/gpu: 1
     asserts:
       - equal:
-          path: spec.template.spec.containers[0].resources.limits.nvidia\.com/gpu
+          path: spec.template.spec.containers[0].resources.limits["nvidia.com/gpu"]
           value: 1
 
   - it: should support ephemeral-storage

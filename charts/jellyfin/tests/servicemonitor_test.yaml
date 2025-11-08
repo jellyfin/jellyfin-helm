@@ -75,10 +75,10 @@ tests:
       metrics.serviceMonitor.enabled: true
     asserts:
       - equal:
-          path: spec.selector.matchLabels.app\.kubernetes\.io/name
+          path: spec.selector.matchLabels["app.kubernetes.io/name"]
           value: jellyfin
       - equal:
-          path: spec.selector.matchLabels.app\.kubernetes\.io/instance
+          path: spec.selector.matchLabels["app.kubernetes.io/instance"]
           value: RELEASE-NAME
 
   # =============================================================================
@@ -91,7 +91,7 @@ tests:
       metrics.serviceMonitor.enabled: true
     asserts:
       - equal:
-          path: metadata.labels.app\.kubernetes\.io/name
+          path: metadata.labels["app.kubernetes.io/name"]
           value: jellyfin
 
   - it: should add custom labels when specified
@@ -117,7 +117,7 @@ tests:
         custom: label
     asserts:
       - equal:
-          path: metadata.labels.app\.kubernetes\.io/name
+          path: metadata.labels["app.kubernetes.io/name"]
           value: jellyfin
       - equal:
           path: metadata.labels.custom
@@ -385,7 +385,7 @@ tests:
       metrics.serviceMonitor.labels: {}
     asserts:
       - equal:
-          path: metadata.labels.app\.kubernetes\.io/name
+          path: metadata.labels["app.kubernetes.io/name"]
           value: jellyfin
 
   - it: should handle empty relabelings array
@@ -468,10 +468,10 @@ tests:
       metrics.serviceMonitor.enabled: true
     asserts:
       - equal:
-          path: metadata.labels.app\.kubernetes\.io/name
+          path: metadata.labels["app.kubernetes.io/name"]
           value: jellyfin
       - equal:
-          path: metadata.labels.app\.kubernetes\.io/instance
+          path: metadata.labels["app.kubernetes.io/instance"]
           value: RELEASE-NAME
 
   - it: should always have exactly one endpoint

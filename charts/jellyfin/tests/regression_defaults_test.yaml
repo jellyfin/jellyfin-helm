@@ -379,34 +379,34 @@ tests:
     template: deployment.yaml
     asserts:
       - equal:
-          path: metadata.labels.app\.kubernetes\.io/name
+          path: metadata.labels["app.kubernetes.io/name"]
           value: jellyfin
       - equal:
-          path: metadata.labels.app\.kubernetes\.io/instance
+          path: metadata.labels["app.kubernetes.io/instance"]
           value: RELEASE-NAME
       - isNotNull:
-          path: metadata.labels.app\.kubernetes\.io/version
+          path: metadata.labels["app.kubernetes.io/version"]
       - isNotNull:
-          path: metadata.labels.helm\.sh/chart
+          path: metadata.labels["helm.sh/chart"]
 
   - it: should have standard labels on service
     template: service.yaml
     asserts:
       - equal:
-          path: metadata.labels.app\.kubernetes\.io/name
+          path: metadata.labels["app.kubernetes.io/name"]
           value: jellyfin
       - equal:
-          path: metadata.labels.app\.kubernetes\.io/instance
+          path: metadata.labels["app.kubernetes.io/instance"]
           value: RELEASE-NAME
 
   - it: should have standard labels on serviceaccount
     template: serviceaccount.yaml
     asserts:
       - equal:
-          path: metadata.labels.app\.kubernetes\.io/name
+          path: metadata.labels["app.kubernetes.io/name"]
           value: jellyfin
       - equal:
-          path: metadata.labels.app\.kubernetes\.io/instance
+          path: metadata.labels["app.kubernetes.io/instance"]
           value: RELEASE-NAME
 
   - it: should have standard labels on PVCs
@@ -414,10 +414,10 @@ tests:
     documentIndex: 0
     asserts:
       - equal:
-          path: metadata.labels.app\.kubernetes\.io/name
+          path: metadata.labels["app.kubernetes.io/name"]
           value: jellyfin
       - equal:
-          path: metadata.labels.app\.kubernetes\.io/instance
+          path: metadata.labels["app.kubernetes.io/instance"]
           value: RELEASE-NAME
 
   # =============================================================================

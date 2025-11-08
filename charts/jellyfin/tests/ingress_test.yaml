@@ -86,10 +86,10 @@ tests:
         nginx.ingress.kubernetes.io/proxy-body-size: 100m
     asserts:
       - equal:
-          path: metadata.annotations.kubernetes\.io/ingress\.class
+          path: metadata.annotations.kubernetes.io/ingress\.class
           value: nginx
       - equal:
-          path: metadata.annotations.nginx\.ingress\.kubernetes\.io/proxy-body-size
+          path: metadata.annotations["nginx.ingress.kubernetes.io/proxy-body-size"]
           value: 100m
 
   - it: should support multiple annotations
@@ -101,13 +101,13 @@ tests:
         nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
     asserts:
       - equal:
-          path: metadata.annotations.cert-manager\.io/cluster-issuer
+          path: metadata.annotations["cert-manager.io/cluster-issuer"]
           value: letsencrypt-prod
       - equal:
-          path: metadata.annotations.nginx\.ingress\.kubernetes\.io/ssl-redirect
+          path: metadata.annotations["nginx.ingress.kubernetes.io/ssl-redirect"]
           value: "true"
       - equal:
-          path: metadata.annotations.nginx\.ingress\.kubernetes\.io/force-ssl-redirect
+          path: metadata.annotations["nginx.ingress.kubernetes.io/force-ssl-redirect"]
           value: "true"
 
   # =============================================================================
@@ -397,7 +397,7 @@ tests:
           path: spec.ingressClassName
           value: nginx
       - equal:
-          path: metadata.annotations.cert-manager\.io/cluster-issuer
+          path: metadata.annotations["cert-manager.io/cluster-issuer"]
           value: letsencrypt-prod
       - equal:
           path: spec.rules[0].host
@@ -466,8 +466,8 @@ tests:
       ingress.enabled: true
     asserts:
       - equal:
-          path: metadata.labels.app\.kubernetes\.io/name
+          path: metadata.labels["app.kubernetes.io/name"]
           value: jellyfin
       - equal:
-          path: metadata.labels.app\.kubernetes\.io/instance
+          path: metadata.labels["app.kubernetes.io/instance"]
           value: RELEASE-NAME

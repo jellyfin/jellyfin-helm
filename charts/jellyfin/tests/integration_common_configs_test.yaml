@@ -3,8 +3,10 @@ templates:
   - deployment.yaml
   - service.yaml
   - ingress.yaml
+  - httpRoute.yaml
   - networkpolicy.yaml
   - serviceMonitor.yaml
+  - serviceaccount.yaml
   - persistentVolumeClaim.yaml
 tests:
   # =============================================================================
@@ -288,11 +290,11 @@ tests:
     asserts:
       - template: serviceaccount.yaml
         equal:
-          path: metadata.annotations.eks\.amazonaws\.com/role-arn
+          path: metadata.annotations["eks.amazonaws.com/role-arn"]
           value: arn:aws:iam::123456789012:role/jellyfin-s3
       - template: service.yaml
         equal:
-          path: metadata.annotations.service\.beta\.kubernetes\.io/aws-load-balancer-type
+          path: metadata.annotations["service.beta.kubernetes.io/aws-load-balancer-type"]
           value: nlb
       - template: ingress.yaml
         equal:
@@ -316,11 +318,11 @@ tests:
     asserts:
       - template: serviceaccount.yaml
         equal:
-          path: metadata.annotations.iam\.gke\.io/gcp-service-account
+          path: metadata.annotations["iam.gke.io/gcp-service-account"]
           value: jellyfin@project-id.iam.gserviceaccount.com
       - template: service.yaml
         equal:
-          path: metadata.annotations.cloud\.google\.com/neg
+          path: metadata.annotations["cloud.google.com/neg"]
           value: '{"ingress": true}'
 
   # =============================================================================

@@ -45,10 +45,10 @@ tests:
   - it: should have correct pod selector labels
     asserts:
       - equal:
-          path: spec.selector.app\.kubernetes\.io/name
+          path: spec.selector["app.kubernetes.io/name"]
           value: jellyfin
       - equal:
-          path: spec.selector.app\.kubernetes\.io/instance
+          path: spec.selector["app.kubernetes.io/instance"]
           value: RELEASE-NAME
 
   # =============================================================================
@@ -208,10 +208,10 @@ tests:
         external-dns.alpha.kubernetes.io/hostname: jellyfin.example.com
     asserts:
       - equal:
-          path: metadata.annotations.service\.beta\.kubernetes\.io/aws-load-balancer-type
+          path: metadata.annotations["service.beta.kubernetes.io/aws-load-balancer-type"]
           value: nlb
       - equal:
-          path: metadata.annotations.external-dns\.alpha\.kubernetes\.io/hostname
+          path: metadata.annotations["external-dns.alpha.kubernetes.io/hostname"]
           value: jellyfin.example.com
 
   - it: should support empty annotations object
