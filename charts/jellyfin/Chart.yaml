@@ -13,6 +13,8 @@ appVersion: 10.11.2
 annotations:
   artifacthub.io/changes: |
     - kind: added
+      description: Add startup probe to prevent pod restarts during slow initial startup with large media libraries
+    - kind: added
       description: Add persistence.cache configuration for dedicated cache volume support
     - kind: added
       description: Add comprehensive IPv6 and dual-stack networking documentation

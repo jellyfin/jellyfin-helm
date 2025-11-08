@@ -22,6 +22,21 @@ To access Jellyfin, you can use port-forwarding:
 Then visit http://localhost:{{ .Values.service.port }} in your browser.
 {{- end }}
 
+{{- if .Values.startupProbe }}
+{{- $startupTimeout := mul (default 10 .Values.startupProbe.periodSeconds) (default 30 .Values.startupProbe.failureThreshold) }}
+
+Startup Configuration:
+  Startup Probe: Enabled
+  Max Startup Time: {{ $startupTimeout }}s ({{ div $startupTimeout 60 }} minutes)
+
+  The startup probe gives Jellyfin enough time to initialize, especially
+  with large media libraries. After startup succeeds, liveness and
+  readiness probes take over for health monitoring.
+
+  {{- if gt $startupTimeout 600 }}
+  ⚠ NOTE: Startup timeout is very long ({{ div $startupTimeout 60 }}+ minutes).
+  Consider optimizing your media library or reducing failureThreshold.
+  {{- end }}
 Persistence Configuration:
   Config: {{ if .Values.persistence.config.enabled }}{{ .Values.persistence.config.type | default "pvc" }}{{ if .Values.persistence.config.existingClaim }} (existing: {{ .Values.persistence.config.existingClaim }}){{ end }}{{ else }}emptyDir{{ end }}
   Media: {{ if .Values.persistence.media.enabled }}{{ .Values.persistence.media.type | default "pvc" }}{{ if .Values.persistence.media.existingClaim }} (existing: {{ .Values.persistence.media.existingClaim }}){{ end }}{{ else }}emptyDir{{ end }}
