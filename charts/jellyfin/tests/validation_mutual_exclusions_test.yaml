@@ -1,0 +1,484 @@
+suite: test validation and mutual exclusions
+templates:
+  - deployment.yaml
+  - networkpolicy.yaml
+  - serviceMonitor.yaml
+tests:
+  # =============================================================================
+  # NETWORKPOLICY MUTUAL EXCLUSIONS
+  # =============================================================================
+
+  - it: should fail when NetworkPolicy enabled with DLNA
+    template: networkpolicy.yaml
+    set:
+      networkPolicy.enabled: true
+      jellyfin.enableDLNA: true
+    asserts:
+      - failedTemplate:
+          errorMessage: "NetworkPolicy cannot be enabled when hostNetwork is enabled"
+
+  - it: should fail when NetworkPolicy enabled with hostNetwork
+    template: networkpolicy.yaml
+    set:
+      networkPolicy.enabled: true
+      podPrivileges.hostNetwork: true
+    asserts:
+      - failedTemplate:
+          errorMessage: "NetworkPolicy cannot be enabled when hostNetwork is enabled"
+
+  - it: should fail when NetworkPolicy enabled with both DLNA and hostNetwork
+    template: networkpolicy.yaml
+    set:
+      networkPolicy.enabled: true
+      jellyfin.enableDLNA: true
+      podPrivileges.hostNetwork: true
+    asserts:
+      - failedTemplate:
+          errorMessage: "NetworkPolicy cannot be enabled when hostNetwork is enabled"
+
+  - it: should succeed when NetworkPolicy enabled without DLNA or hostNetwork
+    template: networkpolicy.yaml
+    set:
+      networkPolicy.enabled: true
+      jellyfin.enableDLNA: false
+      podPrivileges.hostNetwork: false
+    asserts:
+      - hasDocuments:
+          count: 1
+
+  - it: should succeed when NetworkPolicy disabled with DLNA
+    template: networkpolicy.yaml
+    set:
+      networkPolicy.enabled: false
+      jellyfin.enableDLNA: true
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  # =============================================================================
+  # SERVICEMONITOR DEPENDENCIES
+  # =============================================================================
+
+  - it: should not create ServiceMonitor when only metrics.enabled
+    template: serviceMonitor.yaml
+    set:
+      metrics.enabled: true
+      metrics.serviceMonitor.enabled: false
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: should not create ServiceMonitor when only serviceMonitor.enabled
+    template: serviceMonitor.yaml
+    set:
+      metrics.enabled: false
+      metrics.serviceMonitor.enabled: true
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: should create ServiceMonitor when both enabled
+    template: serviceMonitor.yaml
+    set:
+      metrics.enabled: true
+      metrics.serviceMonitor.enabled: true
+    asserts:
+      - hasDocuments:
+          count: 1
+
+  # =============================================================================
+  # DLNA AND HOSTNETWORK SCENARIOS
+  # =============================================================================
+
+  - it: should enable hostNetwork automatically when DLNA enabled
+    template: deployment.yaml
+    set:
+      jellyfin.enableDLNA: true
+    asserts:
+      - equal:
+          path: spec.template.spec.hostNetwork
+          value: true
+      - equal:
+          path: spec.template.spec.dnsPolicy
+          value: ClusterFirstWithHostNet
+
+  - it: should not enable hostNetwork when DLNA disabled
+    template: deployment.yaml
+    set:
+      jellyfin.enableDLNA: false
+    asserts:
+      - isNull:
+          path: spec.template.spec.hostNetwork
+
+  - it: should allow hostNetwork without DLNA
+    template: deployment.yaml
+    set:
+      jellyfin.enableDLNA: false
+      podPrivileges.hostNetwork: true
+    asserts:
+      - equal:
+          path: spec.template.spec.hostNetwork
+          value: true
+
+  # =============================================================================
+  # REPLICACOUNT VALIDATION (WARNING, NOT ERROR)
+  # =============================================================================
+
+  # Note: Jellyfin doesn't support horizontal scaling, but chart allows it
+  # Users should be warned but not prevented from setting replicaCount > 1
+
+  - it: should allow replicaCount of 1 (recommended)
+    template: deployment.yaml
+    set:
+      replicaCount: 1
+    asserts:
+      - equal:
+          path: spec.replicas
+          value: 1
+
+  - it: should allow replicaCount > 1 (not recommended but not forbidden)
+    template: deployment.yaml
+    set:
+      replicaCount: 3
+    asserts:
+      - equal:
+          path: spec.replicas
+          value: 3
+
+  # =============================================================================
+  # PERSISTENCE VALIDATIONS
+  # =============================================================================
+
+  # These are handled by values.schema.json, testing that templates work correctly
+
+  - it: should handle persistence.media.type=pvc without errors
+    template: deployment.yaml
+    set:
+      persistence.media.type: pvc
+    asserts:
+      - contains:
+          path: spec.template.spec.volumes
+          content:
+            name: media
+
+  - it: should handle persistence.media.type=hostPath with path
+    template: deployment.yaml
+    set:
+      persistence.media.type: hostPath
+      persistence.media.hostPath: /mnt/media
+    asserts:
+      - contains:
+          path: spec.template.spec.volumes
+          content:
+            name: media
+            hostPath:
+              path: /mnt/media
+
+  - it: should handle persistence.media.type=emptyDir
+    template: deployment.yaml
+    set:
+      persistence.media.type: emptyDir
+    asserts:
+      - contains:
+          path: spec.template.spec.volumes
+          content:
+            name: media
+            emptyDir: {}
+
+  # existingClaim should not create PVC but should mount it
+  - it: should not create PVC when existingClaim is used
+    template: persistentVolumeClaim.yaml
+    set:
+      persistence.media.type: pvc
+      persistence.media.existingClaim: my-existing-claim
+    asserts:
+      - hasDocuments:
+          count: 1  # only config, not media
+
+  - it: should mount existingClaim in deployment
+    template: deployment.yaml
+    set:
+      persistence.media.type: pvc
+      persistence.media.existingClaim: my-existing-claim
+    asserts:
+      - contains:
+          path: spec.template.spec.volumes
+          content:
+            name: media
+            persistentVolumeClaim:
+              claimName: my-existing-claim
+
+  # =============================================================================
+  # INGRESS VALIDATIONS
+  # =============================================================================
+
+  - it: should allow ingress with empty hosts (edge case, likely misconfiguration)
+    template: ingress.yaml
+    set:
+      ingress.enabled: true
+      ingress.hosts: []
+    asserts:
+      - hasDocuments:
+          count: 1
+      - isNull:
+          path: spec.rules
+
+  - it: should allow ingress with hosts
+    template: ingress.yaml
+    set:
+      ingress.enabled: true
+      ingress.hosts:
+        - host: jellyfin.example.com
+          paths:
+            - path: /
+              pathType: Prefix
+    asserts:
+      - hasDocuments:
+          count: 1
+      - isNotNull:
+          path: spec.rules
+
+  # =============================================================================
+  # HTTPROUTE VALIDATIONS
+  # =============================================================================
+
+  - it: should not create HTTPRoute by default
+    template: httpRoute.yaml
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: should create HTTPRoute when enabled
+    template: httpRoute.yaml
+    set:
+      httpRoute.enabled: true
+    asserts:
+      - hasDocuments:
+          count: 1
+
+  - it: should allow HTTPRoute with empty parentRefs (edge case)
+    template: httpRoute.yaml
+    set:
+      httpRoute.enabled: true
+      httpRoute.parentRefs: []
+    asserts:
+      - hasDocuments:
+          count: 1
+
+  - it: should allow HTTPRoute with empty hostnames (edge case)
+    template: httpRoute.yaml
+    set:
+      httpRoute.enabled: true
+      httpRoute.hostnames: []
+    asserts:
+      - hasDocuments:
+          count: 1
+
+  # =============================================================================
+  # SERVICE TYPE VALIDATIONS
+  # =============================================================================
+
+  - it: should create service with ClusterIP type
+    template: service.yaml
+    set:
+      service.type: ClusterIP
+    asserts:
+      - equal:
+          path: spec.type
+          value: ClusterIP
+
+  - it: should create service with NodePort type
+    template: service.yaml
+    set:
+      service.type: NodePort
+    asserts:
+      - equal:
+          path: spec.type
+          value: NodePort
+
+  - it: should create service with LoadBalancer type
+    template: service.yaml
+    set:
+      service.type: LoadBalancer
+    asserts:
+      - equal:
+          path: spec.type
+          value: LoadBalancer
+
+  - it: should create service with ExternalName type
+    template: service.yaml
+    set:
+      service.type: ExternalName
+      service.externalName: jellyfin.example.com
+    asserts:
+      - equal:
+          path: spec.type
+          value: ExternalName
+
+  # =============================================================================
+  # PORT RANGE VALIDATIONS
+  # =============================================================================
+
+  # These are validated by values.schema.json, testing templates work correctly
+
+  - it: should accept service.port in valid range (1-65535)
+    template: service.yaml
+    set:
+      service.port: 8096
+    asserts:
+      - equal:
+          path: spec.ports[0].port
+          value: 8096
+
+  - it: should accept nodePort in valid range (30000-32767)
+    template: service.yaml
+    set:
+      service.type: NodePort
+      service.nodePort: 30096
+    asserts:
+      - equal:
+          path: spec.ports[0].nodePort
+          value: 30096
+
+  - it: should accept nodePort at lower boundary
+    template: service.yaml
+    set:
+      service.type: NodePort
+      service.nodePort: 30000
+    asserts:
+      - equal:
+          path: spec.ports[0].nodePort
+          value: 30000
+
+  - it: should accept nodePort at upper boundary
+    template: service.yaml
+    set:
+      service.type: NodePort
+      service.nodePort: 32767
+    asserts:
+      - equal:
+          path: spec.ports[0].nodePort
+          value: 32767
+
+  # =============================================================================
+  # DNS POLICY VALIDATIONS
+  # =============================================================================
+
+  - it: should use ClusterFirst dnsPolicy by default
+    template: deployment.yaml
+    asserts:
+      - equal:
+          path: spec.template.spec.dnsPolicy
+          value: ClusterFirst
+
+  - it: should use ClusterFirstWithHostNet when hostNetwork enabled
+    template: deployment.yaml
+    set:
+      podPrivileges.hostNetwork: true
+    asserts:
+      - equal:
+          path: spec.template.spec.dnsPolicy
+          value: ClusterFirstWithHostNet
+
+  - it: should allow custom dnsPolicy override
+    template: deployment.yaml
+    set:
+      dnsPolicy: None
+    asserts:
+      - equal:
+          path: spec.template.spec.dnsPolicy
+          value: None
+
+  # =============================================================================
+  # COMPLEX VALIDATION SCENARIOS
+  # =============================================================================
+
+  - it: should fail with all conflicting options enabled
+    template: networkpolicy.yaml
+    set:
+      networkPolicy.enabled: true
+      jellyfin.enableDLNA: true
+      podPrivileges.hostNetwork: true
+    asserts:
+      - failedTemplate:
+          errorMessage: "NetworkPolicy cannot be enabled when hostNetwork is enabled"
+
+  - it: should succeed with compatible options
+    set:
+      metrics.enabled: true
+      metrics.serviceMonitor.enabled: true
+      jellyfin.enableDLNA: false
+      networkPolicy.enabled: true
+      persistence.media.type: pvc
+      service.type: LoadBalancer
+    asserts:
+      - template: serviceMonitor.yaml
+        hasDocuments:
+          count: 1
+      - template: networkpolicy.yaml
+        hasDocuments:
+          count: 1
+      - template: deployment.yaml
+        isNull:
+          path: spec.template.spec.hostNetwork
+
+  - it: should configure for DLNA without NetworkPolicy
+    set:
+      jellyfin.enableDLNA: true
+      networkPolicy.enabled: false
+    asserts:
+      - template: deployment.yaml
+        equal:
+          path: spec.template.spec.hostNetwork
+          value: true
+      - template: networkpolicy.yaml
+        hasDocuments:
+          count: 0
+
+  # =============================================================================
+  # REGRESSION TESTS FOR VALIDATIONS
+  # =============================================================================
+
+  - it: should maintain hostNetwork=false by default
+    template: deployment.yaml
+    asserts:
+      - isNull:
+          path: spec.template.spec.hostNetwork
+
+  - it: should maintain NetworkPolicy disabled by default
+    template: networkpolicy.yaml
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: should maintain ServiceMonitor disabled by default
+    template: serviceMonitor.yaml
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: should allow all features when properly configured
+    set:
+      metrics.enabled: true
+      metrics.serviceMonitor.enabled: true
+      networkPolicy.enabled: true
+      jellyfin.enableDLNA: false
+      ingress.enabled: true
+      ingress.hosts:
+        - host: jellyfin.example.com
+          paths:
+            - path: /
+              pathType: Prefix
+    asserts:
+      - template: serviceMonitor.yaml
+        hasDocuments:
+          count: 1
+      - template: networkpolicy.yaml
+        hasDocuments:
+          count: 1
+      - template: ingress.yaml
+        hasDocuments:
+          count: 1
+      - template: deployment.yaml
+        isNull:
+          path: spec.template.spec.hostNetwork

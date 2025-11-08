@@ -1,0 +1,319 @@
+suite: test deployment image configuration
+templates:
+  - deployment.yaml
+tests:
+  # =============================================================================
+  # IMAGE REPOSITORY
+  # =============================================================================
+
+  - it: should use default image repository
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].image
+          value: jellyfin/jellyfin:RELEASE-VERSION
+
+  - it: should use custom image repository
+    set:
+      image.repository: ghcr.io/jellyfin/jellyfin
+    asserts:
+      - matchRegex:
+          path: spec.template.spec.containers[0].image
+          pattern: ^ghcr\.io/jellyfin/jellyfin:
+
+  - it: should use private registry
+    set:
+      image.repository: registry.example.com/jellyfin/jellyfin
+    asserts:
+      - matchRegex:
+          path: spec.template.spec.containers[0].image
+          pattern: ^registry\.example\.com/jellyfin/jellyfin:
+
+  # =============================================================================
+  # IMAGE TAG
+  # =============================================================================
+
+  - it: should use Chart.AppVersion as default tag
+    asserts:
+      - matchRegex:
+          path: spec.template.spec.containers[0].image
+          pattern: :RELEASE-VERSION$
+
+  - it: should use custom tag when specified
+    set:
+      image.tag: 10.8.13
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].image
+          value: jellyfin/jellyfin:10.8.13
+
+  - it: should support latest tag
+    set:
+      image.tag: latest
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].image
+          value: jellyfin/jellyfin:latest
+
+  - it: should support beta tags
+    set:
+      image.tag: 10.9.0-beta1
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].image
+          value: jellyfin/jellyfin:10.9.0-beta1
+
+  - it: should support sha256 digest
+    set:
+      image.tag: sha256:abc123def456
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].image
+          value: jellyfin/jellyfin:sha256:abc123def456
+
+  - it: should combine custom repository and tag
+    set:
+      image.repository: ghcr.io/custom/jellyfin
+      image.tag: custom-1.0
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].image
+          value: ghcr.io/custom/jellyfin:custom-1.0
+
+  # =============================================================================
+  # IMAGE PULL POLICY
+  # =============================================================================
+
+  - it: should use IfNotPresent as default pullPolicy
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].imagePullPolicy
+          value: IfNotPresent
+
+  - it: should set Always pullPolicy
+    set:
+      image.pullPolicy: Always
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].imagePullPolicy
+          value: Always
+
+  - it: should set Never pullPolicy
+    set:
+      image.pullPolicy: Never
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].imagePullPolicy
+          value: Never
+
+  - it: should explicitly set IfNotPresent pullPolicy
+    set:
+      image.pullPolicy: IfNotPresent
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].imagePullPolicy
+          value: IfNotPresent
+
+  # =============================================================================
+  # IMAGE PULL SECRETS
+  # =============================================================================
+
+  - it: should not have imagePullSecrets by default
+    asserts:
+      - isNull:
+          path: spec.template.spec.imagePullSecrets
+
+  - it: should add single imagePullSecret
+    set:
+      imagePullSecrets:
+        - name: regcred
+    asserts:
+      - lengthEqual:
+          path: spec.template.spec.imagePullSecrets
+          count: 1
+      - equal:
+          path: spec.template.spec.imagePullSecrets[0].name
+          value: regcred
+
+  - it: should add multiple imagePullSecrets
+    set:
+      imagePullSecrets:
+        - name: regcred-1
+        - name: regcred-2
+        - name: regcred-3
+    asserts:
+      - lengthEqual:
+          path: spec.template.spec.imagePullSecrets
+          count: 3
+      - equal:
+          path: spec.template.spec.imagePullSecrets[0].name
+          value: regcred-1
+      - equal:
+          path: spec.template.spec.imagePullSecrets[1].name
+          value: regcred-2
+      - equal:
+          path: spec.template.spec.imagePullSecrets[2].name
+          value: regcred-3
+
+  - it: should support Docker Hub secrets
+    set:
+      imagePullSecrets:
+        - name: dockerhub-secret
+    asserts:
+      - equal:
+          path: spec.template.spec.imagePullSecrets[0].name
+          value: dockerhub-secret
+
+  - it: should support GitHub Container Registry secrets
+    set:
+      imagePullSecrets:
+        - name: ghcr-secret
+    asserts:
+      - equal:
+          path: spec.template.spec.imagePullSecrets[0].name
+          value: ghcr-secret
+
+  - it: should support private registry secrets
+    set:
+      imagePullSecrets:
+        - name: private-registry-secret
+    asserts:
+      - equal:
+          path: spec.template.spec.imagePullSecrets[0].name
+          value: private-registry-secret
+
+  # =============================================================================
+  # EDGE CASES
+  # =============================================================================
+
+  - it: should handle empty imagePullSecrets array
+    set:
+      imagePullSecrets: []
+    asserts:
+      - isNull:
+          path: spec.template.spec.imagePullSecrets
+
+  - it: should handle empty tag (use default)
+    set:
+      image.tag: ""
+    asserts:
+      - matchRegex:
+          path: spec.template.spec.containers[0].image
+          pattern: :RELEASE-VERSION$
+
+  # =============================================================================
+  # COMPLETE SCENARIOS
+  # =============================================================================
+
+  - it: should configure for private registry with authentication
+    set:
+      image.repository: registry.company.com/jellyfin/jellyfin
+      image.tag: 10.8.13-enterprise
+      image.pullPolicy: Always
+      imagePullSecrets:
+        - name: company-registry-secret
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].image
+          value: registry.company.com/jellyfin/jellyfin:10.8.13-enterprise
+      - equal:
+          path: spec.template.spec.containers[0].imagePullPolicy
+          value: Always
+      - lengthEqual:
+          path: spec.template.spec.imagePullSecrets
+          count: 1
+      - equal:
+          path: spec.template.spec.imagePullSecrets[0].name
+          value: company-registry-secret
+
+  - it: should configure for development with latest tag
+    set:
+      image.repository: jellyfin/jellyfin
+      image.tag: latest
+      image.pullPolicy: Always
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].image
+          value: jellyfin/jellyfin:latest
+      - equal:
+          path: spec.template.spec.containers[0].imagePullPolicy
+          value: Always
+
+  - it: should configure for multiple registry secrets
+    set:
+      image.repository: multi-registry.example.com/jellyfin
+      imagePullSecrets:
+        - name: registry-1-secret
+        - name: registry-2-secret
+        - name: backup-registry-secret
+    asserts:
+      - lengthEqual:
+          path: spec.template.spec.imagePullSecrets
+          count: 3
+
+  - it: should configure for air-gapped environment
+    set:
+      image.repository: internal-registry.local/jellyfin/jellyfin
+      image.tag: 10.8.13-airgap
+      image.pullPolicy: IfNotPresent
+      imagePullSecrets:
+        - name: internal-registry-creds
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].image
+          value: internal-registry.local/jellyfin/jellyfin:10.8.13-airgap
+      - equal:
+          path: spec.template.spec.containers[0].imagePullPolicy
+          value: IfNotPresent
+
+  # =============================================================================
+  # REGRESSION TESTS
+  # =============================================================================
+
+  - it: should always have image specified
+    asserts:
+      - isNotNull:
+          path: spec.template.spec.containers[0].image
+
+  - it: should always have pullPolicy specified
+    asserts:
+      - isNotNull:
+          path: spec.template.spec.containers[0].imagePullPolicy
+
+  - it: should construct image correctly with defaults
+    asserts:
+      - matchRegex:
+          path: spec.template.spec.containers[0].image
+          pattern: ^jellyfin/jellyfin:RELEASE-VERSION$
+
+  - it: should not have imagePullSecrets when not specified
+    asserts:
+      - isNull:
+          path: spec.template.spec.imagePullSecrets
+
+  # Verify image format with various combinations
+  - it: should format image with repository without registry
+    set:
+      image.repository: jellyfin/jellyfin-custom
+      image.tag: v1.0
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].image
+          value: jellyfin/jellyfin-custom:v1.0
+
+  - it: should format image with full registry path
+    set:
+      image.repository: docker.io/jellyfin/jellyfin
+      image.tag: stable
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].image
+          value: docker.io/jellyfin/jellyfin:stable
+
+  - it: should format image with port in registry
+    set:
+      image.repository: registry.example.com:5000/jellyfin/jellyfin
+      image.tag: custom
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].image
+          value: registry.example.com:5000/jellyfin/jellyfin:custom
