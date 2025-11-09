@@ -6,46 +6,26 @@ A Helm chart for Jellyfin Media Server
 
 **Homepage:** <https://jellyfin.org/>
 
-## Steps to Use a Helm Chart
-
-### 1. Add a Helm Repository
-
-Helm repositories contain collections of charts. You can add an existing repository using the following command:
+## Quick Start
 
 ```bash
+# Add the Jellyfin Helm repository
 helm repo add jellyfin https://jellyfin.github.io/jellyfin-helm
-```
+helm repo update
 
-### 2. Install the Helm Chart
-
-To install a chart, use the following command:
-
-```bash
+# Install with default settings (ephemeral storage)
 helm install my-jellyfin jellyfin/jellyfin
+
+# Install with persistent storage
+helm install my-jellyfin jellyfin/jellyfin \
+  --set persistence.config.enabled=true \
+  --set persistence.media.enabled=true
 ```
 
-### 3. View the Installation
-
-You can check the status of the release using:
+For production deployments, create a custom `values.yaml` file with your configuration and install using:
 
 ```bash
-helm status my-jellyfin
-```
-
-## Customizing the Chart
-
-Helm charts come with default values, but you can customize them by using the --set flag or by providing a custom values.yaml file.
-
-### 1. Using --set to Override Values
-```bash
-helm install my-jellyfin jellyfin/jellyfin --set key1=value1,key2=value2
-```
-
-### 2. Using a values.yaml File
-You can create a custom values.yaml file and pass it to the install command:
-
-```bash
-helm install my-jellyfin jellyfin/jellyfin -f values.yaml
+helm install my-jellyfin jellyfin/jellyfin --values values.yaml
 ```
 
 ## Maintainers
