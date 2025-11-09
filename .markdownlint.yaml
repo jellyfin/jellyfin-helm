@@ -1,0 +1,25 @@
+# markdownlint configuration
+# https://github.com/DavidAnson/markdownlint
+
+default: true
+
+# MD013/line-length - Line length (disabled for technical docs)
+MD013: false
+
+# MD022/blanks-around-headings - Disabled for helm-docs generated content
+MD022: false
+
+# MD031/blanks-around-fences - Disabled for helm-docs generated content
+MD031: false
+
+# MD032/blanks-around-lists - Disabled for helm-docs generated content
+MD032: false
+
+# MD033/no-inline-html
+MD033: false
+
+# MD034/no-bare-urls - Disabled for helm-docs generated content
+MD034: false
+
+# MD041/first-line-heading
+MD041: false

@@ -1,0 +1,440 @@
+suite: test deployment metadata and strategy
+templates:
+  - deployment.yaml
+tests:
+  # =============================================================================
+  # NAMES
+  # =============================================================================
+
+  - it: should have default name
+    asserts:
+      - equal:
+          path: metadata.name
+          value: RELEASE-NAME-jellyfin
+
+  - it: should use nameOverride
+    set:
+      nameOverride: custom-name
+    asserts:
+      - equal:
+          path: metadata.name
+          value: RELEASE-NAME-custom-name
+
+  - it: should use fullnameOverride
+    set:
+      fullnameOverride: completely-custom
+    asserts:
+      - equal:
+          path: metadata.name
+          value: completely-custom
+
+  - it: should prefer fullnameOverride over nameOverride
+    set:
+      nameOverride: ignored
+      fullnameOverride: used-name
+    asserts:
+      - equal:
+          path: metadata.name
+          value: used-name
+
+  # =============================================================================
+  # DEPLOYMENT LABELS
+  # =============================================================================
+
+  - it: should have default labels
+    asserts:
+      - equal:
+          path: metadata.labels["app.kubernetes.io/name"]
+          value: jellyfin
+      - equal:
+          path: metadata.labels["app.kubernetes.io/instance"]
+          value: RELEASE-NAME
+      - isNotNull:
+          path: metadata.labels["app.kubernetes.io/version"]
+      - isNotNull:
+          path: metadata.labels["helm.sh/chart"]
+
+  - it: should propagate labels to pod template
+    asserts:
+      - equal:
+          path: spec.template.metadata.labels["app.kubernetes.io/name"]
+          value: jellyfin
+      - equal:
+          path: spec.template.metadata.labels["app.kubernetes.io/instance"]
+          value: RELEASE-NAME
+
+  - it: should use labels in selector
+    asserts:
+      - equal:
+          path: spec.selector.matchLabels["app.kubernetes.io/name"]
+          value: jellyfin
+      - equal:
+          path: spec.selector.matchLabels["app.kubernetes.io/instance"]
+          value: RELEASE-NAME
+
+  # =============================================================================
+  # DEPLOYMENT ANNOTATIONS
+  # =============================================================================
+
+  - it: should not have deployment annotations by default
+    asserts:
+      - isNull:
+          path: metadata.annotations
+
+  - it: should add deployment annotations when specified
+    set:
+      deploymentAnnotations:
+        deployment.kubernetes.io/revision: "1"
+        custom-annotation: custom-value
+    asserts:
+      - equal:
+          path: metadata.annotations["deployment.kubernetes.io/revision"]
+          value: "1"
+      - equal:
+          path: metadata.annotations.custom-annotation
+          value: custom-value
+
+  - it: should support multiple deployment annotations
+    template: deployment.yaml
+    set:
+      deploymentAnnotations:
+        annotation1: value1
+        annotation2: value2
+        annotation3: value3
+    asserts:
+      - equal:
+          path: metadata.annotations.annotation1
+          value: value1
+      - equal:
+          path: metadata.annotations.annotation2
+          value: value2
+      - equal:
+          path: metadata.annotations.annotation3
+          value: value3
+
+  # =============================================================================
+  # POD ANNOTATIONS
+  # =============================================================================
+
+  - it: should not have pod annotations by default
+    asserts:
+      - isNull:
+          path: spec.template.metadata.annotations
+
+  - it: should add pod annotations when specified
+    set:
+      podAnnotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8096"
+    asserts:
+      - equal:
+          path: spec.template.metadata.annotations["prometheus.io/scrape"]
+          value: "true"
+      - equal:
+          path: spec.template.metadata.annotations["prometheus.io/port"]
+          value: "8096"
+
+  - it: should support multiple pod annotations
+    set:
+      podAnnotations:
+        vault.hashicorp.com/agent-inject: "true"
+        vault.hashicorp.com/role: jellyfin
+        custom-annotation: custom-value
+    asserts:
+      - equal:
+          path: spec.template.metadata.annotations["vault.hashicorp.com/agent-inject"]
+          value: "true"
+      - equal:
+          path: spec.template.metadata.annotations["vault.hashicorp.com/role"]
+          value: jellyfin
+
+  # =============================================================================
+  # POD LABELS
+  # =============================================================================
+
+  - it: should have default pod labels
+    asserts:
+      - equal:
+          path: spec.template.metadata.labels["app.kubernetes.io/name"]
+          value: jellyfin
+      - equal:
+          path: spec.template.metadata.labels["app.kubernetes.io/instance"]
+          value: RELEASE-NAME
+
+  - it: should add custom pod labels when specified
+    set:
+      podLabels:
+        environment: production
+        team: platform
+    asserts:
+      - equal:
+          path: spec.template.metadata.labels.environment
+          value: production
+      - equal:
+          path: spec.template.metadata.labels.team
+          value: platform
+
+  - it: should merge custom pod labels with default labels
+    set:
+      podLabels:
+        custom: label
+    asserts:
+      - equal:
+          path: spec.template.metadata.labels["app.kubernetes.io/name"]
+          value: jellyfin
+      - equal:
+          path: spec.template.metadata.labels.custom
+          value: label
+
+  - it: should support multiple custom pod labels
+    set:
+      podLabels:
+        label1: value1
+        label2: value2
+        label3: value3
+        label4: value4
+    asserts:
+      - equal:
+          path: spec.template.metadata.labels.label1
+          value: value1
+      - equal:
+          path: spec.template.metadata.labels.label4
+          value: value4
+
+  # =============================================================================
+  # DEPLOYMENT STRATEGY
+  # =============================================================================
+
+  - it: should use RollingUpdate strategy by default
+    asserts:
+      - equal:
+          path: spec.strategy.type
+          value: RollingUpdate
+
+  - it: should set Recreate strategy
+    set:
+      deploymentStrategy.type: Recreate
+    asserts:
+      - equal:
+          path: spec.strategy.type
+          value: Recreate
+
+  - it: should explicitly set RollingUpdate strategy
+    set:
+      deploymentStrategy.type: RollingUpdate
+    asserts:
+      - equal:
+          path: spec.strategy.type
+          value: RollingUpdate
+
+  - it: should not have rollingUpdate params with Recreate strategy
+    set:
+      deploymentStrategy.type: Recreate
+    asserts:
+      - isNull:
+          path: spec.strategy.rollingUpdate
+
+  # =============================================================================
+  # REVISION HISTORY
+  # =============================================================================
+
+  - it: should have default revisionHistoryLimit of 3
+    asserts:
+      - equal:
+          path: spec.revisionHistoryLimit
+          value: 3
+
+  - it: should set custom revisionHistoryLimit
+    set:
+      revisionHistoryLimit: 10
+    asserts:
+      - equal:
+          path: spec.revisionHistoryLimit
+          value: 10
+
+  - it: should set revisionHistoryLimit to 0
+    set:
+      revisionHistoryLimit: 0
+    asserts:
+      - equal:
+          path: spec.revisionHistoryLimit
+          value: 0
+
+  # =============================================================================
+  # REPLICA COUNT
+  # =============================================================================
+
+  - it: should have default replicaCount of 1
+    asserts:
+      - equal:
+          path: spec.replicas
+          value: 1
+
+  - it: should set custom replicaCount
+    set:
+      replicaCount: 2
+    asserts:
+      - equal:
+          path: spec.replicas
+          value: 2
+
+  - it: should support replicaCount of 3
+    set:
+      replicaCount: 3
+    asserts:
+      - equal:
+          path: spec.replicas
+          value: 3
+
+  # Note: Jellyfin doesn't support horizontal scaling well, but chart allows it
+  # Users should be warned via NOTES.txt if replicaCount > 1
+
+  # =============================================================================
+  # EDGE CASES
+  # =============================================================================
+
+  - it: should handle empty podAnnotations object
+    set:
+      podAnnotations: {}
+    asserts:
+      - isNull:
+          path: spec.template.metadata.annotations
+
+  - it: should handle empty podLabels object
+    set:
+      podLabels: {}
+    asserts:
+      - isNotNull:
+          path: spec.template.metadata.labels["app.kubernetes.io/name"]
+
+  - it: should handle empty deploymentAnnotations object
+    set:
+      deploymentAnnotations: {}
+    asserts:
+      - isNull:
+          path: metadata.annotations
+
+  - it: should handle empty nameOverride
+    set:
+      nameOverride: ""
+    asserts:
+      - equal:
+          path: metadata.name
+          value: RELEASE-NAME-jellyfin
+
+  # =============================================================================
+  # COMPLETE SCENARIOS
+  # =============================================================================
+
+  - it: should configure production deployment with full metadata
+    set:
+      fullnameOverride: jellyfin-prod
+      deploymentAnnotations:
+        deployment.kubernetes.io/revision: "5"
+        ci.build.number: "1234"
+      podAnnotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8096"
+      podLabels:
+        environment: production
+        team: media
+        version: v10.8.13
+      deploymentStrategy.type: RollingUpdate
+      revisionHistoryLimit: 10
+      replicaCount: 1
+    asserts:
+      - equal:
+          path: metadata.name
+          value: jellyfin-prod
+      - equal:
+          path: metadata.annotations["deployment.kubernetes.io/revision"]
+          value: "5"
+      - equal:
+          path: spec.template.metadata.annotations["prometheus.io/scrape"]
+          value: "true"
+      - equal:
+          path: spec.template.metadata.labels.environment
+          value: production
+      - equal:
+          path: spec.strategy.type
+          value: RollingUpdate
+      - equal:
+          path: spec.revisionHistoryLimit
+          value: 10
+      - equal:
+          path: spec.replicas
+          value: 1
+
+  - it: should configure development deployment with Recreate strategy
+    set:
+      nameOverride: jellyfin-dev
+      podLabels:
+        environment: development
+      deploymentStrategy.type: Recreate
+      revisionHistoryLimit: 5
+    asserts:
+      - equal:
+          path: metadata.name
+          value: RELEASE-NAME-jellyfin-dev
+      - equal:
+          path: spec.template.metadata.labels.environment
+          value: development
+      - equal:
+          path: spec.strategy.type
+          value: Recreate
+      - equal:
+          path: spec.revisionHistoryLimit
+          value: 5
+
+  - it: should configure with vault injection annotations
+    set:
+      podAnnotations:
+        vault.hashicorp.com/agent-inject: "true"
+        vault.hashicorp.com/agent-inject-secret-jellyfin: secret/data/jellyfin
+        vault.hashicorp.com/role: jellyfin-role
+    asserts:
+      - equal:
+          path: spec.template.metadata.annotations["vault.hashicorp.com/agent-inject"]
+          value: "true"
+      - equal:
+          path: spec.template.metadata.annotations["vault.hashicorp.com/role"]
+          value: jellyfin-role
+
+  # =============================================================================
+  # REGRESSION TESTS
+  # =============================================================================
+
+  - it: should always have standard Kubernetes labels
+    asserts:
+      - isNotNull:
+          path: metadata.labels["app.kubernetes.io/name"]
+      - isNotNull:
+          path: metadata.labels["app.kubernetes.io/instance"]
+      - isNotNull:
+          path: metadata.labels["app.kubernetes.io/version"]
+      - isNotNull:
+          path: metadata.labels["helm.sh/chart"]
+
+  - it: should always have matching selectors
+    asserts:
+      - equal:
+          path: spec.selector.matchLabels["app.kubernetes.io/name"]
+          value: jellyfin
+      - equal:
+          path: spec.selector.matchLabels["app.kubernetes.io/instance"]
+          value: RELEASE-NAME
+
+  - it: should always have spec.strategy defined
+    asserts:
+      - isNotNull:
+          path: spec.strategy
+
+  - it: should always have spec.replicas defined
+    asserts:
+      - isNotNull:
+          path: spec.replicas
+
+  - it: should always have spec.revisionHistoryLimit defined
+    asserts:
+      - isNotNull:
+          path: spec.revisionHistoryLimit

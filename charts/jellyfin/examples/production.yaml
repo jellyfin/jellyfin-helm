@@ -1,0 +1,76 @@
+# Production Jellyfin deployment
+# Persistent storage, resource limits, and health probes
+#
+# Usage:
+#   helm install jellyfin jellyfin/jellyfin -f production.yaml
+
+# Persistent storage configuration
+persistence:
+  config:
+    enabled: true
+    size: 10Gi
+    storageClass: ""  # Use default storage class
+    accessModes:
+      - ReadWriteOnce
+
+  media:
+    enabled: true
+    size: 500Gi
+    storageClass: ""
+    accessModes:
+      - ReadWriteOnce
+
+  cache:
+    enabled: true
+    size: 20Gi
+    storageClass: ""
+    accessModes:
+      - ReadWriteOnce
+
+# Resource limits and requests
+resources:
+  limits:
+    cpu: 4000m
+    memory: 8Gi
+  requests:
+    cpu: 1000m
+    memory: 2Gi
+
+# Health probes with adjusted timeouts for large libraries
+startupProbe:
+  enabled: true
+  initialDelaySeconds: 0
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 60
+
+livenessProbe:
+  enabled: true
+  initialDelaySeconds: 0
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
+
+readinessProbe:
+  enabled: true
+  initialDelaySeconds: 0
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
+
+# Security context
+securityContext:
+  runAsUser: 1000
+  runAsGroup: 1000
+  fsGroup: 1000
+  runAsNonRoot: true
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: false
+  capabilities:
+    drop:
+      - ALL
+
+# Service configuration
+service:
+  type: ClusterIP
+  port: 8096

@@ -1,0 +1,523 @@
+suite: test deployment resources and volumes
+templates:
+  - deployment.yaml
+tests:
+  # =============================================================================
+  # RESOURCES
+  # =============================================================================
+
+  - it: should not have resources by default
+    asserts:
+      - isNull:
+          path: spec.template.spec.containers[0].resources
+
+  - it: should set CPU requests
+    set:
+      resources:
+        requests:
+          cpu: 100m
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].resources.requests.cpu
+          value: 100m
+
+  - it: should set memory requests
+    set:
+      resources:
+        requests:
+          memory: 128Mi
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].resources.requests.memory
+          value: 128Mi
+
+  - it: should set CPU limits
+    set:
+      resources:
+        limits:
+          cpu: 500m
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].resources.limits.cpu
+          value: 500m
+
+  - it: should set memory limits
+    set:
+      resources:
+        limits:
+          memory: 512Mi
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].resources.limits.memory
+          value: 512Mi
+
+  - it: should set both requests and limits
+    set:
+      resources:
+        requests:
+          cpu: 100m
+          memory: 256Mi
+        limits:
+          cpu: 1000m
+          memory: 1Gi
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].resources.requests.cpu
+          value: 100m
+      - equal:
+          path: spec.template.spec.containers[0].resources.requests.memory
+          value: 256Mi
+      - equal:
+          path: spec.template.spec.containers[0].resources.limits.cpu
+          value: 1000m
+      - equal:
+          path: spec.template.spec.containers[0].resources.limits.memory
+          value: 1Gi
+
+  - it: should support GPU resources
+    set:
+      resources:
+        limits:
+          nvidia.com/gpu: 1
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].resources.limits["nvidia.com/gpu"]
+          value: 1
+
+  - it: should support ephemeral-storage
+    set:
+      resources:
+        requests:
+          ephemeral-storage: 1Gi
+        limits:
+          ephemeral-storage: 2Gi
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].resources.requests.ephemeral-storage
+          value: 1Gi
+      - equal:
+          path: spec.template.spec.containers[0].resources.limits.ephemeral-storage
+          value: 2Gi
+
+  # =============================================================================
+  # EXTRA VOLUMES
+  # =============================================================================
+
+  - it: should not have extra volumes by default
+    asserts:
+      - lengthEqual:
+          path: spec.template.spec.volumes
+          count: 3  # config, media, cache only
+
+  - it: should add extraVolumes when specified
+    set:
+      volumes:
+        - name: extra-storage
+          emptyDir: {}
+    asserts:
+      - lengthEqual:
+          path: spec.template.spec.volumes
+          count: 4
+      - contains:
+          path: spec.template.spec.volumes
+          content:
+            name: extra-storage
+            emptyDir: {}
+
+  - it: should add multiple extraVolumes
+    set:
+      volumes:
+        - name: extra-1
+          emptyDir: {}
+        - name: extra-2
+          secret:
+            secretName: my-secret
+        - name: extra-3
+          configMap:
+            name: my-configmap
+    asserts:
+      - lengthEqual:
+          path: spec.template.spec.volumes
+          count: 6
+
+  - it: should support secret volume
+    set:
+      volumes:
+        - name: secret-vol
+          secret:
+            secretName: my-secret
+            optional: false
+    asserts:
+      - contains:
+          path: spec.template.spec.volumes
+          content:
+            name: secret-vol
+            secret:
+              secretName: my-secret
+              optional: false
+
+  - it: should support configMap volume
+    set:
+      volumes:
+        - name: config-vol
+          configMap:
+            name: my-config
+            items:
+              - key: config.yaml
+                path: config.yaml
+    asserts:
+      - contains:
+          path: spec.template.spec.volumes
+          content:
+            name: config-vol
+            configMap:
+              name: my-config
+              items:
+                - key: config.yaml
+                  path: config.yaml
+
+  - it: should support NFS volume
+    set:
+      volumes:
+        - name: nfs-storage
+          nfs:
+            server: nfs-server.example.com
+            path: /exported/path
+            readOnly: false
+    asserts:
+      - contains:
+          path: spec.template.spec.volumes
+          content:
+            name: nfs-storage
+            nfs:
+              server: nfs-server.example.com
+              path: /exported/path
+              readOnly: false
+
+  - it: should support PVC volume
+    set:
+      volumes:
+        - name: pvc-storage
+          persistentVolumeClaim:
+            claimName: existing-pvc
+            readOnly: false
+    asserts:
+      - contains:
+          path: spec.template.spec.volumes
+          content:
+            name: pvc-storage
+            persistentVolumeClaim:
+              claimName: existing-pvc
+              readOnly: false
+
+  # =============================================================================
+  # VOLUME MOUNTS
+  # =============================================================================
+
+  - it: should not have extra volume mounts by default
+    asserts:
+      - lengthEqual:
+          path: spec.template.spec.containers[0].volumeMounts
+          count: 3  # config, media, cache only
+
+  - it: should add volumeMounts when specified
+    set:
+      volumeMounts:
+        - name: extra-storage
+          mountPath: /extra
+    asserts:
+      - lengthEqual:
+          path: spec.template.spec.containers[0].volumeMounts
+          count: 4
+      - contains:
+          path: spec.template.spec.containers[0].volumeMounts
+          content:
+            name: extra-storage
+            mountPath: /extra
+
+  - it: should add multiple volumeMounts
+    set:
+      volumeMounts:
+        - name: extra-1
+          mountPath: /extra1
+        - name: extra-2
+          mountPath: /extra2
+          readOnly: true
+        - name: extra-3
+          mountPath: /extra3
+          subPath: subdir
+    asserts:
+      - lengthEqual:
+          path: spec.template.spec.containers[0].volumeMounts
+          count: 6
+
+  - it: should support volumeMount with all options
+    set:
+      volumeMounts:
+        - name: complete-mount
+          mountPath: /complete
+          subPath: subdir
+          readOnly: true
+          mountPropagation: HostToContainer
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].volumeMounts
+          content:
+            name: complete-mount
+            mountPath: /complete
+            subPath: subdir
+            readOnly: true
+            mountPropagation: HostToContainer
+
+  # =============================================================================
+  # EXTRA CONTAINERS
+  # =============================================================================
+
+  - it: should not have extra containers by default
+    asserts:
+      - lengthEqual:
+          path: spec.template.spec.containers
+          count: 1
+
+  - it: should add extraContainers when specified
+    set:
+      extraContainers:
+        - name: sidecar
+          image: nginx:latest
+    asserts:
+      - lengthEqual:
+          path: spec.template.spec.containers
+          count: 2
+      - equal:
+          path: spec.template.spec.containers[1].name
+          value: sidecar
+
+  - it: should add multiple extraContainers
+    set:
+      extraContainers:
+        - name: sidecar-1
+          image: nginx:latest
+        - name: sidecar-2
+          image: busybox:latest
+    asserts:
+      - lengthEqual:
+          path: spec.template.spec.containers
+          count: 3
+
+  - it: should preserve full sidecar container spec
+    set:
+      extraContainers:
+        - name: metrics-exporter
+          image: prom/node-exporter:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 9100
+              name: metrics
+          env:
+            - name: EXPORT_INTERVAL
+              value: "30s"
+          volumeMounts:
+            - name: proc
+              mountPath: /host/proc
+              readOnly: true
+          resources:
+            requests:
+              cpu: 50m
+              memory: 32Mi
+            limits:
+              cpu: 100m
+              memory: 64Mi
+      volumes:
+        - name: proc
+          hostPath:
+            path: /proc
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[1].name
+          value: metrics-exporter
+      - equal:
+          path: spec.template.spec.containers[1].image
+          value: prom/node-exporter:latest
+      - equal:
+          path: spec.template.spec.containers[1].ports[0].containerPort
+          value: 9100
+      - equal:
+          path: spec.template.spec.containers[1].env[0].name
+          value: EXPORT_INTERVAL
+      - equal:
+          path: spec.template.spec.containers[1].volumeMounts[0].mountPath
+          value: /host/proc
+      - equal:
+          path: spec.template.spec.containers[1].resources.requests.cpu
+          value: 50m
+
+  # =============================================================================
+  # EDGE CASES AND VALIDATIONS
+  # =============================================================================
+
+  - it: should handle empty resources object
+    set:
+      resources: {}
+    asserts:
+      - isNull:
+          path: spec.template.spec.containers[0].resources
+
+  - it: should handle empty volumes array
+    set:
+      volumes: []
+    asserts:
+      - lengthEqual:
+          path: spec.template.spec.volumes
+          count: 3  # Still have default volumes
+
+  - it: should handle empty volumeMounts array
+    set:
+      volumeMounts: []
+    asserts:
+      - lengthEqual:
+          path: spec.template.spec.containers[0].volumeMounts
+          count: 3  # Still have default mounts
+
+  - it: should handle empty extraContainers array
+    set:
+      extraContainers: []
+    asserts:
+      - lengthEqual:
+          path: spec.template.spec.containers
+          count: 1
+
+  # Combine volumes and volumeMounts
+  - it: should combine extraVolumes and volumeMounts correctly
+    set:
+      volumes:
+        - name: shared-data
+          emptyDir: {}
+      volumeMounts:
+        - name: shared-data
+          mountPath: /shared
+    asserts:
+      - contains:
+          path: spec.template.spec.volumes
+          content:
+            name: shared-data
+            emptyDir: {}
+      - contains:
+          path: spec.template.spec.containers[0].volumeMounts
+          content:
+            name: shared-data
+            mountPath: /shared
+
+  # =============================================================================
+  # COMPLETE SCENARIOS
+  # =============================================================================
+
+  - it: should configure complete resource-constrained setup
+    set:
+      resources:
+        requests:
+          cpu: 500m
+          memory: 1Gi
+        limits:
+          cpu: 2000m
+          memory: 4Gi
+      volumes:
+        - name: transcode-cache
+          emptyDir:
+            medium: Memory
+            sizeLimit: 8Gi
+        - name: backup
+          nfs:
+            server: backup.example.com
+            path: /backups/jellyfin
+      volumeMounts:
+        - name: transcode-cache
+          mountPath: /transcode
+        - name: backup
+          mountPath: /backup
+          readOnly: false
+    asserts:
+      - isNotNull:
+          path: spec.template.spec.containers[0].resources
+      - lengthEqual:
+          path: spec.template.spec.volumes
+          count: 5  # config, media, cache + 2 extra
+      - lengthEqual:
+          path: spec.template.spec.containers[0].volumeMounts
+          count: 5
+
+  - it: should configure sidecar with shared volume
+    set:
+      extraContainers:
+        - name: log-forwarder
+          image: fluent/fluent-bit:latest
+          volumeMounts:
+            - name: logs
+              mountPath: /fluent-bit/logs
+      volumes:
+        - name: logs
+          emptyDir: {}
+      volumeMounts:
+        - name: logs
+          mountPath: /logs
+    asserts:
+      - lengthEqual:
+          path: spec.template.spec.containers
+          count: 2
+      - equal:
+          path: spec.template.spec.containers[1].volumeMounts[0].name
+          value: logs
+
+  # =============================================================================
+  # REGRESSION TESTS
+  # =============================================================================
+
+  - it: should always have default volumes
+    asserts:
+      - contains:
+          path: spec.template.spec.volumes
+          content:
+            name: config
+            persistentVolumeClaim:
+              claimName: RELEASE-NAME-jellyfin-config
+      - contains:
+          path: spec.template.spec.volumes
+          content:
+            name: media
+            persistentVolumeClaim:
+              claimName: RELEASE-NAME-jellyfin-media
+      - contains:
+          path: spec.template.spec.volumes
+          content:
+            name: cache
+            emptyDir: {}
+
+  - it: should always have default volume mounts
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].volumeMounts
+          content:
+            name: config
+            mountPath: /config
+      - contains:
+          path: spec.template.spec.containers[0].volumeMounts
+          content:
+            name: media
+            mountPath: /media
+      - contains:
+          path: spec.template.spec.containers[0].volumeMounts
+          content:
+            name: cache
+            mountPath: /cache
+
+  - it: should always have jellyfin as first container
+    set:
+      extraContainers:
+        - name: sidecar
+          image: nginx:latest
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].name
+          value: jellyfin
+      - equal:
+          path: spec.template.spec.containers[1].name
+          value: sidecar

@@ -120,7 +120,7 @@ service:
   # -- External traffic policy (Cluster or Local).
   # externalTrafficPolicy: Cluster
   # -- NodePort for the service (if applicable).
-  # nodePort: 
+  # nodePort:
 
 # -- Ingress configuration. See: https://kubernetes.io/docs/concepts/services-networking/ingress/
 ingress:

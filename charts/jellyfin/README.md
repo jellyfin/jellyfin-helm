@@ -6,47 +6,31 @@ A Helm chart for Jellyfin Media Server
 
 **Homepage:** <https://jellyfin.org/>
 
-## Steps to Use a Helm Chart
-
-### 1. Add a Helm Repository
-
-Helm repositories contain collections of charts. You can add an existing repository using the following command:
+## Quick Start
 
 ```bash
+# Add the Jellyfin Helm repository
 helm repo add jellyfin https://jellyfin.github.io/jellyfin-helm
-```
+helm repo update
 
-### 2. Install the Helm Chart
-
-To install a chart, use the following command:
-
-```bash
+# Install with default settings (ephemeral storage)
 helm install my-jellyfin jellyfin/jellyfin
+
+# Install with persistent storage
+helm install my-jellyfin jellyfin/jellyfin \
+  --set persistence.config.enabled=true \
+  --set persistence.media.enabled=true
 ```
 
-### 3. View the Installation
-
-You can check the status of the release using:
+For production deployments, create a custom `values.yaml` file with your configuration and install using:
 
 ```bash
-helm status my-jellyfin
+helm install my-jellyfin jellyfin/jellyfin --values values.yaml
 ```
 
-## Customizing the Chart
+## Maintainers
 
-Helm charts come with default values, but you can customize them by using the --set flag or by providing a custom values.yaml file.
-
-### 1. Using --set to Override Values
-```bash
-helm install my-jellyfin jellyfin/jellyfin --set key1=value1,key2=value2
-```
-
-### 2. Using a values.yaml File
-You can create a custom values.yaml file and pass it to the install command:
-
-```bash
-helm install my-jellyfin jellyfin/jellyfin -f values.yaml
-```
+This chart is maintained by the [Jellyfin Project](https://jellyfin.org).
 
 ## Values
 
@@ -73,7 +57,7 @@ helm install my-jellyfin jellyfin/jellyfin -f values.yaml
 | jellyfin.args | list | `[]` | Additional arguments for the entrypoint command. |
 | jellyfin.command | list | `[]` | Custom command to use as container entrypoint. |
 | jellyfin.enableDLNA | bool | `false` | Enable DLNA. Requires host network. See: https://jellyfin.org/docs/general/networking/dlna.html |
-| jellyfin.env | list | `[]` | Additional environment variables for the container. Example: env:   - name: JELLYFIN_CACHE_DIR     value: /cache |
+| jellyfin.env | list | `[]` | Additional environment variables for the container. Example: Workaround for inotify limits (see Troubleshooting section in README) Example: env:   - name: JELLYFIN_CACHE_DIR     value: /cache |
 | jellyfin.envFrom | list | `[]` | Load environment variables from ConfigMap or Secret. See: https://kubernetes.io/docs/tasks/configure-pod-container/configure-pod-configmap/#configure-all-key-value-pairs-in-a-configmap-as-container-environment-variables Example: envFrom:   - configMapRef:       name: jellyfin-config   - secretRef:       name: jellyfin-secrets |
 | livenessProbe | object | `{"httpGet":{"path":"/health","port":"http"},"initialDelaySeconds":10}` | Configure liveness probe for Jellyfin. This probe is disabled during startup (startup probe handles initial checks). Uses httpGet for compatibility with both IPv4 and IPv6. |
 | metrics | object | `{"enabled":false,"serviceMonitor":{"enabled":false,"interval":"30s","labels":{},"metricRelabelings":[],"namespace":"","path":"/metrics","port":8096,"relabelings":[],"scheme":"http","scrapeTimeout":"30s","targetLabels":[],"tlsConfig":{}}}` | Configuration for metrics collection and monitoring |
@@ -403,7 +387,7 @@ networkPolicy:
 
 4. **Testing**: Always test NetworkPolicy changes in a development environment first. Misconfigured policies can block legitimate traffic.
 
-### Troubleshooting
+### NetworkPolicy Troubleshooting
 
 **Jellyfin can't download metadata/images:**
 - Check that `egress.allowAllEgress: true` or `restrictedEgress.allowMetadata: true` is set
@@ -429,7 +413,8 @@ For more configuration options, see the full values documentation in [values.yam
 ### inotify Instance Limit Reached
 
 **Problem:** Jellyfin crashes with error:
-```
+
+```text
 System.IO.IOException: The configured user limit (128) on the number of inotify instances has been reached
 ```
 

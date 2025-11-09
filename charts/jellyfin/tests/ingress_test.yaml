@@ -1,0 +1,475 @@
+suite: test ingress
+templates:
+  - ingress.yaml
+tests:
+  # =============================================================================
+  # DEFAULT BEHAVIOR
+  # =============================================================================
+
+  - it: should not create Ingress by default
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: should create Ingress when enabled
+    set:
+      ingress.enabled: true
+    asserts:
+      - hasDocuments:
+          count: 1
+      - isKind:
+          of: Ingress
+      - isAPIVersion:
+          of: networking.k8s.io/v1
+
+  - it: should have correct default name
+    set:
+      ingress.enabled: true
+    asserts:
+      - equal:
+          path: metadata.name
+          value: RELEASE-NAME-jellyfin
+
+  # =============================================================================
+  # INGRESS CLASS
+  # =============================================================================
+
+  - it: should not set ingressClassName by default
+    set:
+      ingress.enabled: true
+    asserts:
+      - isNull:
+          path: spec.ingressClassName
+
+  - it: should set ingressClassName when specified
+    set:
+      ingress.enabled: true
+      ingress.className: nginx
+    asserts:
+      - equal:
+          path: spec.ingressClassName
+          value: nginx
+
+  - it: should support various ingress classes
+    set:
+      ingress.enabled: true
+      ingress.className: traefik
+    asserts:
+      - equal:
+          path: spec.ingressClassName
+          value: traefik
+
+  - it: should handle empty ingressClassName
+    set:
+      ingress.enabled: true
+      ingress.className: ""
+    asserts:
+      - isNull:
+          path: spec.ingressClassName
+
+  # =============================================================================
+  # ANNOTATIONS
+  # =============================================================================
+
+  - it: should not have annotations by default
+    set:
+      ingress.enabled: true
+    asserts:
+      - isNull:
+          path: metadata.annotations
+
+  - it: should add custom annotations
+    set:
+      ingress.enabled: true
+      ingress.annotations:
+        kubernetes.io/ingress.class: nginx
+        nginx.ingress.kubernetes.io/proxy-body-size: 100m
+    asserts:
+      - equal:
+          path: metadata.annotations["kubernetes.io/ingress.class"]
+          value: nginx
+      - equal:
+          path: metadata.annotations["nginx.ingress.kubernetes.io/proxy-body-size"]
+          value: 100m
+
+  - it: should support multiple annotations
+    set:
+      ingress.enabled: true
+      ingress.annotations:
+        cert-manager.io/cluster-issuer: letsencrypt-prod
+        nginx.ingress.kubernetes.io/ssl-redirect: "true"
+        nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+    asserts:
+      - equal:
+          path: metadata.annotations["cert-manager.io/cluster-issuer"]
+          value: letsencrypt-prod
+      - equal:
+          path: metadata.annotations["nginx.ingress.kubernetes.io/ssl-redirect"]
+          value: "true"
+      - equal:
+          path: metadata.annotations["nginx.ingress.kubernetes.io/force-ssl-redirect"]
+          value: "true"
+
+  # =============================================================================
+  # HOSTS CONFIGURATION
+  # =============================================================================
+
+  - it: should have default host configuration
+    set:
+      ingress.enabled: true
+    asserts:
+      - lengthEqual:
+          path: spec.rules
+          count: 1
+      - equal:
+          path: spec.rules[0].host
+          value: chart-example.local
+
+  - it: should set custom single host
+    set:
+      ingress.enabled: true
+      ingress.hosts:
+        - host: jellyfin.example.com
+          paths:
+            - path: /
+              pathType: Prefix
+    asserts:
+      - equal:
+          path: spec.rules[0].host
+          value: jellyfin.example.com
+
+  - it: should support multiple hosts
+    set:
+      ingress.enabled: true
+      ingress.hosts:
+        - host: jellyfin.example.com
+          paths:
+            - path: /
+              pathType: Prefix
+        - host: media.example.com
+          paths:
+            - path: /
+              pathType: Prefix
+    asserts:
+      - lengthEqual:
+          path: spec.rules
+          count: 2
+      - equal:
+          path: spec.rules[0].host
+          value: jellyfin.example.com
+      - equal:
+          path: spec.rules[1].host
+          value: media.example.com
+
+  - it: should handle multiple paths for single host
+    set:
+      ingress.enabled: true
+      ingress.hosts:
+        - host: example.com
+          paths:
+            - path: /jellyfin
+              pathType: Prefix
+            - path: /media
+              pathType: Exact
+    asserts:
+      - lengthEqual:
+          path: spec.rules[0].http.paths
+          count: 2
+      - equal:
+          path: spec.rules[0].http.paths[0].path
+          value: /jellyfin
+      - equal:
+          path: spec.rules[0].http.paths[1].path
+          value: /media
+
+  # =============================================================================
+  # PATH TYPES
+  # =============================================================================
+
+  - it: should support Prefix pathType
+    set:
+      ingress.enabled: true
+      ingress.hosts:
+        - host: jellyfin.example.com
+          paths:
+            - path: /
+              pathType: Prefix
+    asserts:
+      - equal:
+          path: spec.rules[0].http.paths[0].pathType
+          value: Prefix
+
+  - it: should support Exact pathType
+    set:
+      ingress.enabled: true
+      ingress.hosts:
+        - host: jellyfin.example.com
+          paths:
+            - path: /jellyfin
+              pathType: Exact
+    asserts:
+      - equal:
+          path: spec.rules[0].http.paths[0].pathType
+          value: Exact
+
+  - it: should support ImplementationSpecific pathType
+    set:
+      ingress.enabled: true
+      ingress.hosts:
+        - host: jellyfin.example.com
+          paths:
+            - path: /
+              pathType: ImplementationSpecific
+    asserts:
+      - equal:
+          path: spec.rules[0].http.paths[0].pathType
+          value: ImplementationSpecific
+
+  # =============================================================================
+  # BACKEND SERVICE
+  # =============================================================================
+
+  - it: should route to correct service and port
+    set:
+      ingress.enabled: true
+    asserts:
+      - equal:
+          path: spec.rules[0].http.paths[0].backend.service.name
+          value: RELEASE-NAME-jellyfin
+      - equal:
+          path: spec.rules[0].http.paths[0].backend.service.port.number
+          value: 8096
+
+  - it: should use custom service port when configured
+    set:
+      ingress.enabled: true
+      service.port: 9096
+    asserts:
+      - equal:
+          path: spec.rules[0].http.paths[0].backend.service.port.number
+          value: 9096
+
+  # =============================================================================
+  # TLS CONFIGURATION
+  # =============================================================================
+
+  - it: should not have TLS by default
+    set:
+      ingress.enabled: true
+    asserts:
+      - isNull:
+          path: spec.tls
+
+  - it: should add TLS configuration when specified
+    set:
+      ingress.enabled: true
+      ingress.tls:
+        - secretName: jellyfin-tls
+          hosts:
+            - jellyfin.example.com
+    asserts:
+      - isNotNull:
+          path: spec.tls
+      - lengthEqual:
+          path: spec.tls
+          count: 1
+      - equal:
+          path: spec.tls[0].secretName
+          value: jellyfin-tls
+      - contains:
+          path: spec.tls[0].hosts
+          content: jellyfin.example.com
+
+  - it: should support multiple TLS configurations
+    set:
+      ingress.enabled: true
+      ingress.tls:
+        - secretName: jellyfin-tls
+          hosts:
+            - jellyfin.example.com
+        - secretName: media-tls
+          hosts:
+            - media.example.com
+    asserts:
+      - lengthEqual:
+          path: spec.tls
+          count: 2
+      - equal:
+          path: spec.tls[0].secretName
+          value: jellyfin-tls
+      - equal:
+          path: spec.tls[1].secretName
+          value: media-tls
+
+  - it: should support TLS with multiple hosts in single certificate
+    set:
+      ingress.enabled: true
+      ingress.tls:
+        - secretName: wildcard-tls
+          hosts:
+            - jellyfin.example.com
+            - media.example.com
+            - streaming.example.com
+    asserts:
+      - lengthEqual:
+          path: spec.tls[0].hosts
+          count: 3
+      - contains:
+          path: spec.tls[0].hosts
+          content: jellyfin.example.com
+      - contains:
+          path: spec.tls[0].hosts
+          content: media.example.com
+
+  # =============================================================================
+  # EDGE CASES
+  # =============================================================================
+
+  # Empty hosts array (edge case - likely misconfiguration)
+  - it: should handle empty hosts array
+    set:
+      ingress.enabled: true
+      ingress.hosts: []
+    asserts:
+      - lengthEqual:
+          path: spec.rules
+          count: 0
+
+  # Empty paths array (edge case)
+  - it: should handle empty paths array
+    set:
+      ingress.enabled: true
+      ingress.hosts:
+        - host: jellyfin.example.com
+          paths: []
+    asserts:
+      - lengthEqual:
+          path: spec.rules[0].http.paths
+          count: 0
+
+  # Multiple paths with different pathTypes
+  - it: should support mixed pathTypes in same host
+    set:
+      ingress.enabled: true
+      ingress.hosts:
+        - host: jellyfin.example.com
+          paths:
+            - path: /
+              pathType: Prefix
+            - path: /api
+              pathType: Exact
+            - path: /media
+              pathType: ImplementationSpecific
+    asserts:
+      - lengthEqual:
+          path: spec.rules[0].http.paths
+          count: 3
+      - equal:
+          path: spec.rules[0].http.paths[0].pathType
+          value: Prefix
+      - equal:
+          path: spec.rules[0].http.paths[1].pathType
+          value: Exact
+      - equal:
+          path: spec.rules[0].http.paths[2].pathType
+          value: ImplementationSpecific
+
+  # =============================================================================
+  # COMPLETE SCENARIOS
+  # =============================================================================
+
+  - it: should create complete ingress with all features
+    set:
+      ingress.enabled: true
+      ingress.className: nginx
+      ingress.annotations:
+        cert-manager.io/cluster-issuer: letsencrypt-prod
+        nginx.ingress.kubernetes.io/proxy-body-size: 1g
+      ingress.hosts:
+        - host: jellyfin.example.com
+          paths:
+            - path: /
+              pathType: Prefix
+      ingress.tls:
+        - secretName: jellyfin-tls-cert
+          hosts:
+            - jellyfin.example.com
+    asserts:
+      - equal:
+          path: spec.ingressClassName
+          value: nginx
+      - equal:
+          path: metadata.annotations["cert-manager.io/cluster-issuer"]
+          value: letsencrypt-prod
+      - equal:
+          path: spec.rules[0].host
+          value: jellyfin.example.com
+      - equal:
+          path: spec.tls[0].secretName
+          value: jellyfin-tls-cert
+
+  - it: should create multi-host multi-path ingress
+    set:
+      ingress.enabled: true
+      ingress.className: traefik
+      ingress.hosts:
+        - host: jellyfin.example.com
+          paths:
+            - path: /
+              pathType: Prefix
+            - path: /admin
+              pathType: Exact
+        - host: media.example.com
+          paths:
+            - path: /
+              pathType: Prefix
+      ingress.tls:
+        - secretName: example-com-tls
+          hosts:
+            - jellyfin.example.com
+            - media.example.com
+    asserts:
+      - lengthEqual:
+          path: spec.rules
+          count: 2
+      - lengthEqual:
+          path: spec.rules[0].http.paths
+          count: 2
+      - lengthEqual:
+          path: spec.rules[1].http.paths
+          count: 1
+      - lengthEqual:
+          path: spec.tls[0].hosts
+          count: 2
+
+  # =============================================================================
+  # REGRESSION TESTS
+  # =============================================================================
+
+  - it: should always use networking.k8s.io/v1 API version
+    set:
+      ingress.enabled: true
+    asserts:
+      - equal:
+          path: apiVersion
+          value: networking.k8s.io/v1
+
+  - it: should use service port number
+    set:
+      ingress.enabled: true
+      service.port: 9999
+    asserts:
+      - equal:
+          path: spec.rules[0].http.paths[0].backend.service.port.number
+          value: 9999
+
+  - it: should have correct label selectors
+    set:
+      ingress.enabled: true
+    asserts:
+      - equal:
+          path: metadata.labels["app.kubernetes.io/name"]
+          value: jellyfin
+      - equal:
+          path: metadata.labels["app.kubernetes.io/instance"]
+          value: RELEASE-NAME

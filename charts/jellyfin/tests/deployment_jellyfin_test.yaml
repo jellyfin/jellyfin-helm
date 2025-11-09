@@ -1,0 +1,433 @@
+suite: test jellyfin-specific deployment configuration
+templates:
+  - deployment.yaml
+tests:
+  # =============================================================================
+  # DLNA AND HOST NETWORK
+  # =============================================================================
+
+  - it: should not enable DLNA by default
+    asserts:
+      - isNull:
+          path: spec.template.spec.hostNetwork
+
+  - it: should enable hostNetwork when DLNA enabled
+    set:
+      jellyfin.enableDLNA: true
+    asserts:
+      - equal:
+          path: spec.template.spec.hostNetwork
+          value: true
+
+  - it: should set dnsPolicy to ClusterFirstWithHostNet when DLNA enabled
+    set:
+      jellyfin.enableDLNA: true
+    asserts:
+      - equal:
+          path: spec.template.spec.dnsPolicy
+          value: ClusterFirstWithHostNet
+
+  - it: should enable hostNetwork when explicitly set
+    set:
+      podPrivileges.hostNetwork: true
+    asserts:
+      - equal:
+          path: spec.template.spec.hostNetwork
+          value: true
+
+  - it: should enable DLNA with all required settings
+    set:
+      jellyfin.enableDLNA: true
+    asserts:
+      - equal:
+          path: spec.template.spec.hostNetwork
+          value: true
+      - equal:
+          path: spec.template.spec.dnsPolicy
+          value: ClusterFirstWithHostNet
+
+  # =============================================================================
+  # METRICS LIFECYCLE
+  # =============================================================================
+
+  - it: should not have lifecycle by default
+    asserts:
+      - isNull:
+          path: spec.template.spec.containers[0].lifecycle
+
+  - it: should add postStart hook when metrics enabled
+    set:
+      metrics.enabled: true
+    asserts:
+      - isNotNull:
+          path: spec.template.spec.containers[0].lifecycle
+      - isNotNull:
+          path: spec.template.spec.containers[0].lifecycle.postStart
+
+  - it: should execute metrics setup script in postStart
+    set:
+      metrics.enabled: true
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].lifecycle.postStart.exec.command[0]
+          value: /bin/sh
+      - contains:
+          path: spec.template.spec.containers[0].lifecycle.postStart.exec.command
+          content: -c
+
+  # =============================================================================
+  # COMMAND AND ARGS
+  # =============================================================================
+
+  - it: should not override command by default
+    asserts:
+      - isNull:
+          path: spec.template.spec.containers[0].command
+
+  - it: should set custom command when specified
+    set:
+      jellyfin.command: ['/custom/jellyfin']
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].command[0]
+          value: /custom/jellyfin
+
+  - it: should set complex command
+    set:
+      jellyfin.command: ['/bin/sh', '-c']
+    asserts:
+      - lengthEqual:
+          path: spec.template.spec.containers[0].command
+          count: 2
+      - equal:
+          path: spec.template.spec.containers[0].command[0]
+          value: /bin/sh
+      - equal:
+          path: spec.template.spec.containers[0].command[1]
+          value: -c
+
+  - it: should not override args by default
+    asserts:
+      - isNull:
+          path: spec.template.spec.containers[0].args
+
+  - it: should set custom args when specified
+    set:
+      jellyfin.args: ['--debug']
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].args
+          content: --debug
+
+  - it: should set multiple args
+    set:
+      jellyfin.args: ['--debug', '--verbose', '--log-level=trace']
+    asserts:
+      - lengthEqual:
+          path: spec.template.spec.containers[0].args
+          count: 3
+      - contains:
+          path: spec.template.spec.containers[0].args
+          content: --debug
+      - contains:
+          path: spec.template.spec.containers[0].args
+          content: --log-level=trace
+
+  - it: should set both command and args
+    set:
+      jellyfin.command: ['/bin/sh', '-c']
+      jellyfin.args: ['exec /jellyfin/jellyfin --debug']
+    asserts:
+      - lengthEqual:
+          path: spec.template.spec.containers[0].command
+          count: 2
+      - lengthEqual:
+          path: spec.template.spec.containers[0].args
+          count: 1
+
+  # =============================================================================
+  # ENVIRONMENT VARIABLES
+  # =============================================================================
+
+  - it: should not have custom env by default
+    asserts:
+      - isNull:
+          path: spec.template.spec.containers[0].env
+
+  - it: should set single environment variable
+    set:
+      jellyfin.env:
+        - name: JELLYFIN_LOG_LEVEL
+          value: Debug
+    asserts:
+      - lengthEqual:
+          path: spec.template.spec.containers[0].env
+          count: 1
+      - equal:
+          path: spec.template.spec.containers[0].env[0].name
+          value: JELLYFIN_LOG_LEVEL
+      - equal:
+          path: spec.template.spec.containers[0].env[0].value
+          value: Debug
+
+  - it: should set multiple environment variables
+    set:
+      jellyfin.env:
+        - name: JELLYFIN_LOG_LEVEL
+          value: Debug
+        - name: JELLYFIN_CACHE_DIR
+          value: /cache
+        - name: JELLYFIN_DATA_DIR
+          value: /config
+    asserts:
+      - lengthEqual:
+          path: spec.template.spec.containers[0].env
+          count: 3
+
+  - it: should support env from Secret
+    set:
+      jellyfin.env:
+        - name: API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: jellyfin-secrets
+              key: api-key
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].env[0].name
+          value: API_KEY
+      - equal:
+          path: spec.template.spec.containers[0].env[0].valueFrom.secretKeyRef.name
+          value: jellyfin-secrets
+      - equal:
+          path: spec.template.spec.containers[0].env[0].valueFrom.secretKeyRef.key
+          value: api-key
+
+  - it: should support env from ConfigMap
+    set:
+      jellyfin.env:
+        - name: CONFIG_VALUE
+          valueFrom:
+            configMapKeyRef:
+              name: jellyfin-config
+              key: config-value
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].env[0].valueFrom.configMapKeyRef.name
+          value: jellyfin-config
+
+  - it: should support env from fieldRef
+    set:
+      jellyfin.env:
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: POD_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].env[0].valueFrom.fieldRef.fieldPath
+          value: metadata.name
+      - equal:
+          path: spec.template.spec.containers[0].env[1].valueFrom.fieldRef.fieldPath
+          value: metadata.namespace
+
+  - it: should support env from resourceFieldRef
+    set:
+      jellyfin.env:
+        - name: MEMORY_LIMIT
+          valueFrom:
+            resourceFieldRef:
+              containerName: jellyfin
+              resource: limits.memory
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].env[0].valueFrom.resourceFieldRef.resource
+          value: limits.memory
+
+  # =============================================================================
+  # CONTAINER PORTS
+  # =============================================================================
+
+  - it: should expose default http port
+    asserts:
+      - lengthEqual:
+          path: spec.template.spec.containers[0].ports
+          count: 1
+      - equal:
+          path: spec.template.spec.containers[0].ports[0].name
+          value: http
+      - equal:
+          path: spec.template.spec.containers[0].ports[0].containerPort
+          value: 8096
+      - equal:
+          path: spec.template.spec.containers[0].ports[0].protocol
+          value: TCP
+
+  - it: should keep containerPort 8096 regardless of service port
+    set:
+      service.port: 9096
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].ports[0].containerPort
+          value: 8096
+
+  # =============================================================================
+  # EDGE CASES
+  # =============================================================================
+
+  - it: should handle empty command array
+    set:
+      jellyfin.command: []
+    asserts:
+      - isNull:
+          path: spec.template.spec.containers[0].command
+
+  - it: should handle empty args array
+    set:
+      jellyfin.args: []
+    asserts:
+      - isNull:
+          path: spec.template.spec.containers[0].args
+
+  - it: should handle empty env array
+    set:
+      jellyfin.env: []
+    asserts:
+      - isNull:
+          path: spec.template.spec.containers[0].env
+
+  # Mix of different env types
+  - it: should support mix of env value types
+    set:
+      jellyfin.env:
+        - name: DIRECT_VALUE
+          value: test
+        - name: SECRET_VALUE
+          valueFrom:
+            secretKeyRef:
+              name: my-secret
+              key: secret-key
+        - name: CONFIG_VALUE
+          valueFrom:
+            configMapKeyRef:
+              name: my-config
+              key: config-key
+        - name: POD_IP
+          valueFrom:
+            fieldRef:
+              fieldPath: status.podIP
+    asserts:
+      - lengthEqual:
+          path: spec.template.spec.containers[0].env
+          count: 4
+      - equal:
+          path: spec.template.spec.containers[0].env[0].value
+          value: test
+      - isNotNull:
+          path: spec.template.spec.containers[0].env[1].valueFrom.secretKeyRef
+      - isNotNull:
+          path: spec.template.spec.containers[0].env[2].valueFrom.configMapKeyRef
+      - isNotNull:
+          path: spec.template.spec.containers[0].env[3].valueFrom.fieldRef
+
+  # =============================================================================
+  # COMPLETE SCENARIOS
+  # =============================================================================
+
+  - it: should configure for DLNA with custom env
+    set:
+      jellyfin.enableDLNA: true
+      jellyfin.env:
+        - name: JELLYFIN_PublishedServerUrl
+          value: http://jellyfin.local:8096
+    asserts:
+      - equal:
+          path: spec.template.spec.hostNetwork
+          value: true
+      - equal:
+          path: spec.template.spec.dnsPolicy
+          value: ClusterFirstWithHostNet
+      - lengthEqual:
+          path: spec.template.spec.containers[0].env
+          count: 1
+
+  - it: should configure with metrics and custom command
+    set:
+      metrics.enabled: true
+      jellyfin.command: ['/custom/jellyfin']
+      jellyfin.args: ['--enable-metrics']
+    asserts:
+      - isNotNull:
+          path: spec.template.spec.containers[0].lifecycle.postStart
+      - equal:
+          path: spec.template.spec.containers[0].command[0]
+          value: /custom/jellyfin
+      - contains:
+          path: spec.template.spec.containers[0].args
+          content: --enable-metrics
+
+  - it: should configure complete custom jellyfin setup
+    set:
+      jellyfin.command: ['/jellyfin/jellyfin']
+      jellyfin.args: ['--service']
+      jellyfin.env:
+        - name: JELLYFIN_LOG_LEVEL
+          value: Information
+        - name: JELLYFIN_CACHE_DIR
+          value: /cache
+        - name: JELLYFIN_PublishedServerUrl
+          value: https://jellyfin.example.com
+        - name: DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: jellyfin-db
+              key: password
+      service.port: 8096
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].command[0]
+          value: /jellyfin/jellyfin
+      - contains:
+          path: spec.template.spec.containers[0].args
+          content: --service
+      - lengthEqual:
+          path: spec.template.spec.containers[0].env
+          count: 4
+      - equal:
+          path: spec.template.spec.containers[0].ports[0].containerPort
+          value: 8096
+
+  # =============================================================================
+  # REGRESSION TESTS
+  # =============================================================================
+
+  - it: should always have http port exposed
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].ports
+          content:
+            name: http
+            containerPort: 8096
+            protocol: TCP
+
+  - it: should always use TCP protocol for http port
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].ports[0].protocol
+          value: TCP
+
+  - it: should not enable hostNetwork by default
+    asserts:
+      - isNull:
+          path: spec.template.spec.hostNetwork
+
+  - it: should not have metrics lifecycle without metrics.enabled
+    set:
+      metrics.enabled: false
+    asserts:
+      - isNull:
+          path: spec.template.spec.containers[0].lifecycle

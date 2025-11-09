@@ -1,0 +1,19 @@
+# Minimal Jellyfin deployment
+# Quick start with default settings and ephemeral storage
+#
+# Usage:
+#   helm install jellyfin jellyfin/jellyfin -f minimal.yaml
+
+# Use ephemeral storage for testing
+persistence:
+  config:
+    enabled: false
+  media:
+    enabled: false
+  cache:
+    enabled: false
+
+# Basic service configuration
+service:
+  type: ClusterIP
+  port: 8096

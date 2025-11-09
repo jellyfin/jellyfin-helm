@@ -1,0 +1,58 @@
+# Jellyfin with Ingress and TLS
+# External access via HTTPS with certificate management
+#
+# Prerequisites:
+# - Ingress controller installed (e.g., ingress-nginx)
+# - cert-manager for TLS certificate automation (optional)
+#
+# Usage:
+#   helm install jellyfin jellyfin/jellyfin -f ingress-tls.yaml
+
+# Ingress configuration
+ingress:
+  enabled: true
+  className: nginx
+  annotations:
+    # cert-manager annotation for automatic certificate provisioning
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    # Recommended nginx settings for Jellyfin
+    nginx.ingress.kubernetes.io/proxy-body-size: "0"
+    nginx.ingress.kubernetes.io/proxy-buffering: "off"
+    nginx.ingress.kubernetes.io/proxy-request-buffering: "off"
+    nginx.ingress.kubernetes.io/configuration-snippet: |
+      proxy_set_header X-Forwarded-Protocol $scheme;
+      proxy_set_header X-Forwarded-Host $http_host;
+
+  hosts:
+    - host: jellyfin.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+
+  tls:
+    - secretName: jellyfin-tls
+      hosts:
+        - jellyfin.example.com
+
+# Service configuration
+service:
+  type: ClusterIP
+  port: 8096
+
+# Persistent storage
+persistence:
+  config:
+    enabled: true
+    size: 10Gi
+  media:
+    enabled: true
+    size: 500Gi
+  cache:
+    enabled: true
+    size: 20Gi
+
+# Set published server URL for external access
+jellyfin:
+  env:
+    - name: JELLYFIN_PublishedServerUrl
+      value: "https://jellyfin.example.com"

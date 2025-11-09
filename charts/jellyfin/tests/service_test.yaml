@@ -1,0 +1,440 @@
+suite: test service
+templates:
+  - service.yaml
+tests:
+  # =============================================================================
+  # BASIC SERVICE DEFAULTS
+  # =============================================================================
+
+  - it: should create Service by default
+    asserts:
+      - hasDocuments:
+          count: 1
+      - isKind:
+          of: Service
+      - isAPIVersion:
+          of: v1
+
+  - it: should have correct default name
+    asserts:
+      - equal:
+          path: metadata.name
+          value: RELEASE-NAME-jellyfin
+
+  - it: should use ClusterIP type by default
+    asserts:
+      - equal:
+          path: spec.type
+          value: ClusterIP
+
+  - it: should expose port 8096 by default
+    asserts:
+      - equal:
+          path: spec.ports[0].port
+          value: 8096
+      - equal:
+          path: spec.ports[0].targetPort
+          value: http
+      - equal:
+          path: spec.ports[0].protocol
+          value: TCP
+      - equal:
+          path: spec.ports[0].name
+          value: http
+
+  - it: should have correct pod selector labels
+    asserts:
+      - equal:
+          path: spec.selector["app.kubernetes.io/name"]
+          value: jellyfin
+      - equal:
+          path: spec.selector["app.kubernetes.io/instance"]
+          value: RELEASE-NAME
+
+  # =============================================================================
+  # SERVICE TYPE TESTS
+  # =============================================================================
+
+  - it: should support ClusterIP type explicitly
+    set:
+      service.type: ClusterIP
+    asserts:
+      - equal:
+          path: spec.type
+          value: ClusterIP
+      - isNull:
+          path: spec.clusterIP
+
+  - it: should support NodePort type
+    set:
+      service.type: NodePort
+    asserts:
+      - equal:
+          path: spec.type
+          value: NodePort
+
+  - it: should support LoadBalancer type
+    set:
+      service.type: LoadBalancer
+    asserts:
+      - equal:
+          path: spec.type
+          value: LoadBalancer
+
+  # =============================================================================
+  # PORT CONFIGURATION
+  # =============================================================================
+
+  - it: should set custom port
+    set:
+      service.port: 9096
+    asserts:
+      - equal:
+          path: spec.ports[0].port
+          value: 9096
+
+  - it: should set custom nodePort when type is NodePort
+    set:
+      service.type: NodePort
+      service.nodePort: 30096
+    asserts:
+      - equal:
+          path: spec.ports[0].nodePort
+          value: 30096
+
+  - it: should not set nodePort when type is ClusterIP
+    set:
+      service.type: ClusterIP
+      service.nodePort: 30096
+    asserts:
+      - isNull:
+          path: spec.ports[0].nodePort
+
+  # Port range validation would be done by values.schema.json
+  # Here we just test that values are applied correctly
+  - it: should accept nodePort in valid range (30000-32767)
+    set:
+      service.type: NodePort
+      service.nodePort: 30000
+    asserts:
+      - equal:
+          path: spec.ports[0].nodePort
+          value: 30000
+
+  - it: should accept nodePort at upper range
+    set:
+      service.type: NodePort
+      service.nodePort: 32767
+    asserts:
+      - equal:
+          path: spec.ports[0].nodePort
+          value: 32767
+
+  # =============================================================================
+  # LOADBALANCER CONFIGURATION
+  # =============================================================================
+
+  - it: should set loadBalancerIP when specified
+    set:
+      service.type: LoadBalancer
+      service.loadBalancerIP: 203.0.113.42
+    asserts:
+      - equal:
+          path: spec.loadBalancerIP
+          value: 203.0.113.42
+
+  - it: should set loadBalancerClass when specified
+    set:
+      service.type: LoadBalancer
+      service.loadBalancerClass: metallb
+    asserts:
+      - equal:
+          path: spec.loadBalancerClass
+          value: metallb
+
+  - it: should set loadBalancerSourceRanges when specified
+    set:
+      service.type: LoadBalancer
+      service.loadBalancerSourceRanges:
+        - 10.0.0.0/8
+        - 192.168.0.0/16
+    asserts:
+      - contains:
+          path: spec.loadBalancerSourceRanges
+          content: 10.0.0.0/8
+      - contains:
+          path: spec.loadBalancerSourceRanges
+          content: 192.168.0.0/16
+
+  - it: should not set loadBalancerIP when type is ClusterIP
+    set:
+      service.type: ClusterIP
+      service.loadBalancerIP: 203.0.113.42
+    asserts:
+      - isNull:
+          path: spec.loadBalancerIP
+
+  - it: should set all loadBalancer options together
+    set:
+      service.type: LoadBalancer
+      service.loadBalancerIP: 203.0.113.42
+      service.loadBalancerClass: metallb
+      service.loadBalancerSourceRanges:
+        - 10.0.0.0/8
+    asserts:
+      - equal:
+          path: spec.loadBalancerIP
+          value: 203.0.113.42
+      - equal:
+          path: spec.loadBalancerClass
+          value: metallb
+      - contains:
+          path: spec.loadBalancerSourceRanges
+          content: 10.0.0.0/8
+
+  # =============================================================================
+  # ANNOTATIONS
+  # =============================================================================
+
+  - it: should not have annotations by default
+    asserts:
+      - isNull:
+          path: metadata.annotations
+
+  - it: should add custom annotations
+    set:
+      service.annotations:
+        service.beta.kubernetes.io/aws-load-balancer-type: nlb
+        external-dns.alpha.kubernetes.io/hostname: jellyfin.example.com
+    asserts:
+      - equal:
+          path: metadata.annotations["service.beta.kubernetes.io/aws-load-balancer-type"]
+          value: nlb
+      - equal:
+          path: metadata.annotations["external-dns.alpha.kubernetes.io/hostname"]
+          value: jellyfin.example.com
+
+  - it: should support empty annotations object
+    set:
+      service.annotations: {}
+    asserts:
+      - isNull:
+          path: metadata.annotations
+
+  # =============================================================================
+  # IPv4/IPv6 DUAL-STACK TESTS
+  # =============================================================================
+
+  - it: should not set ipFamilyPolicy by default
+    asserts:
+      - isNull:
+          path: spec.ipFamilyPolicy
+
+  - it: should not set ipFamilies by default
+    asserts:
+      - isNull:
+          path: spec.ipFamilies
+
+  - it: should set ipFamilyPolicy when specified
+    set:
+      service.ipFamilyPolicy: PreferDualStack
+    asserts:
+      - equal:
+          path: spec.ipFamilyPolicy
+          value: PreferDualStack
+
+  - it: should support SingleStack policy
+    set:
+      service.ipFamilyPolicy: SingleStack
+    asserts:
+      - equal:
+          path: spec.ipFamilyPolicy
+          value: SingleStack
+
+  - it: should support RequireDualStack policy
+    set:
+      service.ipFamilyPolicy: RequireDualStack
+    asserts:
+      - equal:
+          path: spec.ipFamilyPolicy
+          value: RequireDualStack
+
+  - it: should set ipFamilies for IPv4 only
+    set:
+      service.ipFamilies:
+        - IPv4
+    asserts:
+      - equal:
+          path: spec.ipFamilies[0]
+          value: IPv4
+
+  - it: should set ipFamilies for IPv6 only
+    set:
+      service.ipFamilies:
+        - IPv6
+    asserts:
+      - equal:
+          path: spec.ipFamilies[0]
+          value: IPv6
+
+  - it: should set ipFamilies for dual-stack IPv4 primary
+    set:
+      service.ipFamilies:
+        - IPv4
+        - IPv6
+    asserts:
+      - equal:
+          path: spec.ipFamilies[0]
+          value: IPv4
+      - equal:
+          path: spec.ipFamilies[1]
+          value: IPv6
+
+  - it: should set ipFamilies for dual-stack IPv6 primary
+    set:
+      service.ipFamilies:
+        - IPv6
+        - IPv4
+    asserts:
+      - equal:
+          path: spec.ipFamilies[0]
+          value: IPv6
+      - equal:
+          path: spec.ipFamilies[1]
+          value: IPv4
+
+  - it: should work with PreferDualStack and both families
+    set:
+      service.ipFamilyPolicy: PreferDualStack
+      service.ipFamilies:
+        - IPv4
+        - IPv6
+    asserts:
+      - equal:
+          path: spec.ipFamilyPolicy
+          value: PreferDualStack
+      - equal:
+          path: spec.ipFamilies[0]
+          value: IPv4
+      - equal:
+          path: spec.ipFamilies[1]
+          value: IPv6
+
+  - it: should work with RequireDualStack and both families
+    set:
+      service.ipFamilyPolicy: RequireDualStack
+      service.ipFamilies:
+        - IPv6
+        - IPv4
+    asserts:
+      - equal:
+          path: spec.ipFamilyPolicy
+          value: RequireDualStack
+      - equal:
+          path: spec.ipFamilies[0]
+          value: IPv6
+      - equal:
+          path: spec.ipFamilies[1]
+          value: IPv4
+
+  - it: should work with SingleStack IPv6 only
+    set:
+      service.ipFamilyPolicy: SingleStack
+      service.ipFamilies:
+        - IPv6
+    asserts:
+      - equal:
+          path: spec.ipFamilyPolicy
+          value: SingleStack
+      - equal:
+          path: spec.ipFamilies[0]
+          value: IPv6
+
+  # =============================================================================
+  # EDGE CASES AND VALIDATIONS
+  # =============================================================================
+
+  # LoadBalancer without explicit IP (valid use case)
+  - it: should create LoadBalancer without loadBalancerIP
+    set:
+      service.type: LoadBalancer
+    asserts:
+      - equal:
+          path: spec.type
+          value: LoadBalancer
+      - isNull:
+          path: spec.loadBalancerIP
+
+  # NodePort without explicit nodePort (auto-assign)
+  - it: should create NodePort without explicit nodePort
+    set:
+      service.type: NodePort
+    asserts:
+      - equal:
+          path: spec.type
+          value: NodePort
+      - isNull:
+          path: spec.ports[0].nodePort
+
+  # Multiple loadBalancerSourceRanges
+  - it: should support multiple loadBalancerSourceRanges
+    set:
+      service.type: LoadBalancer
+      service.loadBalancerSourceRanges:
+        - 10.0.0.0/8
+        - 172.16.0.0/12
+        - 192.168.0.0/16
+    asserts:
+      - lengthEqual:
+          path: spec.loadBalancerSourceRanges
+          count: 3
+
+  # Regression: verify service always has one port
+  - it: should always have exactly one port defined
+    asserts:
+      - lengthEqual:
+          path: spec.ports
+          count: 1
+
+  # Regression: verify port name is always http
+  - it: should always name port as http
+    set:
+      service.port: 9096
+    asserts:
+      - equal:
+          path: spec.ports[0].name
+          value: http
+      - equal:
+          path: spec.ports[0].targetPort
+          value: http
+
+  # Combining multiple settings
+  - it: should combine custom port with NodePort and annotations
+    set:
+      service.type: NodePort
+      service.port: 9096
+      service.nodePort: 31096
+      service.annotations:
+        custom: annotation
+    asserts:
+      - equal:
+          path: spec.type
+          value: NodePort
+      - equal:
+          path: spec.ports[0].port
+          value: 9096
+      - equal:
+          path: spec.ports[0].nodePort
+          value: 31096
+      - equal:
+          path: metadata.annotations.custom
+          value: annotation
+
+  # Regression: verify protocol is always TCP
+  - it: should always use TCP protocol
+    set:
+      service.port: 9096
+    asserts:
+      - equal:
+          path: spec.ports[0].protocol
+          value: TCP

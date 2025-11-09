@@ -1,0 +1,419 @@
+suite: test integration common configurations
+templates:
+  - deployment.yaml
+  - service.yaml
+  - ingress.yaml
+  - httproute.yaml
+  - networkpolicy.yaml
+  - serviceMonitor.yaml
+  - serviceaccount.yaml
+  - persistentVolumeClaim.yaml
+tests:
+  # =============================================================================
+  # SCENARIO 1: DLNA HOME MEDIA SERVER
+  # =============================================================================
+
+  - it: should configure DLNA setup correctly
+    set:
+      jellyfin.enableDLNA: true
+      persistence.media.type: hostPath
+      persistence.media.hostPath: /mnt/nas/media
+      service.type: NodePort
+      service.nodePort: 30096
+    asserts:
+      - template: deployment.yaml
+        equal:
+          path: spec.template.spec.hostNetwork
+          value: true
+      - template: deployment.yaml
+        equal:
+          path: spec.template.spec.dnsPolicy
+          value: ClusterFirstWithHostNet
+      - template: deployment.yaml
+        contains:
+          path: spec.template.spec.volumes
+          content:
+            name: media
+            hostPath:
+              path: /mnt/nas/media
+              type: Directory
+      - template: service.yaml
+        equal:
+          path: spec.type
+          value: NodePort
+      - template: networkpolicy.yaml
+        hasDocuments:
+          count: 0  # NetworkPolicy incompatible with hostNetwork
+
+  # =============================================================================
+  # SCENARIO 2: SECURE PRODUCTION SETUP
+  # =============================================================================
+
+  - it: should configure secure production setup
+    set:
+      networkPolicy.enabled: true
+      networkPolicy.egress.allowAllEgress: false
+      networkPolicy.egress.restrictedEgress:
+        allowMetadata: true
+        allowInCluster: true
+        allowedCIDRs: [10.0.0.0/8]
+      podSecurityContext:
+        fsGroup: 1000
+        runAsUser: 1000
+        runAsNonRoot: true
+      securityContext:
+        allowPrivilegeEscalation: false
+        readOnlyRootFilesystem: false
+        capabilities:
+          drop: [ALL]
+      persistence.config.size: 10Gi
+      persistence.media.size: 500Gi
+      persistence.cache.enabled: true
+      persistence.cache.type: pvc
+      persistence.cache.size: 50Gi
+      resources:
+        requests:
+          cpu: 500m
+          memory: 1Gi
+        limits:
+          cpu: 2000m
+          memory: 4Gi
+      ingress.enabled: true
+      ingress.className: nginx
+      ingress.hosts:
+        - host: jellyfin.example.com
+          paths:
+            - path: /
+              pathType: Prefix
+      ingress.tls:
+        - secretName: jellyfin-tls
+          hosts: [jellyfin.example.com]
+    asserts:
+      - template: networkpolicy.yaml
+        hasDocuments:
+          count: 1
+      - template: deployment.yaml
+        equal:
+          path: spec.template.spec.securityContext.runAsNonRoot
+          value: true
+      - template: deployment.yaml
+        equal:
+          path: spec.template.spec.containers[0].securityContext.allowPrivilegeEscalation
+          value: false
+      - template: persistentVolumeClaim.yaml
+        hasDocuments:
+          count: 3
+      - template: ingress.yaml
+        hasDocuments:
+          count: 1
+
+  # =============================================================================
+  # SCENARIO 3: KUBERNETES WITH PROMETHEUS MONITORING
+  # =============================================================================
+
+  - it: should configure full metrics and monitoring
+    set:
+      metrics.enabled: true
+      metrics.serviceMonitor.enabled: true
+      metrics.serviceMonitor.interval: 30s
+      metrics.serviceMonitor.labels:
+        prometheus: kube-prometheus
+      networkPolicy.enabled: true
+      networkPolicy.ingress.customRules:
+        - from:
+            - namespaceSelector:
+                matchLabels:
+                  name: monitoring
+          ports:
+            - protocol: TCP
+              port: 8096
+      podAnnotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8096"
+    asserts:
+      - template: serviceMonitor.yaml
+        hasDocuments:
+          count: 1
+      - template: serviceMonitor.yaml
+        equal:
+          path: spec.endpoints[0].interval
+          value: 30s
+      - template: deployment.yaml
+        isNotNull:
+          path: spec.template.spec.containers[0].lifecycle.postStart
+      - template: networkpolicy.yaml
+        hasDocuments:
+          count: 1
+
+  # =============================================================================
+  # SCENARIO 4: IPv6-ONLY CLUSTER
+  # =============================================================================
+
+  - it: should configure IPv6-only setup
+    set:
+      service.ipFamilyPolicy: SingleStack
+      service.ipFamilies: [IPv6]
+      persistence.media.type: pvc
+      persistence.media.size: 1Ti
+    asserts:
+      - template: service.yaml
+        equal:
+          path: spec.ipFamilyPolicy
+          value: SingleStack
+      - template: service.yaml
+        equal:
+          path: spec.ipFamilies[0]
+          value: IPv6
+      - template: persistentVolumeClaim.yaml
+        documentIndex: 1
+        equal:
+          path: spec.resources.requests.storage
+          value: 1Ti
+
+  # =============================================================================
+  # SCENARIO 5: DUAL-STACK IPv4+IPv6
+  # =============================================================================
+
+  - it: should configure dual-stack networking
+    set:
+      service.ipFamilyPolicy: RequireDualStack
+      service.ipFamilies: [IPv4, IPv6]
+      service.type: LoadBalancer
+      service.loadBalancerIP: 203.0.113.42
+    asserts:
+      - template: service.yaml
+        equal:
+          path: spec.ipFamilyPolicy
+          value: RequireDualStack
+      - template: service.yaml
+        lengthEqual:
+          path: spec.ipFamilies
+          count: 2
+      - template: service.yaml
+        equal:
+          path: spec.type
+          value: LoadBalancer
+
+  # =============================================================================
+  # SCENARIO 6: DEVELOPMENT/TESTING ENVIRONMENT
+  # =============================================================================
+
+  - it: should configure development environment
+    set:
+      replicaCount: 1
+      persistence.config.enabled: false
+      persistence.media.enabled: false
+      persistence.cache.enabled: false
+      image.tag: latest
+      image.pullPolicy: Always
+      revisionHistoryLimit: 1
+      deploymentStrategy.type: Recreate
+      jellyfin.env:
+        - name: JELLYFIN_LOG_LEVEL
+          value: Debug
+    asserts:
+      - template: deployment.yaml
+        equal:
+          path: spec.replicas
+          value: 1
+      - template: deployment.yaml
+        contains:
+          path: spec.template.spec.volumes
+          content:
+            name: config
+            emptyDir: {}
+      - template: deployment.yaml
+        equal:
+          path: spec.template.spec.containers[0].imagePullPolicy
+          value: Always
+      - template: deployment.yaml
+        equal:
+          path: spec.strategy.type
+          value: Recreate
+      - template: persistentVolumeClaim.yaml
+        hasDocuments:
+          count: 0
+
+  # =============================================================================
+  # SCENARIO 7: HIGH AVAILABILITY (with caveats)
+  # =============================================================================
+
+  # Note: Jellyfin doesn't truly support HA, but users might try it
+  - it: should configure for attempted HA setup
+    set:
+      replicaCount: 3
+      persistence.config.accessMode: ReadWriteMany
+      persistence.media.accessMode: ReadWriteMany
+      persistence.media.type: hostPath
+      persistence.media.hostPath: /nfs/jellyfin/media
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector:
+                matchLabels:
+                  app.kubernetes.io/name: jellyfin
+              topologyKey: kubernetes.io/hostname
+    asserts:
+      - template: deployment.yaml
+        equal:
+          path: spec.replicas
+          value: 3
+      - template: persistentVolumeClaim.yaml
+        contains:
+          path: spec.accessModes
+          documentIndex: 0
+          content: ReadWriteMany
+      - template: deployment.yaml
+        isNotNull:
+          path: spec.template.spec.affinity.podAntiAffinity
+
+  # =============================================================================
+  # SCENARIO 8: CLOUD PROVIDER SPECIFIC (AWS)
+  # =============================================================================
+
+  - it: should configure for AWS with IRSA
+    set:
+      serviceAccount.create: true
+      serviceAccount.annotations:
+        eks.amazonaws.com/role-arn: arn:aws:iam::123456789012:role/jellyfin-s3
+      persistence.media.type: pvc
+      persistence.media.storageClass: gp3
+      persistence.media.size: 500Gi
+      service.type: LoadBalancer
+      service.annotations:
+        service.beta.kubernetes.io/aws-load-balancer-type: nlb
+        service.beta.kubernetes.io/aws-load-balancer-scheme: internet-facing
+      ingress.enabled: true
+      ingress.className: alb
+      ingress.annotations:
+        alb.ingress.kubernetes.io/scheme: internet-facing
+        alb.ingress.kubernetes.io/target-type: ip
+    asserts:
+      - template: serviceaccount.yaml
+        equal:
+          path: metadata.annotations["eks.amazonaws.com/role-arn"]
+          value: arn:aws:iam::123456789012:role/jellyfin-s3
+      - template: service.yaml
+        equal:
+          path: metadata.annotations["service.beta.kubernetes.io/aws-load-balancer-type"]
+          value: nlb
+      - template: ingress.yaml
+        equal:
+          path: spec.ingressClassName
+          value: alb
+
+  # =============================================================================
+  # SCENARIO 9: GCP WITH WORKLOAD IDENTITY
+  # =============================================================================
+
+  - it: should configure for GCP with Workload Identity
+    set:
+      serviceAccount.create: true
+      serviceAccount.annotations:
+        iam.gke.io/gcp-service-account: jellyfin@project-id.iam.gserviceaccount.com
+      persistence.media.type: pvc
+      persistence.media.storageClass: standard-rwo
+      service.type: LoadBalancer
+      service.annotations:
+        cloud.google.com/neg: '{"ingress": true}'
+    asserts:
+      - template: serviceaccount.yaml
+        equal:
+          path: metadata.annotations["iam.gke.io/gcp-service-account"]
+          value: jellyfin@project-id.iam.gserviceaccount.com
+      - template: service.yaml
+        equal:
+          path: metadata.annotations["cloud.google.com/neg"]
+          value: '{"ingress": true}'
+
+  # =============================================================================
+  # SCENARIO 10: AIR-GAPPED ENVIRONMENT
+  # =============================================================================
+
+  - it: should configure for air-gapped environment
+    set:
+      image.repository: internal-registry.local/jellyfin/jellyfin
+      image.tag: 10.8.13-offline
+      image.pullPolicy: IfNotPresent
+      imagePullSecrets:
+        - name: internal-registry-creds
+      persistence.media.type: hostPath
+      persistence.media.hostPath: /mnt/local-storage/media
+      service.type: NodePort
+      networkPolicy.enabled: true
+      networkPolicy.egress.allowAllEgress: false
+      networkPolicy.egress.restrictedEgress:
+        allowInCluster: true
+    asserts:
+      - template: deployment.yaml
+        equal:
+          path: spec.template.spec.containers[0].image
+          value: internal-registry.local/jellyfin/jellyfin:10.8.13-offline
+      - template: deployment.yaml
+        equal:
+          path: spec.template.spec.imagePullSecrets[0].name
+          value: internal-registry-creds
+      - template: networkpolicy.yaml
+        hasDocuments:
+          count: 1
+
+  # =============================================================================
+  # SCENARIO 11: MINIMAL RESOURCE-CONSTRAINED SETUP
+  # =============================================================================
+
+  - it: should configure minimal resource-constrained setup
+    set:
+      resources:
+        requests:
+          cpu: 100m
+          memory: 256Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+      persistence.config.size: 1Gi
+      persistence.media.type: emptyDir
+      persistence.cache.enabled: false
+      service.type: ClusterIP
+    asserts:
+      - template: deployment.yaml
+        equal:
+          path: spec.template.spec.containers[0].resources.requests.cpu
+          value: 100m
+      - template: persistentVolumeClaim.yaml
+        hasDocuments:
+          count: 1  # only config
+      - template: service.yaml
+        equal:
+          path: spec.type
+          value: ClusterIP
+
+  # =============================================================================
+  # SCENARIO 12: GATEWAY API (HTTPRoute)
+  # =============================================================================
+
+  - it: should configure Gateway API HTTPRoute
+    set:
+      httpRoute.enabled: true
+      httpRoute.parentRefs:
+        - name: my-gateway
+          namespace: gateway-system
+          sectionName: https
+      httpRoute.hostnames:
+        - jellyfin.example.com
+        - media.example.com
+      networkPolicy.enabled: true
+    asserts:
+      - template: httproute.yaml
+        hasDocuments:
+          count: 1
+      - template: httproute.yaml
+        lengthEqual:
+          path: spec.parentRefs
+          count: 1
+      - template: httproute.yaml
+        lengthEqual:
+          path: spec.hostnames
+          count: 2
+      - template: networkpolicy.yaml
+        hasDocuments:
+          count: 1

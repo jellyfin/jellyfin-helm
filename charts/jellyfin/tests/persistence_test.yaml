@@ -1,0 +1,666 @@
+suite: test persistence (config, media, cache)
+templates:
+  - deployment.yaml
+  - persistentVolumeClaim.yaml
+tests:
+  # =============================================================================
+  # CONFIG PERSISTENCE TESTS
+  # =============================================================================
+
+  # Default behavior
+  - it: should create config PVC by default
+    template: persistentVolumeClaim.yaml
+    asserts:
+      - hasDocuments:
+          count: 2  # config and media (cache disabled by default)
+
+  - it: should set default config PVC size to 5Gi
+    template: persistentVolumeClaim.yaml
+    documentIndex: 0
+    asserts:
+      - equal:
+          path: spec.resources.requests.storage
+          value: 5Gi
+
+  - it: should set default config PVC access mode to ReadWriteOnce
+    template: persistentVolumeClaim.yaml
+    documentIndex: 0
+    asserts:
+      - contains:
+          path: spec.accessModes
+          content: ReadWriteOnce
+
+  - it: should mount config PVC by default
+    template: deployment.yaml
+    asserts:
+      - contains:
+          path: spec.template.spec.volumes
+          content:
+            name: config
+            persistentVolumeClaim:
+              claimName: RELEASE-NAME-jellyfin-config
+
+  - it: should mount config at /config
+    template: deployment.yaml
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].volumeMounts
+          content:
+            name: config
+            mountPath: /config
+
+  # Custom config PVC settings
+  - it: should set custom config PVC size
+    template: persistentVolumeClaim.yaml
+    documentIndex: 0
+    set:
+      persistence.config.size: 10Gi
+    asserts:
+      - equal:
+          path: spec.resources.requests.storage
+          value: 10Gi
+
+  - it: should set custom config PVC access mode
+    template: persistentVolumeClaim.yaml
+    documentIndex: 0
+    set:
+      persistence.config.accessMode: ReadWriteMany
+    asserts:
+      - contains:
+          path: spec.accessModes
+          content: ReadWriteMany
+
+  - it: should set custom config PVC storage class
+    template: persistentVolumeClaim.yaml
+    documentIndex: 0
+    set:
+      persistence.config.storageClass: fast-ssd
+    asserts:
+      - equal:
+          path: spec.storageClassName
+          value: fast-ssd
+
+  - it: should add annotations to config PVC
+    template: persistentVolumeClaim.yaml
+    documentIndex: 0
+    set:
+      persistence.config.annotations:
+        backup: "true"
+        retention: "30d"
+    asserts:
+      - equal:
+          path: metadata.annotations.backup
+          value: "true"
+      - equal:
+          path: metadata.annotations.retention
+          value: "30d"
+
+  # Config with existing claim
+  - it: should use existing claim for config when specified
+    template: deployment.yaml
+    set:
+      persistence.config.existingClaim: my-existing-config-claim
+    asserts:
+      - contains:
+          path: spec.template.spec.volumes
+          content:
+            name: config
+            persistentVolumeClaim:
+              claimName: my-existing-config-claim
+
+  - it: should not create config PVC when existing claim used
+    template: persistentVolumeClaim.yaml
+    set:
+      persistence.config.existingClaim: my-existing-config-claim
+    asserts:
+      - hasDocuments:
+          count: 1  # media only
+
+  # Config disabled (emptyDir fallback)
+  - it: should use emptyDir for config when disabled
+    template: deployment.yaml
+    set:
+      persistence.config.enabled: false
+    asserts:
+      - contains:
+          path: spec.template.spec.volumes
+          content:
+            name: config
+            emptyDir: {}
+
+  - it: should not create config PVC when disabled
+    template: persistentVolumeClaim.yaml
+    set:
+      persistence.config.enabled: false
+    asserts:
+      - hasDocuments:
+          count: 1  # media only
+
+  # =============================================================================
+  # MEDIA PERSISTENCE TESTS
+  # =============================================================================
+
+  # Default behavior
+  - it: should create media PVC by default
+    template: persistentVolumeClaim.yaml
+    documentIndex: 1
+    asserts:
+      - equal:
+          path: metadata.name
+          value: RELEASE-NAME-jellyfin-media
+
+  - it: should set default media PVC size to 25Gi
+    template: persistentVolumeClaim.yaml
+    documentIndex: 1
+    asserts:
+      - equal:
+          path: spec.resources.requests.storage
+          value: 25Gi
+
+  - it: should set default media PVC access mode to ReadWriteOnce
+    template: persistentVolumeClaim.yaml
+    documentIndex: 1
+    asserts:
+      - contains:
+          path: spec.accessModes
+          content: ReadWriteOnce
+
+  - it: should mount media PVC by default
+    template: deployment.yaml
+    asserts:
+      - contains:
+          path: spec.template.spec.volumes
+          content:
+            name: media
+            persistentVolumeClaim:
+              claimName: RELEASE-NAME-jellyfin-media
+
+  - it: should mount media at /media
+    template: deployment.yaml
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].volumeMounts
+          content:
+            name: media
+            mountPath: /media
+
+  # Media with type: pvc (explicit)
+  - it: should create media PVC when type is pvc
+    template: persistentVolumeClaim.yaml
+    set:
+      persistence.media.type: pvc
+    asserts:
+      - hasDocuments:
+          count: 2  # config and media
+
+  - it: should set custom media PVC size
+    template: persistentVolumeClaim.yaml
+    documentIndex: 1
+    set:
+      persistence.media.type: pvc
+      persistence.media.size: 100Gi
+    asserts:
+      - equal:
+          path: spec.resources.requests.storage
+          value: 100Gi
+
+  - it: should set custom media PVC storage class
+    template: persistentVolumeClaim.yaml
+    documentIndex: 1
+    set:
+      persistence.media.type: pvc
+      persistence.media.storageClass: slow-hdd
+    asserts:
+      - equal:
+          path: spec.storageClassName
+          value: slow-hdd
+
+  - it: should add annotations to media PVC
+    template: persistentVolumeClaim.yaml
+    documentIndex: 1
+    set:
+      persistence.media.type: pvc
+      persistence.media.annotations:
+        media-type: movies
+    asserts:
+      - equal:
+          path: metadata.annotations.media-type
+          value: movies
+
+  # Media with type: hostPath
+  - it: should mount media from hostPath when configured
+    template: deployment.yaml
+    set:
+      persistence.media.type: hostPath
+      persistence.media.hostPath: /mnt/nas/media
+    asserts:
+      - contains:
+          path: spec.template.spec.volumes
+          content:
+            name: media
+            hostPath:
+              path: /mnt/nas/media
+              type: Directory
+
+  - it: should not create media PVC when type is hostPath
+    template: persistentVolumeClaim.yaml
+    set:
+      persistence.media.type: hostPath
+      persistence.media.hostPath: /mnt/nas/media
+    asserts:
+      - hasDocuments:
+          count: 1  # config only
+
+  # Media with type: emptyDir
+  - it: should mount media as emptyDir when type is emptyDir
+    template: deployment.yaml
+    set:
+      persistence.media.type: emptyDir
+    asserts:
+      - contains:
+          path: spec.template.spec.volumes
+          content:
+            name: media
+            emptyDir: {}
+
+  - it: should not create media PVC when type is emptyDir
+    template: persistentVolumeClaim.yaml
+    set:
+      persistence.media.type: emptyDir
+    asserts:
+      - hasDocuments:
+          count: 1  # config only
+
+  # Media disabled
+  - it: should use emptyDir for media when disabled
+    template: deployment.yaml
+    set:
+      persistence.media.enabled: false
+    asserts:
+      - contains:
+          path: spec.template.spec.volumes
+          content:
+            name: media
+            emptyDir: {}
+
+  - it: should not create media PVC when disabled
+    template: persistentVolumeClaim.yaml
+    set:
+      persistence.media.enabled: false
+    asserts:
+      - hasDocuments:
+          count: 1  # config only
+
+  # Media with existing claim
+  - it: should use existing claim for media when specified
+    template: deployment.yaml
+    set:
+      persistence.media.type: pvc
+      persistence.media.existingClaim: my-existing-media-claim
+    asserts:
+      - contains:
+          path: spec.template.spec.volumes
+          content:
+            name: media
+            persistentVolumeClaim:
+              claimName: my-existing-media-claim
+
+  - it: should not create media PVC when existing claim used
+    template: persistentVolumeClaim.yaml
+    set:
+      persistence.media.type: pvc
+      persistence.media.existingClaim: my-existing-media-claim
+    asserts:
+      - hasDocuments:
+          count: 1  # config only
+
+  # =============================================================================
+  # CACHE PERSISTENCE TESTS
+  # =============================================================================
+
+  # Default behavior
+  - it: should mount cache as emptyDir by default
+    template: deployment.yaml
+    asserts:
+      - contains:
+          path: spec.template.spec.volumes
+          content:
+            name: cache
+            emptyDir: {}
+
+  - it: should not create cache PVC by default
+    template: persistentVolumeClaim.yaml
+    asserts:
+      - hasDocuments:
+          count: 2  # config and media only
+
+  - it: should mount cache at /cache
+    template: deployment.yaml
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].volumeMounts
+          content:
+            name: cache
+            mountPath: /cache
+
+  # Cache with type: pvc
+  - it: should create cache PVC when enabled with type pvc
+    template: persistentVolumeClaim.yaml
+    set:
+      persistence.cache.enabled: true
+      persistence.cache.type: pvc
+    asserts:
+      - hasDocuments:
+          count: 3  # config, media, and cache
+
+  - it: should mount cache PVC when enabled
+    template: deployment.yaml
+    set:
+      persistence.cache.enabled: true
+      persistence.cache.type: pvc
+    asserts:
+      - contains:
+          path: spec.template.spec.volumes
+          content:
+            name: cache
+            persistentVolumeClaim:
+              claimName: RELEASE-NAME-jellyfin-cache
+
+  - it: should set cache PVC size correctly
+    template: persistentVolumeClaim.yaml
+    documentIndex: 2
+    set:
+      persistence.cache.enabled: true
+      persistence.cache.type: pvc
+      persistence.cache.size: 20Gi
+    asserts:
+      - equal:
+          path: spec.resources.requests.storage
+          value: 20Gi
+
+  - it: should set cache PVC access mode
+    template: persistentVolumeClaim.yaml
+    documentIndex: 2
+    set:
+      persistence.cache.enabled: true
+      persistence.cache.type: pvc
+      persistence.cache.accessMode: ReadWriteMany
+    asserts:
+      - contains:
+          path: spec.accessModes
+          content: ReadWriteMany
+
+  - it: should set cache PVC storage class
+    template: persistentVolumeClaim.yaml
+    documentIndex: 2
+    set:
+      persistence.cache.enabled: true
+      persistence.cache.type: pvc
+      persistence.cache.storageClass: fast-ssd
+    asserts:
+      - equal:
+          path: spec.storageClassName
+          value: fast-ssd
+
+  - it: should add annotations to cache PVC
+    template: persistentVolumeClaim.yaml
+    documentIndex: 2
+    set:
+      persistence.cache.enabled: true
+      persistence.cache.type: pvc
+      persistence.cache.annotations:
+        my-annotation: my-value
+    asserts:
+      - equal:
+          path: metadata.annotations.my-annotation
+          value: my-value
+
+  # Cache with type: hostPath
+  - it: should mount cache from hostPath when configured
+    template: deployment.yaml
+    set:
+      persistence.cache.enabled: true
+      persistence.cache.type: hostPath
+      persistence.cache.hostPath: /mnt/jellyfin-cache
+    asserts:
+      - contains:
+          path: spec.template.spec.volumes
+          content:
+            name: cache
+            hostPath:
+              path: /mnt/jellyfin-cache
+              type: Directory
+
+  - it: should not create cache PVC when type is hostPath
+    template: persistentVolumeClaim.yaml
+    set:
+      persistence.cache.enabled: true
+      persistence.cache.type: hostPath
+    asserts:
+      - hasDocuments:
+          count: 2  # config and media only
+
+  # Cache with type: emptyDir
+  - it: should not create cache PVC when type is emptyDir
+    template: persistentVolumeClaim.yaml
+    set:
+      persistence.cache.enabled: true
+      persistence.cache.type: emptyDir
+    asserts:
+      - hasDocuments:
+          count: 2
+
+  # Cache with existing claim
+  - it: should use existing claim for cache when specified
+    template: deployment.yaml
+    set:
+      persistence.cache.enabled: true
+      persistence.cache.type: pvc
+      persistence.cache.existingClaim: my-existing-cache-claim
+    asserts:
+      - contains:
+          path: spec.template.spec.volumes
+          content:
+            name: cache
+            persistentVolumeClaim:
+              claimName: my-existing-cache-claim
+
+  - it: should not create PVC when existing cache claim used
+    template: persistentVolumeClaim.yaml
+    set:
+      persistence.cache.enabled: true
+      persistence.cache.type: pvc
+      persistence.cache.existingClaim: my-existing-cache-claim
+    asserts:
+      - hasDocuments:
+          count: 2  # config and media only, not cache
+
+  # =============================================================================
+  # EDGE CASES AND VALIDATIONS
+  # =============================================================================
+
+  # All persistence disabled
+  - it: should use emptyDir for all volumes when all persistence disabled
+    template: deployment.yaml
+    set:
+      persistence.config.enabled: false
+      persistence.media.enabled: false
+      persistence.cache.enabled: false
+    asserts:
+      - contains:
+          path: spec.template.spec.volumes
+          content:
+            name: config
+            emptyDir: {}
+      - contains:
+          path: spec.template.spec.volumes
+          content:
+            name: media
+            emptyDir: {}
+      - contains:
+          path: spec.template.spec.volumes
+          content:
+            name: cache
+            emptyDir: {}
+
+  - it: should not create any PVCs when all persistence disabled
+    template: persistentVolumeClaim.yaml
+    set:
+      persistence.config.enabled: false
+      persistence.media.enabled: false
+      persistence.cache.enabled: false
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  # All persistence enabled as PVC
+  - it: should create all three PVCs when all enabled
+    template: persistentVolumeClaim.yaml
+    set:
+      persistence.cache.enabled: true
+      persistence.cache.type: pvc
+    asserts:
+      - hasDocuments:
+          count: 3  # config, media, and cache
+
+  # Mix of persistence types
+  - it: should handle mix of pvc, hostPath, and emptyDir
+    template: deployment.yaml
+    set:
+      persistence.config.enabled: true
+      persistence.media.type: hostPath
+      persistence.media.hostPath: /mnt/media
+      persistence.cache.enabled: true
+      persistence.cache.type: emptyDir
+    asserts:
+      - contains:
+          path: spec.template.spec.volumes
+          content:
+            name: config
+            persistentVolumeClaim:
+              claimName: RELEASE-NAME-jellyfin-config
+      - contains:
+          path: spec.template.spec.volumes
+          content:
+            name: media
+            hostPath:
+              path: /mnt/media
+              type: Directory
+      - contains:
+          path: spec.template.spec.volumes
+          content:
+            name: cache
+            emptyDir: {}
+
+  - it: should create only config PVC with mixed types
+    template: persistentVolumeClaim.yaml
+    set:
+      persistence.media.type: hostPath
+      persistence.media.hostPath: /mnt/media
+      persistence.cache.enabled: true
+      persistence.cache.type: emptyDir
+    asserts:
+      - hasDocuments:
+          count: 1  # config only
+
+  # All access modes
+  - it: should support ReadWriteOnce access mode
+    template: persistentVolumeClaim.yaml
+    documentIndex: 0
+    set:
+      persistence.config.accessMode: ReadWriteOnce
+    asserts:
+      - contains:
+          path: spec.accessModes
+          content: ReadWriteOnce
+
+  - it: should support ReadOnlyMany access mode
+    template: persistentVolumeClaim.yaml
+    documentIndex: 1
+    set:
+      persistence.media.accessMode: ReadOnlyMany
+    asserts:
+      - contains:
+          path: spec.accessModes
+          content: ReadOnlyMany
+
+  - it: should support ReadWriteMany access mode
+    template: persistentVolumeClaim.yaml
+    documentIndex: 0
+    set:
+      persistence.config.accessMode: ReadWriteMany
+    asserts:
+      - contains:
+          path: spec.accessModes
+          content: ReadWriteMany
+
+  - it: should support ReadWriteOncePod access mode
+    template: persistentVolumeClaim.yaml
+    documentIndex: 0
+    set:
+      persistence.config.accessMode: ReadWriteOncePod
+    asserts:
+      - contains:
+          path: spec.accessModes
+          content: ReadWriteOncePod
+
+  # Empty storageClass (default provisioner)
+  - it: should not set storageClassName when storageClass is empty string
+    template: persistentVolumeClaim.yaml
+    documentIndex: 0
+    set:
+      persistence.config.storageClass: ''
+    asserts:
+      - isNull:
+          path: spec.storageClassName
+
+  # Multiple annotations
+  - it: should support multiple annotations on PVC
+    template: persistentVolumeClaim.yaml
+    documentIndex: 0
+    set:
+      persistence.config.annotations:
+        annotation1: value1
+        annotation2: value2
+        annotation3: value3
+    asserts:
+      - equal:
+          path: metadata.annotations.annotation1
+          value: value1
+      - equal:
+          path: metadata.annotations.annotation2
+          value: value2
+      - equal:
+          path: metadata.annotations.annotation3
+          value: value3
+
+  # Regression: verify all volume mounts are always present
+  - it: should always have all three volume mounts in container
+    template: deployment.yaml
+    asserts:
+      - lengthEqual:
+          path: spec.template.spec.containers[0].volumeMounts
+          count: 3
+      - contains:
+          path: spec.template.spec.containers[0].volumeMounts
+          content:
+            name: config
+            mountPath: /config
+      - contains:
+          path: spec.template.spec.containers[0].volumeMounts
+          content:
+            name: media
+            mountPath: /media
+      - contains:
+          path: spec.template.spec.containers[0].volumeMounts
+          content:
+            name: cache
+            mountPath: /cache
+
+  # Regression: verify all volumes are always present
+  - it: should always have all three volumes defined
+    template: deployment.yaml
+    asserts:
+      - lengthEqual:
+          path: spec.template.spec.volumes
+          count: 3
