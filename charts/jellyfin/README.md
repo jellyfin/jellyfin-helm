@@ -50,9 +50,7 @@ helm install my-jellyfin jellyfin/jellyfin -f values.yaml
 
 ## Maintainers
 
-| Name | Email | Url |
-| ---- | ------ | --- |
-| Jellyfin Project |  | <https://jellyfin.org> |
+This chart is maintained by the [Jellyfin Project](https://jellyfin.org).
 
 ## Values
 
