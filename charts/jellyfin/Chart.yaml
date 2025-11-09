@@ -19,6 +19,8 @@ annotations:
       url: https://jellyfin.org/docs/
     - name: GitHub Repository
       url: https://github.com/jellyfin/jellyfin
+    - name: Helm Chart Repository
+      url: https://github.com/jellyfin/jellyfin-helm
     - name: Support
       url: https://jellyfin.org/contact/
   artifacthub.io/maintainers: |

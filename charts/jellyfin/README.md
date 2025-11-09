@@ -48,6 +48,12 @@ You can create a custom values.yaml file and pass it to the install command:
 helm install my-jellyfin jellyfin/jellyfin -f values.yaml
 ```
 
+## Maintainers
+
+| Name | Email | Url |
+| ---- | ------ | --- |
+| Jellyfin Project |  | <https://jellyfin.org> |
+
 ## Values
 
 | Key | Type | Default | Description |
