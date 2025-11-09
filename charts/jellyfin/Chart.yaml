@@ -10,7 +10,20 @@ keywords:
   - self-hosted
 version: 3.0.0
 appVersion: 10.11.2
+maintainers:
+  - name: Jellyfin Project
+    url: https://jellyfin.org
 annotations:
+  artifacthub.io/links: |
+    - name: Documentation
+      url: https://jellyfin.org/docs/
+    - name: GitHub Repository
+      url: https://github.com/jellyfin/jellyfin
+    - name: Support
+      url: https://jellyfin.org/contact/
+  artifacthub.io/maintainers: |
+    - name: Jellyfin Project
+      url: https://jellyfin.org
   artifacthub.io/changes: |
     - kind: deprecated
       description: Deprecate initContainers parameter in favor of extraInitContainers for consistency (will be removed after 2030)
