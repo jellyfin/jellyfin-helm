@@ -9,8 +9,23 @@ keywords:
   - media
   - self-hosted
 version: 3.0.0
+maintainers:
+  - name: Jellyfin Project
+    url: https://jellyfin.org
 appVersion: "10.11.5"
 annotations:
+  artifacthub.io/links: |
+    - name: Documentation
+      url: https://jellyfin.org/docs/
+    - name: GitHub Repository
+      url: https://github.com/jellyfin/jellyfin
+    - name: Helm Chart Repository
+      url: https://github.com/jellyfin/jellyfin-helm
+    - name: Support
+      url: https://jellyfin.org/contact/
+  artifacthub.io/maintainers: |
+    - name: Jellyfin Project
+      url: https://jellyfin.org
   artifacthub.io/changes: |
     - kind: changed
       description: Update Jellyfin to 10.11.5
@@ -23,6 +38,7 @@ annotations:
       links:
         - name: Documentation
           url: https://kubernetes.io/docs/concepts/services-networking/network-policies/
+    - kind: added
       description: Add troubleshooting documentation for inotify instance limits with workaround example
     - kind: added
       description: Add support for Gateway API HTTPRoute resource

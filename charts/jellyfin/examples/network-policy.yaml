@@ -1,0 +1,74 @@
+# Secure Jellyfin deployment with NetworkPolicy
+# Network isolation with controlled ingress/egress
+#
+# Prerequisites:
+# - CNI plugin with NetworkPolicy support (Calico, Cilium, etc.)
+# - Ingress controller running in ingress-nginx namespace
+#
+# Usage:
+#   helm install jellyfin jellyfin/jellyfin -f network-policy.yaml
+
+# NetworkPolicy configuration
+networkPolicy:
+  enabled: true
+
+  # Ingress: Allow only from Ingress controller
+  ingress:
+    allowExternal: false
+    namespaceSelector:
+      matchLabels:
+        name: ingress-nginx
+    podSelector:
+      matchLabels:
+        app.kubernetes.io/name: ingress-nginx
+
+  # Egress: Restricted for security
+  egress:
+    allowDNS: true  # Required for DNS resolution
+    allowAllEgress: false  # Block unrestricted internet
+    restrictedEgress:
+      allowMetadata: true  # Allow HTTPS/443 for TMDB, TheTVDB, etc.
+      allowInCluster: false  # Block pod-to-pod communication
+
+# Ingress for external access
+ingress:
+  enabled: true
+  className: nginx
+  hosts:
+    - host: jellyfin.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+
+# Persistent storage
+persistence:
+  config:
+    enabled: true
+    size: 10Gi
+  media:
+    enabled: true
+    size: 500Gi
+  cache:
+    enabled: true
+    size: 20Gi
+
+# Security context
+securityContext:
+  runAsUser: 1000
+  runAsGroup: 1000
+  fsGroup: 1000
+  runAsNonRoot: true
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: false
+  capabilities:
+    drop:
+      - ALL
+
+# Resource limits
+resources:
+  limits:
+    cpu: 2000m
+    memory: 4Gi
+  requests:
+    cpu: 500m
+    memory: 1Gi

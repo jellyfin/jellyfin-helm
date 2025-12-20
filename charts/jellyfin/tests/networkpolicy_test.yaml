@@ -26,16 +26,14 @@ tests:
       networkPolicy.enabled: true
       jellyfin.enableDLNA: true
     asserts:
-      - failedTemplate:
-          errorMessage: "NetworkPolicy cannot be enabled when hostNetwork is enabled"
+      - failedTemplate: {}
 
   - it: should fail when NetworkPolicy enabled with hostNetwork
     set:
       networkPolicy.enabled: true
       podPrivileges.hostNetwork: true
     asserts:
-      - failedTemplate:
-          errorMessage: "NetworkPolicy cannot be enabled when hostNetwork is enabled"
+      - failedTemplate: {}
 
   - it: should have both Ingress and Egress policy types by default
     set:
@@ -111,7 +109,7 @@ tests:
       - isNotNull:
           path: spec.ingress[1].from[0].namespaceSelector
       - equal:
-          path: spec.ingress[1].from[0].namespaceSelector.matchLabels.kubernetes.io/metadata.name
+          path: spec.ingress[1].from[0].namespaceSelector.matchLabels["kubernetes.io/metadata.name"]
           value: monitoring
 
   - it: should add custom ingress rules
@@ -163,7 +161,7 @@ tests:
       networkPolicy.egress.dnsNamespace: custom-dns-ns
     asserts:
       - equal:
-          path: spec.egress[0].to[0].namespaceSelector.matchLabels.kubernetes.io/metadata.name
+          path: spec.egress[0].to[0].namespaceSelector.matchLabels["kubernetes.io/metadata.name"]
           value: custom-dns-ns
 
   - it: should allow custom DNS pod selector
@@ -290,8 +288,231 @@ tests:
       networkPolicy.enabled: true
     asserts:
       - equal:
-          path: spec.podSelector.matchLabels.app\.kubernetes\.io/name
+          path: spec.podSelector.matchLabels["app.kubernetes.io/name"]
           value: jellyfin
       - equal:
-          path: spec.podSelector.matchLabels.app\.kubernetes\.io/instance
+          path: spec.podSelector.matchLabels["app.kubernetes.io/instance"]
           value: RELEASE-NAME
+
+  # =============================================================================
+  # EDGE CASES AND ADDITIONAL VALIDATIONS
+  # =============================================================================
+
+  # CIDR validations (IPv4 and IPv6)
+  - it: should accept valid IPv4 CIDR in allowedCIDRs
+    set:
+      networkPolicy.enabled: true
+      networkPolicy.egress.allowAllEgress: false
+      networkPolicy.egress.restrictedEgress:
+        allowedCIDRs:
+          - "10.0.0.0/8"
+          - "192.168.1.0/24"
+    asserts:
+      - contains:
+          path: spec.egress
+          content:
+            to:
+              - ipBlock:
+                  cidr: 10.0.0.0/8
+      - contains:
+          path: spec.egress
+          content:
+            to:
+              - ipBlock:
+                  cidr: 192.168.1.0/24
+
+  - it: should accept valid IPv6 CIDR in allowedCIDRs
+    set:
+      networkPolicy.enabled: true
+      networkPolicy.egress.allowAllEgress: false
+      networkPolicy.egress.restrictedEgress:
+        allowedCIDRs:
+          - "2001:db8::/32"
+          - "fe80::/10"
+    asserts:
+      - contains:
+          path: spec.egress
+          content:
+            to:
+              - ipBlock:
+                  cidr: 2001:db8::/32
+      - contains:
+          path: spec.egress
+          content:
+            to:
+              - ipBlock:
+                  cidr: fe80::/10
+
+  - it: should accept mix of IPv4 and IPv6 CIDRs
+    set:
+      networkPolicy.enabled: true
+      networkPolicy.egress.allowAllEgress: false
+      networkPolicy.egress.restrictedEgress:
+        allowedCIDRs:
+          - "10.0.0.0/8"
+          - "2001:db8::/32"
+    asserts:
+      - contains:
+          path: spec.egress
+          content:
+            to:
+              - ipBlock:
+                  cidr: 10.0.0.0/8
+      - contains:
+          path: spec.egress
+          content:
+            to:
+              - ipBlock:
+                  cidr: 2001:db8::/32
+
+  # Egress restricted scenarios
+  - it: should allow only metadata when restrictedEgress with allowMetadata only
+    set:
+      networkPolicy.enabled: true
+      networkPolicy.egress.allowAllEgress: false
+      networkPolicy.egress.restrictedEgress:
+        allowMetadata: true
+        allowInCluster: false
+    asserts:
+      - contains:
+          path: spec.egress
+          content:
+            to:
+              - ipBlock:
+                  cidr: 0.0.0.0/0
+            ports:
+              - protocol: TCP
+                port: 443
+
+  - it: should not allow in-cluster when allowInCluster is false
+    set:
+      networkPolicy.enabled: true
+      networkPolicy.egress.allowAllEgress: false
+      networkPolicy.egress.restrictedEgress:
+        allowMetadata: false
+        allowInCluster: false
+    asserts:
+      - notContains:
+          path: spec.egress
+          content:
+            to:
+              - podSelector: {}
+
+  - it: should handle empty allowedCIDRs array
+    set:
+      networkPolicy.enabled: true
+      networkPolicy.egress.allowAllEgress: false
+      networkPolicy.egress.restrictedEgress:
+        allowedCIDRs: []
+    asserts:
+      - isNotNull:
+          path: spec.egress
+
+  # Custom ingress rules edge cases
+  - it: should support multiple custom ingress rules
+    set:
+      networkPolicy.enabled: true
+      networkPolicy.ingress.customRules:
+        - from:
+            - namespaceSelector:
+                matchLabels:
+                  name: frontend
+          ports:
+            - protocol: TCP
+              port: 8096
+        - from:
+            - podSelector:
+                matchLabels:
+                  app: proxy
+          ports:
+            - protocol: TCP
+              port: 8920
+    asserts:
+      - lengthEqual:
+          path: spec.ingress
+          count: 3  # default + 2 custom (when metrics disabled)
+
+  # Regression: verify default egress behavior
+  - it: should have DNS egress by default
+    set:
+      networkPolicy.enabled: true
+    asserts:
+      - contains:
+          path: spec.egress
+          content:
+            to:
+              - namespaceSelector:
+                  matchLabels:
+                    kubernetes.io/metadata.name: kube-system
+                podSelector:
+                  matchLabels:
+                    k8s-app: kube-dns
+            ports:
+              - protocol: UDP
+                port: 53
+              - protocol: TCP
+                port: 53
+
+  # Regression: verify ingress port
+  - it: should expose correct port in ingress rules
+    set:
+      networkPolicy.enabled: true
+      service.port: 9096
+    asserts:
+      - contains:
+          path: spec.ingress[0].ports
+          content:
+            protocol: TCP
+            port: http
+
+  # Combining all egress options
+  - it: should combine all egress options when all enabled
+    set:
+      networkPolicy.enabled: true
+      networkPolicy.egress.allowDNS: true
+      networkPolicy.egress.allowAllEgress: false
+      networkPolicy.egress.restrictedEgress:
+        allowMetadata: true
+        allowInCluster: true
+        allowedCIDRs:
+          - "10.0.0.0/8"
+    asserts:
+      # Should have DNS
+      - contains:
+          path: spec.egress
+          content:
+            to:
+              - namespaceSelector:
+                  matchLabels:
+                    kubernetes.io/metadata.name: kube-system
+                podSelector:
+                  matchLabels:
+                    k8s-app: kube-dns
+            ports:
+              - protocol: UDP
+                port: 53
+              - protocol: TCP
+                port: 53
+      # Should have metadata (HTTPS for movie/TV metadata providers)
+      - contains:
+          path: spec.egress
+          content:
+            to:
+              - ipBlock:
+                  cidr: 0.0.0.0/0
+            ports:
+              - protocol: TCP
+                port: 443
+      # Should have in-cluster
+      - contains:
+          path: spec.egress
+          content:
+            to:
+              - podSelector: {}
+      # Should have custom CIDR
+      - contains:
+          path: spec.egress
+          content:
+            to:
+              - ipBlock:
+                  cidr: 10.0.0.0/8

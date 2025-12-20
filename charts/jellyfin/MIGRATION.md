@@ -10,9 +10,10 @@
 extraPodLabels -> podLabels
 extraPodAnnotations -> podAnnotations
 ```
-3. The `extraEnvVars` key has been moved and renamed to `jellyfin.env`.
-4. `extraVolumes` has been moved to `volumes`, and `extraVolumeMounts` has been moved to `volumeMounts`.
-5. The `extraExistingClaimMounts` key has been removed, as it can now be represented with `volumes` and `volumeMounts`.
+
+1. The `extraEnvVars` key has been moved and renamed to `jellyfin.env`.
+2. `extraVolumes` has been moved to `volumes`, and `extraVolumeMounts` has been moved to `volumeMounts`.
+3. The `extraExistingClaimMounts` key has been removed, as it can now be represented with `volumes` and `volumeMounts`.
 
 ### Service
 

@@ -1,0 +1,447 @@
+suite: test probes (startup, liveness, readiness)
+templates:
+  - deployment.yaml
+tests:
+  # =============================================================================
+  # STARTUP PROBE TESTS
+  # =============================================================================
+
+  - it: should have startup probe by default
+    asserts:
+      - isNotNull:
+          path: spec.template.spec.containers[0].startupProbe
+
+  - it: should use tcpSocket for startup probe by default
+    asserts:
+      - isNotNull:
+          path: spec.template.spec.containers[0].startupProbe.tcpSocket
+      - equal:
+          path: spec.template.spec.containers[0].startupProbe.tcpSocket.port
+          value: http
+
+  - it: should have default startup probe timing values
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].startupProbe.initialDelaySeconds
+          value: 0
+      - equal:
+          path: spec.template.spec.containers[0].startupProbe.periodSeconds
+          value: 10
+      - equal:
+          path: spec.template.spec.containers[0].startupProbe.failureThreshold
+          value: 30
+
+  - it: should allow custom initialDelaySeconds for startup probe
+    set:
+      startupProbe.initialDelaySeconds: 5
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].startupProbe.initialDelaySeconds
+          value: 5
+
+  - it: should allow custom periodSeconds for startup probe
+    set:
+      startupProbe.periodSeconds: 15
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].startupProbe.periodSeconds
+          value: 15
+
+  - it: should allow custom failureThreshold for startup probe
+    set:
+      startupProbe.failureThreshold: 60
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].startupProbe.failureThreshold
+          value: 60
+
+  - it: should support httpGet for startup probe
+    set:
+      startupProbe:
+        httpGet:
+          path: /health
+          port: http
+        initialDelaySeconds: 0
+        periodSeconds: 10
+        failureThreshold: 30
+    asserts:
+      - isNotNull:
+          path: spec.template.spec.containers[0].startupProbe.httpGet
+      - equal:
+          path: spec.template.spec.containers[0].startupProbe.httpGet.path
+          value: /health
+      - equal:
+          path: spec.template.spec.containers[0].startupProbe.httpGet.port
+          value: http
+
+  - it: should support exec for startup probe
+    set:
+      startupProbe:
+        exec:
+          command: ['/bin/sh', '-c', 'curl -f http://localhost:8096/health']
+        initialDelaySeconds: 0
+        periodSeconds: 10
+        failureThreshold: 30
+    asserts:
+      - isNotNull:
+          path: spec.template.spec.containers[0].startupProbe.exec
+      - contains:
+          path: spec.template.spec.containers[0].startupProbe.exec.command
+          content: '/bin/sh'
+
+  - it: should support custom port for startup probe
+    set:
+      startupProbe.tcpSocket.port: 9000
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].startupProbe.tcpSocket.port
+          value: 9000
+
+  - it: should calculate correct startup timeout window
+    set:
+      startupProbe.periodSeconds: 10
+      startupProbe.failureThreshold: 30
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].startupProbe.periodSeconds
+          value: 10
+      - equal:
+          path: spec.template.spec.containers[0].startupProbe.failureThreshold
+          value: 30
+    # Total startup time allowed: 10 * 30 = 300 seconds (5 minutes)
+
+  # =============================================================================
+  # LIVENESS PROBE TESTS
+  # =============================================================================
+
+  - it: should have liveness probe by default
+    asserts:
+      - isNotNull:
+          path: spec.template.spec.containers[0].livenessProbe
+
+  - it: should use httpGet for liveness probe by default
+    asserts:
+      - isNotNull:
+          path: spec.template.spec.containers[0].livenessProbe.httpGet
+      - equal:
+          path: spec.template.spec.containers[0].livenessProbe.httpGet.path
+          value: /health
+      - equal:
+          path: spec.template.spec.containers[0].livenessProbe.httpGet.port
+          value: http
+
+  - it: should have default liveness probe initialDelaySeconds
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].livenessProbe.initialDelaySeconds
+          value: 10
+
+  - it: should allow custom initialDelaySeconds for liveness probe
+    set:
+      livenessProbe.initialDelaySeconds: 30
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].livenessProbe.initialDelaySeconds
+          value: 30
+
+  - it: should allow custom periodSeconds for liveness probe
+    set:
+      livenessProbe.periodSeconds: 20
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].livenessProbe.periodSeconds
+          value: 20
+
+  - it: should allow custom failureThreshold for liveness probe
+    set:
+      livenessProbe.failureThreshold: 5
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].livenessProbe.failureThreshold
+          value: 5
+
+  - it: should allow custom timeoutSeconds for liveness probe
+    set:
+      livenessProbe.timeoutSeconds: 5
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].livenessProbe.timeoutSeconds
+          value: 5
+
+  - it: should allow custom successThreshold for liveness probe
+    set:
+      livenessProbe.successThreshold: 2
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].livenessProbe.successThreshold
+          value: 2
+
+  - it: should support tcpSocket for liveness probe
+    set:
+      livenessProbe:
+        tcpSocket:
+          port: http
+        initialDelaySeconds: 10
+    asserts:
+      - isNotNull:
+          path: spec.template.spec.containers[0].livenessProbe.tcpSocket
+      - equal:
+          path: spec.template.spec.containers[0].livenessProbe.tcpSocket.port
+          value: http
+
+  - it: should support exec for liveness probe
+    set:
+      livenessProbe:
+        exec:
+          command: ['/bin/sh', '-c', 'pgrep jellyfin']
+        initialDelaySeconds: 10
+    asserts:
+      - isNotNull:
+          path: spec.template.spec.containers[0].livenessProbe.exec
+      - contains:
+          path: spec.template.spec.containers[0].livenessProbe.exec.command
+          content: 'pgrep jellyfin'
+
+  - it: should support custom httpGet path for liveness probe
+    set:
+      livenessProbe.httpGet.path: /custom/health
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].livenessProbe.httpGet.path
+          value: /custom/health
+
+  - it: should support httpHeaders for liveness probe
+    set:
+      livenessProbe:
+        httpGet:
+          path: /health
+          port: http
+          httpHeaders:
+            - name: X-Custom-Header
+              value: CustomValue
+        initialDelaySeconds: 10
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].livenessProbe.httpGet.httpHeaders[0].name
+          value: X-Custom-Header
+      - equal:
+          path: spec.template.spec.containers[0].livenessProbe.httpGet.httpHeaders[0].value
+          value: CustomValue
+
+  # =============================================================================
+  # READINESS PROBE TESTS
+  # =============================================================================
+
+  - it: should have readiness probe by default
+    asserts:
+      - isNotNull:
+          path: spec.template.spec.containers[0].readinessProbe
+
+  - it: should use httpGet for readiness probe by default
+    asserts:
+      - isNotNull:
+          path: spec.template.spec.containers[0].readinessProbe.httpGet
+      - equal:
+          path: spec.template.spec.containers[0].readinessProbe.httpGet.path
+          value: /health
+      - equal:
+          path: spec.template.spec.containers[0].readinessProbe.httpGet.port
+          value: http
+
+  - it: should have default readiness probe initialDelaySeconds
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].readinessProbe.initialDelaySeconds
+          value: 10
+
+  - it: should allow custom initialDelaySeconds for readiness probe
+    set:
+      readinessProbe.initialDelaySeconds: 15
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].readinessProbe.initialDelaySeconds
+          value: 15
+
+  - it: should allow custom periodSeconds for readiness probe
+    set:
+      readinessProbe.periodSeconds: 15
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].readinessProbe.periodSeconds
+          value: 15
+
+  - it: should allow custom failureThreshold for readiness probe
+    set:
+      readinessProbe.failureThreshold: 6
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].readinessProbe.failureThreshold
+          value: 6
+
+  - it: should allow custom timeoutSeconds for readiness probe
+    set:
+      readinessProbe.timeoutSeconds: 3
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].readinessProbe.timeoutSeconds
+          value: 3
+
+  - it: should allow custom successThreshold for readiness probe
+    set:
+      readinessProbe.successThreshold: 2
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].readinessProbe.successThreshold
+          value: 2
+
+  - it: should support tcpSocket for readiness probe
+    set:
+      readinessProbe:
+        tcpSocket:
+          port: http
+        initialDelaySeconds: 10
+    asserts:
+      - isNotNull:
+          path: spec.template.spec.containers[0].readinessProbe.tcpSocket
+      - equal:
+          path: spec.template.spec.containers[0].readinessProbe.tcpSocket.port
+          value: http
+
+  - it: should support exec for readiness probe
+    set:
+      readinessProbe:
+        exec:
+          command: ['/bin/sh', '-c', 'curl -f http://localhost:8096/health']
+        initialDelaySeconds: 10
+    asserts:
+      - isNotNull:
+          path: spec.template.spec.containers[0].readinessProbe.exec
+
+  - it: should support custom httpGet path for readiness probe
+    set:
+      readinessProbe.httpGet.path: /ready
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].readinessProbe.httpGet.path
+          value: /ready
+
+  # =============================================================================
+  # EDGE CASES AND COMBINED SCENARIOS
+  # =============================================================================
+
+  - it: should allow all three probes with different configurations
+    set:
+      startupProbe:
+        tcpSocket:
+          port: http
+        initialDelaySeconds: 0
+        periodSeconds: 10
+        failureThreshold: 60
+      livenessProbe:
+        httpGet:
+          path: /health
+          port: http
+        initialDelaySeconds: 30
+        periodSeconds: 20
+      readinessProbe:
+        httpGet:
+          path: /health
+          port: http
+        initialDelaySeconds: 15
+        periodSeconds: 10
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].startupProbe.failureThreshold
+          value: 60
+      - equal:
+          path: spec.template.spec.containers[0].livenessProbe.initialDelaySeconds
+          value: 30
+      - equal:
+          path: spec.template.spec.containers[0].readinessProbe.initialDelaySeconds
+          value: 15
+
+  - it: should support all timing parameters for all probes
+    set:
+      startupProbe:
+        tcpSocket:
+          port: http
+        initialDelaySeconds: 0
+        periodSeconds: 10
+        failureThreshold: 30
+        timeoutSeconds: 5
+        successThreshold: 1
+      livenessProbe:
+        httpGet:
+          path: /health
+          port: http
+        initialDelaySeconds: 20
+        periodSeconds: 15
+        failureThreshold: 4
+        timeoutSeconds: 3
+        successThreshold: 1
+      readinessProbe:
+        httpGet:
+          path: /health
+          port: http
+        initialDelaySeconds: 10
+        periodSeconds: 5
+        failureThreshold: 3
+        timeoutSeconds: 2
+        successThreshold: 2
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].startupProbe.timeoutSeconds
+          value: 5
+      - equal:
+          path: spec.template.spec.containers[0].livenessProbe.timeoutSeconds
+          value: 3
+      - equal:
+          path: spec.template.spec.containers[0].readinessProbe.timeoutSeconds
+          value: 2
+      - equal:
+          path: spec.template.spec.containers[0].readinessProbe.successThreshold
+          value: 2
+
+  # Regression: verify all three probes are always present
+  - it: should always have all three probes configured
+    asserts:
+      - isNotNull:
+          path: spec.template.spec.containers[0].startupProbe
+      - isNotNull:
+          path: spec.template.spec.containers[0].livenessProbe
+      - isNotNull:
+          path: spec.template.spec.containers[0].readinessProbe
+
+  # Regression: verify default probe types
+  - it: should use correct probe types by default
+    asserts:
+      - isNotNull:
+          path: spec.template.spec.containers[0].startupProbe.tcpSocket
+      - isNotNull:
+          path: spec.template.spec.containers[0].livenessProbe.httpGet
+      - isNotNull:
+          path: spec.template.spec.containers[0].readinessProbe.httpGet
+
+  # Different probe types combination
+  - it: should support different probe types for each probe
+    set:
+      startupProbe:
+        tcpSocket:
+          port: http
+        initialDelaySeconds: 0
+      livenessProbe:
+        httpGet:
+          path: /health
+          port: http
+        initialDelaySeconds: 10
+      readinessProbe:
+        exec:
+          command: ['/bin/sh', '-c', 'test -f /tmp/ready']
+        initialDelaySeconds: 5
+    asserts:
+      - isNotNull:
+          path: spec.template.spec.containers[0].startupProbe.tcpSocket
+      - isNotNull:
+          path: spec.template.spec.containers[0].livenessProbe.httpGet
+      - isNotNull:
+          path: spec.template.spec.containers[0].readinessProbe.exec

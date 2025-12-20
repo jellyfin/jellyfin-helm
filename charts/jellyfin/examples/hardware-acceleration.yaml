@@ -1,0 +1,62 @@
+# Hardware Acceleration (Intel QuickSync)
+# Enables GPU acceleration for video transcoding
+#
+# Prerequisites:
+# - Node with Intel GPU
+# - GPU device plugin installed in cluster
+#
+# Usage:
+#   helm install jellyfin jellyfin/jellyfin -f hardware-acceleration.yaml
+#
+# For other GPU types (AMD/NVIDIA), adjust device paths and security context accordingly.
+# See: https://jellyfin.org/docs/general/administration/hardware-acceleration/
+
+# Security context for hardware acceleration
+securityContext:
+  # Required capabilities for GPU access
+  capabilities:
+    add:
+      - SYS_ADMIN
+    drop:
+      - ALL
+  privileged: false
+  runAsUser: 1000
+  runAsGroup: 1000
+  fsGroup: 1000
+
+# Mount GPU device
+volumes:
+  - name: render-device
+    hostPath:
+      path: /dev/dri
+      type: Directory
+
+volumeMounts:
+  - name: render-device
+    mountPath: /dev/dri
+
+# Optional: Resource limits for GPU
+# Uncomment and adjust for your GPU device plugin
+# resources:
+#   limits:
+#     gpu.intel.com/i915: 1
+#   requests:
+#     gpu.intel.com/i915: 1
+
+# Persistent storage
+persistence:
+  config:
+    enabled: true
+    size: 10Gi
+  media:
+    enabled: true
+    size: 500Gi
+  cache:
+    enabled: true
+    size: 50Gi  # Larger cache for transcoding
+
+# Transcoding environment variables (optional)
+jellyfin:
+  env:
+    - name: JELLYFIN_PublishedServerUrl
+      value: "https://jellyfin.example.com"

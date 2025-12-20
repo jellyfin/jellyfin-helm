@@ -1,0 +1,175 @@
+suite: test deployment security contexts and privileges
+templates:
+  - deployment.yaml
+tests:
+  # POD SECURITY CONTEXT
+  - it: should not have podSecurityContext by default
+    asserts:
+      - isNull:
+          path: spec.template.spec.securityContext
+
+  - it: should set podSecurityContext when specified
+    set:
+      podSecurityContext:
+        fsGroup: 1000
+        runAsUser: 1000
+        runAsGroup: 1000
+    asserts:
+      - equal:
+          path: spec.template.spec.securityContext.fsGroup
+          value: 1000
+      - equal:
+          path: spec.template.spec.securityContext.runAsUser
+          value: 1000
+
+  - it: should support runAsNonRoot
+    set:
+      podSecurityContext:
+        runAsNonRoot: true
+    asserts:
+      - equal:
+          path: spec.template.spec.securityContext.runAsNonRoot
+          value: true
+
+  # CONTAINER SECURITY CONTEXT
+  - it: should not have container securityContext by default
+    asserts:
+      - isNull:
+          path: spec.template.spec.containers[0].securityContext
+
+  - it: should set container securityContext when specified
+    set:
+      securityContext:
+        allowPrivilegeEscalation: false
+        readOnlyRootFilesystem: true
+        runAsNonRoot: true
+        runAsUser: 1000
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].securityContext.allowPrivilegeEscalation
+          value: false
+      - equal:
+          path: spec.template.spec.containers[0].securityContext.readOnlyRootFilesystem
+          value: true
+
+  - it: should support capabilities
+    set:
+      securityContext:
+        capabilities:
+          drop: [ALL]
+          add: [NET_BIND_SERVICE]
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].securityContext.capabilities.drop
+          content: ALL
+      - contains:
+          path: spec.template.spec.containers[0].securityContext.capabilities.add
+          content: NET_BIND_SERVICE
+
+  # POD PRIVILEGES
+  - it: should not enable hostNetwork by default
+    asserts:
+      - isNull:
+          path: spec.template.spec.hostNetwork
+
+  - it: should enable hostNetwork when specified
+    set:
+      podPrivileges.hostNetwork: true
+    asserts:
+      - equal:
+          path: spec.template.spec.hostNetwork
+          value: true
+
+  - it: should set dnsPolicy to ClusterFirstWithHostNet when hostNetwork enabled
+    set:
+      podPrivileges.hostNetwork: true
+    asserts:
+      - equal:
+          path: spec.template.spec.dnsPolicy
+          value: ClusterFirstWithHostNet
+
+  - it: should not enable hostIPC by default
+    asserts:
+      - isNull:
+          path: spec.template.spec.hostIPC
+
+  - it: should enable hostIPC when specified
+    set:
+      podPrivileges.hostIPC: true
+    asserts:
+      - equal:
+          path: spec.template.spec.hostIPC
+          value: true
+
+  - it: should not enable hostPID by default
+    asserts:
+      - isNull:
+          path: spec.template.spec.hostPID
+
+  - it: should enable hostPID when specified
+    set:
+      podPrivileges.hostPID: true
+    asserts:
+      - equal:
+          path: spec.template.spec.hostPID
+          value: true
+
+  # RUNTIME AND PRIORITY CLASSES
+  - it: should not set runtimeClassName by default
+    asserts:
+      - isNull:
+          path: spec.template.spec.runtimeClassName
+
+  - it: should set runtimeClassName when specified
+    set:
+      runtimeClassName: nvidia
+    asserts:
+      - equal:
+          path: spec.template.spec.runtimeClassName
+          value: nvidia
+
+  - it: should not set priorityClassName by default
+    asserts:
+      - isNull:
+          path: spec.template.spec.priorityClassName
+
+  - it: should set priorityClassName when specified
+    set:
+      priorityClassName: high-priority
+    asserts:
+      - equal:
+          path: spec.template.spec.priorityClassName
+          value: high-priority
+
+  # COMPLETE SCENARIOS
+  - it: should configure for maximum security
+    set:
+      podSecurityContext:
+        fsGroup: 1000
+        runAsUser: 1000
+        runAsNonRoot: true
+      securityContext:
+        allowPrivilegeEscalation: false
+        readOnlyRootFilesystem: false
+        runAsNonRoot: true
+        capabilities:
+          drop: [ALL]
+    asserts:
+      - equal:
+          path: spec.template.spec.securityContext.runAsNonRoot
+          value: true
+      - equal:
+          path: spec.template.spec.containers[0].securityContext.allowPrivilegeEscalation
+          value: false
+
+  - it: should configure for DLNA with hostNetwork
+    set:
+      jellyfin.enableDLNA: true
+      podPrivileges.hostNetwork: true
+    asserts:
+      - equal:
+          path: spec.template.spec.hostNetwork
+          value: true
+      - equal:
+          path: spec.template.spec.dnsPolicy
+          value: ClusterFirstWithHostNet

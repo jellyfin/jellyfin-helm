@@ -1,0 +1,93 @@
+name: PR Checks
+
+on:
+  pull_request:
+    paths:
+      - 'charts/**'
+      - '.github/workflows/pr-checks.yaml'
+      - 'ct.yaml'
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  lint-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Set up Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: v3.14.0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      # Check 1: Verify helm-docs is up to date
+      - name: Verify helm-docs up to date
+        uses: losisin/helm-docs-github-action@v1
+        with:
+          fail-on-diff: true
+
+      # Check 2: Run helm-unittest tests
+      - name: Install helm-unittest plugin
+        run: helm plugin install https://github.com/helm-unittest/helm-unittest.git
+
+      - name: Run helm-unittest
+        run: |
+          helm unittest charts/jellyfin --with-subchart=false
+
+      # Check 3: Helm lint (includes schema validation)
+      - name: Helm lint
+        run: helm lint charts/jellyfin
+
+      # Check 4: Helm template validation
+      - name: Helm template validation
+        run: helm template test charts/jellyfin --debug > /dev/null
+
+      # Check 5: Chart-testing (ct lint)
+      - name: Set up chart-testing
+        uses: helm/chart-testing-action@v2
+
+      - name: Run chart-testing (list-changed)
+        id: list-changed
+        run: |
+          changed=$(ct list-changed --target-branch master --config ct.yaml)
+          if [[ -n "$changed" ]]; then
+            echo "changed=true" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Run chart-testing (lint)
+        if: steps.list-changed.outputs.changed == 'true'
+        run: ct lint --config ct.yaml
+
+      # Check 6: Kubernetes manifest validation with kubeconform
+      - name: Install kubeconform
+        run: |
+          # renovate: datasource=github-releases depName=yannh/kubeconform
+          VERSION=v0.6.7
+          wget -qO- https://github.com/yannh/kubeconform/releases/download/${VERSION}/kubeconform-linux-amd64.tar.gz | tar xz
+          sudo mv kubeconform /usr/local/bin/
+          kubeconform -v
+
+      - name: Validate Kubernetes manifests
+        run: |
+          # Validate against multiple Kubernetes versions (last 5 stable releases)
+          for k8s_version in 1.30.0 1.31.0 1.32.0 1.33.0 1.34.0; do
+            echo "Validating against Kubernetes $k8s_version"
+            helm template test charts/jellyfin \
+              | kubeconform -strict -summary -kubernetes-version $k8s_version
+          done
+
+      # Check 7: Markdown lint
+      - name: Lint markdown files
+        uses: DavidAnson/markdownlint-cli2-action@v18
+        with:
+          globs: 'charts/**/*.md'

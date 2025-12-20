@@ -117,3 +117,134 @@ tests:
           content:
             name: new-way
             image: alpine:3.18
+
+  # =============================================================================
+  # EDGE CASES AND FULL SPECIFICATION
+  # =============================================================================
+
+  - it: should handle empty extraInitContainers array
+    set:
+      extraInitContainers: []
+    asserts:
+      - isNull:
+          path: spec.template.spec.initContainers
+
+  - it: should preserve full container specification with all fields
+    set:
+      extraInitContainers:
+        - name: full-spec-init
+          image: busybox:1.35
+          imagePullPolicy: IfNotPresent
+          command: ['sh', '-c']
+          args: ['echo complete']
+          env:
+            - name: ENV_VAR
+              value: test
+          envFrom:
+            - configMapRef:
+                name: init-config
+          volumeMounts:
+            - name: config
+              mountPath: /config
+            - name: media
+              mountPath: /media
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 200m
+              memory: 256Mi
+          securityContext:
+            runAsUser: 0
+            allowPrivilegeEscalation: false
+    asserts:
+      - equal:
+          path: spec.template.spec.initContainers[0].imagePullPolicy
+          value: IfNotPresent
+      - equal:
+          path: spec.template.spec.initContainers[0].env[0].name
+          value: ENV_VAR
+      - equal:
+          path: spec.template.spec.initContainers[0].envFrom[0].configMapRef.name
+          value: init-config
+      - lengthEqual:
+          path: spec.template.spec.initContainers[0].volumeMounts
+          count: 2
+      - equal:
+          path: spec.template.spec.initContainers[0].resources.requests.cpu
+          value: 100m
+      - equal:
+          path: spec.template.spec.initContainers[0].resources.limits.memory
+          value: 256Mi
+      - equal:
+          path: spec.template.spec.initContainers[0].securityContext.allowPrivilegeEscalation
+          value: false
+
+  - it: should verify merge order (deprecated first, then extra)
+    set:
+      initContainers:
+        - name: first-deprecated
+          image: busybox:1.35
+      extraInitContainers:
+        - name: second-extra
+          image: alpine:3.18
+    asserts:
+      - equal:
+          path: spec.template.spec.initContainers[0].name
+          value: first-deprecated
+      - equal:
+          path: spec.template.spec.initContainers[1].name
+          value: second-extra
+
+  - it: should support three or more init containers
+    set:
+      extraInitContainers:
+        - name: init-1
+          image: busybox:1.35
+        - name: init-2
+          image: alpine:3.18
+        - name: init-3
+          image: ubuntu:22.04
+        - name: init-4
+          image: debian:12
+    asserts:
+      - lengthEqual:
+          path: spec.template.spec.initContainers
+          count: 4
+      - equal:
+          path: spec.template.spec.initContainers[2].name
+          value: init-3
+      - equal:
+          path: spec.template.spec.initContainers[3].name
+          value: init-4
+
+  # Regression: verify initContainers comes first when merged
+  - it: should always place deprecated initContainers before extraInitContainers
+    set:
+      initContainers:
+        - name: deprecated-init
+          image: busybox:1.35
+        - name: deprecated-init-2
+          image: busybox:1.36
+      extraInitContainers:
+        - name: extra-init
+          image: alpine:3.18
+        - name: extra-init-2
+          image: alpine:3.19
+    asserts:
+      - lengthEqual:
+          path: spec.template.spec.initContainers
+          count: 4
+      - equal:
+          path: spec.template.spec.initContainers[0].name
+          value: deprecated-init
+      - equal:
+          path: spec.template.spec.initContainers[1].name
+          value: deprecated-init-2
+      - equal:
+          path: spec.template.spec.initContainers[2].name
+          value: extra-init
+      - equal:
+          path: spec.template.spec.initContainers[3].name
+          value: extra-init-2
