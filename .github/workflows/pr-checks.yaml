@@ -43,7 +43,6 @@ jobs:
       - name: Run helm-unittest
         run: |
           helm unittest charts/jellyfin --with-subchart=false
-          echo "✅ All 603 tests passed"
 
       # Check 3: Helm lint (includes schema validation)
       - name: Helm lint
