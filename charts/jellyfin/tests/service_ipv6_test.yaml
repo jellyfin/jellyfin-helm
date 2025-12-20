@@ -1,0 +1,128 @@
+suite: test service ipv6 and dual-stack
+templates:
+  - service.yaml
+tests:
+  - it: should not set ipFamilyPolicy by default
+    asserts:
+      - isNull:
+          path: spec.ipFamilyPolicy
+
+  - it: should not set ipFamilies by default
+    asserts:
+      - isNull:
+          path: spec.ipFamilies
+
+  - it: should set ipFamilyPolicy when specified
+    set:
+      service.ipFamilyPolicy: PreferDualStack
+    asserts:
+      - equal:
+          path: spec.ipFamilyPolicy
+          value: PreferDualStack
+
+  - it: should support SingleStack policy
+    set:
+      service.ipFamilyPolicy: SingleStack
+    asserts:
+      - equal:
+          path: spec.ipFamilyPolicy
+          value: SingleStack
+
+  - it: should support RequireDualStack policy
+    set:
+      service.ipFamilyPolicy: RequireDualStack
+    asserts:
+      - equal:
+          path: spec.ipFamilyPolicy
+          value: RequireDualStack
+
+  - it: should set ipFamilies for IPv4 only
+    set:
+      service.ipFamilies:
+        - IPv4
+    asserts:
+      - equal:
+          path: spec.ipFamilies[0]
+          value: IPv4
+
+  - it: should set ipFamilies for IPv6 only
+    set:
+      service.ipFamilies:
+        - IPv6
+    asserts:
+      - equal:
+          path: spec.ipFamilies[0]
+          value: IPv6
+
+  - it: should set ipFamilies for dual-stack IPv4 primary
+    set:
+      service.ipFamilies:
+        - IPv4
+        - IPv6
+    asserts:
+      - equal:
+          path: spec.ipFamilies[0]
+          value: IPv4
+      - equal:
+          path: spec.ipFamilies[1]
+          value: IPv6
+
+  - it: should set ipFamilies for dual-stack IPv6 primary
+    set:
+      service.ipFamilies:
+        - IPv6
+        - IPv4
+    asserts:
+      - equal:
+          path: spec.ipFamilies[0]
+          value: IPv6
+      - equal:
+          path: spec.ipFamilies[1]
+          value: IPv4
+
+  - it: should work with PreferDualStack and both families
+    set:
+      service.ipFamilyPolicy: PreferDualStack
+      service.ipFamilies:
+        - IPv4
+        - IPv6
+    asserts:
+      - equal:
+          path: spec.ipFamilyPolicy
+          value: PreferDualStack
+      - equal:
+          path: spec.ipFamilies[0]
+          value: IPv4
+      - equal:
+          path: spec.ipFamilies[1]
+          value: IPv6
+
+  - it: should work with RequireDualStack and both families
+    set:
+      service.ipFamilyPolicy: RequireDualStack
+      service.ipFamilies:
+        - IPv6
+        - IPv4
+    asserts:
+      - equal:
+          path: spec.ipFamilyPolicy
+          value: RequireDualStack
+      - equal:
+          path: spec.ipFamilies[0]
+          value: IPv6
+      - equal:
+          path: spec.ipFamilies[1]
+          value: IPv4
+
+  - it: should work with SingleStack IPv6 only
+    set:
+      service.ipFamilyPolicy: SingleStack
+      service.ipFamilies:
+        - IPv6
+    asserts:
+      - equal:
+          path: spec.ipFamilyPolicy
+          value: SingleStack
+      - equal:
+          path: spec.ipFamilies[0]
+          value: IPv6

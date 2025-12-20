@@ -14,6 +14,9 @@ spec:
     {{- toYaml . | trim | nindent 4 }}
   {{- end }}
   replicas: {{ .Values.replicaCount }}
+  {{- with .Values.revisionHistoryLimit }}
+  revisionHistoryLimit: {{ . }}
+  {{- end }}
   selector:
     matchLabels:
       {{- include "jellyfin.selectorLabels" . | nindent 6 }}
@@ -57,6 +60,10 @@ spec:
           {{- end }}
           {{- with .Values.jellyfin.args }}
           args:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.jellyfin.envFrom }}
+          envFrom:
             {{- toYaml . | nindent 12 }}
           {{- end }}
           {{- with .Values.jellyfin.env }}
@@ -108,6 +115,10 @@ spec:
               hostPort: 1900
               protocol: UDP
             {{- end }}
+          {{- with .Values.startupProbe }}
+          startupProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
           livenessProbe:
             {{- toYaml .Values.livenessProbe | nindent 12 }}
           readinessProbe:
@@ -119,15 +130,24 @@ spec:
               name: config
             - mountPath: /media
               name: media
+            - mountPath: /cache
+              name: cache
             {{- with .Values.volumeMounts }}
             {{- toYaml . | nindent 12 }}
             {{- end }}
         {{- with .Values.extraContainers }}
         {{- toYaml . | nindent 8 }}
         {{- end }}
-      {{- with .Values.initContainers }}
+      {{- if or .Values.initContainers .Values.extraInitContainers }}
+      # Support both initContainers (deprecated) and extraInitContainers for backward compatibility.
+      # TODO: Remove initContainers support after 2030
       initContainers:
-        {{- toYaml . | nindent 6 }}
+        {{- if .Values.initContainers }}
+        {{- toYaml .Values.initContainers | nindent 6 }}
+        {{- end }}
+        {{- if .Values.extraInitContainers }}
+        {{- toYaml .Values.extraInitContainers | nindent 6 }}
+        {{- end }}
       {{- end }}
       volumes:
         - name: config
@@ -145,6 +165,21 @@ spec:
             {{- else if eq .Values.persistence.media.type "hostPath" }}
           hostPath:
             path: {{ .Values.persistence.media.hostPath }}
+            type: Directory
+            {{- else }}
+          emptyDir: {}
+            {{- end }}
+          {{- else }}
+          emptyDir: {}
+          {{- end }}
+        - name: cache
+          {{- if .Values.persistence.cache.enabled }}
+            {{- if eq .Values.persistence.cache.type "pvc" }}
+          persistentVolumeClaim:
+            claimName: {{ if .Values.persistence.cache.existingClaim }}{{ .Values.persistence.cache.existingClaim }}{{- else }}{{ template "jellyfin.fullname" . }}-cache{{- end }}
+            {{- else if eq .Values.persistence.cache.type "hostPath" }}
+          hostPath:
+            path: {{ .Values.persistence.cache.hostPath }}
             type: Directory
             {{- else }}
           emptyDir: {}

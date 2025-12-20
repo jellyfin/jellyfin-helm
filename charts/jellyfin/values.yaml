@@ -4,6 +4,12 @@
 # -- Number of Jellyfin replicas to start. Should be left at 1.
 replicaCount: 1
 
+# -- Number of old ReplicaSets to retain for rollback history.
+# Set to 0 to disable revision history (not recommended).
+# If not specified, Kubernetes defaults to 10.
+# See: https://kubernetes.io/docs/concepts/workloads/controllers/deployment/#revision-history-limit
+revisionHistoryLimit: 3
+
 # -- Image pull secrets to authenticate with private repositories.
 # See: https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/
 imagePullSecrets: []
@@ -85,8 +91,17 @@ service:
   # -- Service type (ClusterIP, NodePort, or LoadBalancer).
   type: ClusterIP
   # -- Configure dual-stack IP family policy. See: https://kubernetes.io/docs/concepts/services-networking/dual-stack/
+  # Options: SingleStack, PreferDualStack, RequireDualStack
+  # For IPv6-only clusters, use "SingleStack" with ipFamilies: ["IPv6"]
+  # For dual-stack, use "PreferDualStack" or "RequireDualStack" with ipFamilies: ["IPv4", "IPv6"] or ["IPv6", "IPv4"]
   ipFamilyPolicy: ""
   # -- Supported IP families (IPv4, IPv6).
+  # Examples:
+  #   IPv4 only: ["IPv4"]
+  #   IPv6 only: ["IPv6"]
+  #   Dual-stack (IPv4 primary): ["IPv4", "IPv6"]
+  #   Dual-stack (IPv6 primary): ["IPv6", "IPv4"]
+  # Note: When using IPv6, ensure your health checks are compatible (consider using httpGet instead of tcpSocket)
   ipFamilies: []
   # -- Specific IP address for the LoadBalancer.
   loadBalancerIP: ""
@@ -124,6 +139,25 @@ ingress:
   #    hosts:
   #      - chart-example.local
 
+# -- HTTPRoute configuration for Gateway API. See: https://gateway-api.sigs.k8s.io/
+httpRoute:
+  enabled: false
+  annotations: {}
+  # -- Gateway references to attach this HTTPRoute to
+  parentRefs: []
+    # - name: my-gateway
+    #   namespace: gateway-system
+    #   sectionName: https
+  # -- Hostnames to match for this HTTPRoute
+  hostnames: []
+    # - jellyfin.example.com
+  # -- Rules for routing traffic
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /
+
 # -- Resource requests and limits for the Jellyfin container.
 resources: {}
   # limits:
@@ -133,21 +167,39 @@ resources: {}
   #   cpu: 100m
   #   memory: 128Mi
 
-# -- Configure liveness probe for Jellyfin.
-livenessProbe:
-  initialDelaySeconds: 10
+# -- Configure startup probe for Jellyfin.
+# This probe gives Jellyfin enough time to start, especially with large media libraries.
+# After the startup probe succeeds once, liveness and readiness probes take over.
+startupProbe:
   tcpSocket:
     port: http
+  initialDelaySeconds: 0
+  periodSeconds: 10
+  failureThreshold: 30
+  # With these defaults, Jellyfin has up to 5 minutes (30 * 10s) to start.
+  # Adjust failureThreshold if you have very large media libraries or slow storage.
+
+# -- Configure liveness probe for Jellyfin.
+# This probe is disabled during startup (startup probe handles initial checks).
+# Uses httpGet for compatibility with both IPv4 and IPv6.
+livenessProbe:
+  httpGet:
+    path: /health
+    port: http
+  initialDelaySeconds: 10
   # successThreshold: 1
   # failureThreshold: 3
   # timeoutSeconds: 1
   # periodSeconds: 10
 
 # -- Configure readiness probe for Jellyfin.
+# This probe is disabled during startup (startup probe handles initial checks).
+# Uses httpGet for compatibility with both IPv4 and IPv6.
 readinessProbe:
-  initialDelaySeconds: 10
-  tcpSocket:
+  httpGet:
+    path: /health
     port: http
+  initialDelaySeconds: 10
   # successThreshold: 1
   # failureThreshold: 3
   # timeoutSeconds: 1
@@ -191,8 +243,24 @@ jellyfin:
   command: []
   # -- Additional arguments for the entrypoint command.
   args: []
+  # -- Load environment variables from ConfigMap or Secret.
+  # See: https://kubernetes.io/docs/tasks/configure-pod-container/configure-pod-configmap/#configure-all-key-value-pairs-in-a-configmap-as-container-environment-variables
+  # Example:
+  # envFrom:
+  #   - configMapRef:
+  #       name: jellyfin-config
+  #   - secretRef:
+  #       name: jellyfin-secrets
+  envFrom: []
   # -- Additional environment variables for the container.
+  # Example: Workaround for inotify limits (see Troubleshooting section in README)
+  # Example:
+  # env:
+  #   - name: JELLYFIN_CACHE_DIR
+  #     value: /cache
   env: []
+  # - name: DOTNET_USE_POLLING_FILE_WATCHER
+  #   value: "1"
 
 persistence:
   config:
@@ -216,6 +284,22 @@ persistence:
     # -- PVC specific settings, only used if type is 'pvc'.
     accessMode: ReadWriteOnce
     size: 25Gi
+    # -- Custom annotations to be added to the PVC
+    annotations: {}
+    # -- If undefined (the default) or set to null, no storageClassName spec is set, choosing the default provisioner.
+    storageClass: ''
+    ## -- Use an existing PVC for this mount
+    # existingClaim: ''
+  cache:
+    # -- set to false to use emptyDir
+    enabled: false
+    # -- Type of volume for cache storage (pvc, hostPath, emptyDir). If 'enabled' is false, 'emptyDir' is used regardless of this setting.
+    type: pvc
+    # -- Path on the host node for cache storage, only used if type is 'hostPath'.
+    hostPath: ""
+    # -- PVC specific settings, only used if type is 'pvc'.
+    accessMode: ReadWriteOnce
+    size: 10Gi
     # -- Custom annotations to be added to the PVC
     annotations: {}
     # -- If undefined (the default) or set to null, no storageClassName spec is set, choosing the default provisioner.
@@ -254,8 +338,169 @@ metrics:
     # -- Target labels to add to the scraped metrics
     targetLabels: []
 
-# -- additional init containers to run inside the pod.
+# -- DEPRECATED: Use extraInitContainers instead. Will be removed after 2030.
+# @deprecated - This parameter is deprecated, use extraInitContainers instead
+initContainers: []
+
+# -- Additional init containers to run inside the pod.
+# Init containers run before the main application container starts.
+# See: https://kubernetes.io/docs/concepts/workloads/pods/init-containers/
+# Example:
+# extraInitContainers:
+#   - name: init-config
+#     image: busybox:1.35
+#     command: ['sh', '-c', 'echo "Initializing..." && sleep 5']
+#     volumeMounts:
+#       - name: config
+#         mountPath: /config
 extraInitContainers: []
-  
+
 # -- additional sidecar containers to run inside the pod.
 extraContainers: []
+
+# -- Network Policy configuration for network isolation and security.
+# Requires a CNI plugin that supports NetworkPolicy (Calico, Cilium, Weave, etc.).
+# WARNING: NetworkPolicy cannot be enabled when hostNetwork is used (DLNA mode).
+# The chart will fail with an error if both are enabled simultaneously.
+networkPolicy:
+  # -- Enable NetworkPolicy for the Jellyfin pod.
+  # By default, this is disabled to maintain backward compatibility.
+  # When enabled, you can control which pods can access Jellyfin (ingress)
+  # and what external connections Jellyfin can make (egress).
+  enabled: false
+
+  # -- Policy types to enforce. Both ingress and egress policies can be enabled.
+  # See: https://kubernetes.io/docs/concepts/services-networking/network-policies/#policy-types
+  policyTypes:
+    - Ingress
+    - Egress
+
+  # -- Ingress rules configuration - controls which pods/namespaces can access Jellyfin.
+  ingress:
+    # -- Allow external access from any namespace and any pod.
+    # When true, any pod in the cluster can access Jellyfin (default behavior).
+    # When false, only pods matching podSelector/namespaceSelector can access.
+    # Set to false for production environments to restrict access.
+    allowExternal: true
+
+    # -- Custom pod selector for allowed ingress traffic.
+    # Only used when allowExternal is false.
+    # Allows you to specify which pods can access Jellyfin based on labels.
+    # Example - only allow pods with specific label:
+    #   podSelector:
+    #     matchLabels:
+    #       jellyfin-client: "true"
+    podSelector: {}
+
+    # -- Namespace selector to allow cross-namespace ingress.
+    # Only used when allowExternal is false.
+    # Allows you to specify which namespaces can access Jellyfin.
+    # Example - only allow from ingress-nginx namespace:
+    #   namespaceSelector:
+    #     matchLabels:
+    #       name: ingress-nginx
+    namespaceSelector: {}
+
+    # -- Additional custom ingress rules.
+    # Allows for complex scenarios not covered by the standard template.
+    # These rules are added as-is to the NetworkPolicy ingress section.
+    # Example - allow from monitoring namespace:
+    #   customRules:
+    #     - from:
+    #       - namespaceSelector:
+    #           matchLabels:
+    #             name: monitoring
+    #       ports:
+    #       - protocol: TCP
+    #         port: 8096
+    customRules: []
+
+  # -- Egress rules configuration - controls what external connections Jellyfin can make.
+  egress:
+    # -- Allow DNS resolution (required for Jellyfin to function).
+    # This adds an egress rule for kube-system namespace with kube-dns pods.
+    # DNS is required for resolving metadata provider domains and subtitle services.
+    # It is highly recommended to keep this enabled.
+    allowDNS: true
+
+    # -- DNS namespace where DNS service is running.
+    # Usually "kube-system" but can differ in some Kubernetes distributions.
+    dnsNamespace: kube-system
+
+    # -- DNS pod selector labels.
+    # Default selector is for kube-dns, but CoreDNS or other DNS providers
+    # may use different labels. Adjust if needed.
+    # Common alternatives:
+    #   k8s-app: kube-dns (default)
+    #   k8s-app: coredns
+    #   app.kubernetes.io/name: coredns
+    dnsPodSelector:
+      k8s-app: kube-dns
+
+    # -- Allow all egress traffic (internet access for metadata, subtitles, images).
+    # When true, Jellyfin can connect to any external destination (0.0.0.0/0).
+    # This is the recommended default as Jellyfin needs internet access for:
+    # - Downloading movie/TV show metadata (TMDB, TheTVDB, OMDb)
+    # - Fetching poster images, fanart, and other artwork
+    # - Downloading subtitles (OpenSubtitles)
+    # - Updating plugins
+    # When false, you must configure restrictedEgress or customRules.
+    allowAllEgress: true
+
+    # -- Restricted egress mode for security-conscious deployments.
+    # Only used when allowAllEgress is false.
+    # Provides fine-grained control over outbound connections.
+    restrictedEgress:
+      # -- Allow HTTPS (443/TCP) for metadata providers.
+      # Most metadata providers (TMDB, TheTVDB, OpenSubtitles, Fanart.tv)
+      # use HTTPS, so this covers the majority of use cases.
+      # This allows connections to any IP on port 443.
+      allowMetadata: true
+
+      # -- Allow communication within the cluster (pod-to-pod).
+      # Useful if Jellyfin needs to connect to other services in the cluster.
+      # This allows connections to any pod in any namespace.
+      allowInCluster: true
+
+      # -- Additional IP CIDR blocks to allow egress.
+      # Useful for allowing specific IP ranges for metadata providers
+      # or other external services.
+      # Example - allow entire internet except private networks:
+      #   allowedCIDRs:
+      #     - 0.0.0.0/0
+      # Example - allow specific metadata provider IP ranges:
+      #   allowedCIDRs:
+      #     - 13.224.0.0/14  # CloudFront (used by many CDNs)
+      allowedCIDRs: []
+
+    # -- Additional custom egress rules.
+    # Allows for complex scenarios not covered by the standard template.
+    # These rules are added as-is to the NetworkPolicy egress section.
+    # Example - allow connections to specific database:
+    #   customRules:
+    #     - to:
+    #       - podSelector:
+    #           matchLabels:
+    #             app: postgresql
+    #       ports:
+    #       - protocol: TCP
+    #         port: 5432
+    customRules: []
+
+  # -- Prometheus metrics scraping configuration.
+  # Automatically allows ingress from Prometheus when metrics.serviceMonitor.enabled is true.
+  # This ensures Prometheus can scrape metrics without additional configuration.
+  metrics:
+    # -- Namespace where Prometheus is running.
+    # Leave empty to use the same namespace as Jellyfin.
+    # Set to the monitoring namespace if Prometheus is in a different namespace.
+    # Example: "monitoring" or "prometheus"
+    namespace: ""
+
+    # -- Pod selector for Prometheus pods.
+    # These labels must match your Prometheus deployment.
+    # The chart will automatically add an ingress rule for pods matching these labels.
+    # Default selector works with prometheus-operator and kube-prometheus-stack.
+    # Adjust if your Prometheus uses different labels.
+    podSelector:
+      app.kubernetes.io/name: prometheus
