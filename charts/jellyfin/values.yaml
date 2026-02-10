@@ -129,6 +129,10 @@ ingress:
   annotations: {}
     # kubernetes.io/ingress.class: nginx
     # kubernetes.io/tls-acme: "true"
+  # -- Optional: custom backend service (defaults to the chart's service name and port)
+  service: {}
+  #   name: my-other-service
+  #   port: 8096
   hosts:
     - host: chart-example.local
       paths:
