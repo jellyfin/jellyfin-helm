@@ -130,6 +130,7 @@ spec:
               name: config
             - mountPath: /media
               name: media
+              readOnly: {{ .Values.persistence.media.readOnly | default false  }}
             - mountPath: /cache
               name: cache
             {{- with .Values.volumeMounts }}
