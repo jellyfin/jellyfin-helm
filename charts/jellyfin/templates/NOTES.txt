@@ -123,8 +123,24 @@ HTTPRoute (Gateway API) is ENABLED:
 
 Access Jellyfin via Gateway API at:
 {{- if .Values.httpRoute.hostnames }}
-{{- range .Values.httpRoute.hostnames }}
-  https://{{ . }}{{ (index $.Values.httpRoute.rules 0).matches 0 .path.value }}
+{{- range $host := .Values.httpRoute.hostnames }}
+  {{- if $.Values.httpRoute.rules }}
+    {{- range $rule := $.Values.httpRoute.rules }}
+      {{- if $rule.matches }}
+        {{- range $match := $rule.matches }}
+          {{- $path := "/" -}}
+          {{- if and $match.path $match.path.value -}}
+            {{- $path = $match.path.value -}}
+          {{- end}}
+  https://{{ $host }}{{ $path }}
+        {{- end }}
+      {{- else }}
+  https://{{ $host }}/
+      {{- end }}
+    {{- end }}
+  {{- else }}
+  https://{{ $host }}/
+  {{- end }}
 {{- end }}
 {{- else }}
   (Configure httpRoute.hostnames for external access)
@@ -132,6 +148,7 @@ Access Jellyfin via Gateway API at:
 
 Note: Ensure your Gateway API CRDs are installed and Gateway is configured.
 {{- else if .Values.ingress.enabled }}
+
 Jellyfin is available via Ingress at:
 {{- range .Values.ingress.hosts }}
   http{{ if $.Values.ingress.tls }}s{{ end }}://{{ .host }}{{ (index .paths 0).path }}

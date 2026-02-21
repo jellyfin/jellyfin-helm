@@ -8,10 +8,12 @@ keywords:
   - jellyfin
   - media
   - self-hosted
-version: 3.0.0
+version: 3.0.1
 appVersion: 10.11.7
 annotations:
   artifacthub.io/changes: |
+    - kind: fixes
+      description: Fix NOTES.txt templating for Gateway API host/path rendering and remove redundant conditional
     - kind: deprecated
       description: Deprecate initContainers parameter in favor of extraInitContainers for consistency (will be removed after 2030)
     - kind: fixed
