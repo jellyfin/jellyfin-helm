@@ -1,6 +1,6 @@
 # jellyfin
 
-![Version: 3.0.0](https://img.shields.io/badge/Version-3.0.0-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: 10.11.5](https://img.shields.io/badge/AppVersion-10.11.5-informational?style=flat-square)
+![Version: 3.0.0](https://img.shields.io/badge/Version-3.0.0-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: 10.11.6](https://img.shields.io/badge/AppVersion-10.11.6-informational?style=flat-square)
 
 A Helm chart for Jellyfin Media Server
 
@@ -154,7 +154,6 @@ helm install my-jellyfin jellyfin/jellyfin -f values.yaml
 | service.loadBalancerClass | string | `""` | Class of the LoadBalancer. |
 | service.loadBalancerIP | string | `""` | Specific IP address for the LoadBalancer. |
 | service.loadBalancerSourceRanges | list | `[]` | Source ranges allowed to access the LoadBalancer. |
-| service.nodePort | int |  | The node port to use with `service.type: NodePort`. |
 | service.port | int | `8096` | Port for the Jellyfin service. |
 | service.portName | string | `"service"` | Name of the port in the service. |
 | service.type | string | `"ClusterIP"` | Service type (ClusterIP, NodePort, or LoadBalancer). |
