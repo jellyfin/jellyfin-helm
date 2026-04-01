@@ -1,6 +1,50 @@
 apiVersion: v1
 entries:
   jellyfin:
+  - annotations:
+      artifacthub.io/changes: |
+        - kind: deprecated
+          description: Deprecate initContainers parameter in favor of extraInitContainers for consistency (will be removed after 2030)
+        - kind: fixed
+          description: Fix extraInitContainers not working (was using wrong parameter name in template)
+        - kind: added
+          description: Add NetworkPolicy support for network isolation and security hardening
+          links:
+            - name: Documentation
+              url: https://kubernetes.io/docs/concepts/services-networking/network-policies/
+          description: Add troubleshooting documentation for inotify instance limits with workaround example
+        - kind: added
+          description: Add support for Gateway API HTTPRoute resource
+        - kind: added
+          description: Add envFrom support to load environment variables from ConfigMap or Secret
+        - kind: added
+          description: Add NOTES.txt with helpful post-installation information and deprecation warnings
+        - kind: added
+          description: Add startup probe to prevent pod restarts during slow initial startup with large media libraries
+        - kind: added
+          description: Add persistence.cache configuration for dedicated cache volume support
+        - kind: added
+          description: Add comprehensive IPv6 and dual-stack networking documentation
+        - kind: added
+          description: Add revisionHistoryLimit parameter to control rollback history retention (defaults to 3 instead of Kubernetes default 10)
+        - kind: changed
+          description: Improve health probe configuration examples for IPv6 compatibility
+    apiVersion: v2
+    appVersion: 10.11.7
+    created: "2026-04-01T14:37:33.400147849Z"
+    description: A Helm chart for Jellyfin Media Server
+    digest: 5995a715e4b11f5944e28ced6585b266a962c945746f64ad9b3154a2397db367
+    home: https://jellyfin.org/
+    icon: https://jellyfin.org/images/logo.svg
+    keywords:
+    - jellyfin
+    - media
+    - self-hosted
+    name: jellyfin
+    type: application
+    urls:
+    - https://github.com/jellyfin/jellyfin-helm/releases/download/jellyfin-3.0.0/jellyfin-3.0.0.tgz
+    version: 3.0.0
   - apiVersion: v2
     appVersion: 10.11.5
     created: "2025-12-15T14:25:44.437291154Z"
@@ -177,4 +221,4 @@ entries:
     urls:
     - https://github.com/jellyfin/jellyfin-helm/releases/download/jellyfin-1.2.0/jellyfin-1.2.0.tgz
     version: 1.2.0
-generated: "2025-12-15T14:25:44.437338062Z"
+generated: "2026-04-01T14:37:33.400193724Z"
