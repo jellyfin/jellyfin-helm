@@ -154,6 +154,7 @@ helm install my-jellyfin jellyfin/jellyfin -f values.yaml
 | service.loadBalancerClass | string | `""` | Class of the LoadBalancer. |
 | service.loadBalancerIP | string | `""` | Specific IP address for the LoadBalancer. |
 | service.loadBalancerSourceRanges | list | `[]` | Source ranges allowed to access the LoadBalancer. |
+| service.nodePort | int |  | The node port to use with `service.type: NodePort`. |
 | service.port | int | `8096` | Port for the Jellyfin service. |
 | service.portName | string | `"service"` | Name of the port in the service. |
 | service.type | string | `"ClusterIP"` | Service type (ClusterIP, NodePort, or LoadBalancer). |
