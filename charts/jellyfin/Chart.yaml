@@ -9,7 +9,7 @@ keywords:
   - media
   - self-hosted
 version: 3.0.0
-appVersion: 10.11.6
+appVersion: 10.11.7
 annotations:
   artifacthub.io/changes: |
     - kind: deprecated
