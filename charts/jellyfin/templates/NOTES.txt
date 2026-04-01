@@ -132,8 +132,6 @@ Access Jellyfin via Gateway API at:
 
 Note: Ensure your Gateway API CRDs are installed and Gateway is configured.
 {{- else if .Values.ingress.enabled }}
-{{- if .Values.ingress.enabled }}
-
 Jellyfin is available via Ingress at:
 {{- range .Values.ingress.hosts }}
   http{{ if $.Values.ingress.tls }}s{{ end }}://{{ .host }}{{ (index .paths 0).path }}
