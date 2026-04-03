@@ -124,7 +124,7 @@ HTTPRoute (Gateway API) is ENABLED:
 Access Jellyfin via Gateway API at:
 {{- if .Values.httpRoute.hostnames }}
 {{- range .Values.httpRoute.hostnames }}
-  https://{{ . }}{{ (index $.Values.httpRoute.rules 0).matches 0 .path.value }}
+  https://{{ . }}{{ (index (index $.Values.httpRoute.rules 0).matches 0).path.value }}
 {{- end }}
 {{- else }}
   (Configure httpRoute.hostnames for external access)
