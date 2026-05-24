@@ -60,7 +60,7 @@ jobs:
         git commit -m "chore(jellyfin): Bump chart version to ${{ steps.bump_version.outputs.new_version }} and set appVersion to ${{ github.event.inputs.jellyfin_version }}"
 
     - name: Push changes
-      uses: ad-m/github-push-action@master
+      uses: ad-m/github-push-action@881a6320fdb16eb5318c5054f31c218aec2b324c # master
       with:
         github_token: ${{ secrets.JF_BOT_TOKEN }}
 
@@ -72,7 +72,7 @@ jobs:
         echo "Tag created: $new_version"
         
     - name: Push changes
-      uses: ad-m/github-push-action@master
+      uses: ad-m/github-push-action@881a6320fdb16eb5318c5054f31c218aec2b324c # master
       with:
         github_token: ${{ secrets.JF_BOT_TOKEN }}
         tags: true
