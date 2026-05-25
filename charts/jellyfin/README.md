@@ -72,7 +72,7 @@ helm install my-jellyfin jellyfin/jellyfin -f values.yaml
 | initContainers | list | `[]` | DEPRECATED: Use extraInitContainers instead. Will be removed after 2030. @deprecated - This parameter is deprecated, use extraInitContainers instead |
 | jellyfin.args | list | `[]` | Additional arguments for the entrypoint command. |
 | jellyfin.command | list | `[]` | Custom command to use as container entrypoint. |
-| jellyfin.enableDLNA | bool | `false` | Enable DLNA. Requires host network. See: https://jellyfin.org/docs/general/networking/dlna.html |
+| jellyfin.enableDLNA | bool | `false` | Enable DLNA. Requires host network. See: https://jellyfin.org/docs/general/post-install/networking/dlna |
 | jellyfin.env | list | `[]` | Additional environment variables for the container. Example: Workaround for inotify limits (see Troubleshooting section in README) Example: env:   - name: JELLYFIN_CACHE_DIR     value: /cache |
 | jellyfin.envFrom | list | `[]` | Load environment variables from ConfigMap or Secret. See: https://kubernetes.io/docs/tasks/configure-pod-container/configure-pod-configmap/#configure-all-key-value-pairs-in-a-configmap-as-container-environment-variables Example: envFrom:   - configMapRef:       name: jellyfin-config   - secretRef:       name: jellyfin-secrets |
 | livenessProbe | object | `{"httpGet":{"path":"/health","port":"http"},"initialDelaySeconds":10}` | Configure liveness probe for Jellyfin. This probe is disabled during startup (startup probe handles initial checks). Uses httpGet for compatibility with both IPv4 and IPv6. |
