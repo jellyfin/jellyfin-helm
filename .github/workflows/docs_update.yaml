@@ -17,12 +17,10 @@ jobs:
       uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
       with:
         fetch-depth: 0
+        token: ${{ secrets.JF_BOT_TOKEN }}
 
     - name: Helm Docs GitHub Action
       uses: losisin/helm-docs-github-action@3a4528e97c49a5e83de6b78c50c61c8ee5c9f944 # v2.0.0
       with:
         git-push: true
-        git-commit-message: "docs(charts): :memo: write updated reademe"
-
-    - name: Push changes
-      run: git push
+        git-commit-message: "docs(charts): :memo: write updated readme"
