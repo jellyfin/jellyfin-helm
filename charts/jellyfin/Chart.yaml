@@ -9,7 +9,7 @@ keywords:
   - media
   - self-hosted
 version: 3.2.0
-appVersion: 10.11.8
+appVersion: 10.11.10
 annotations:
   artifacthub.io/changes: |
     - kind: fixes
