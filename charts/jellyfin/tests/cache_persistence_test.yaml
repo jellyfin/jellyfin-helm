@@ -122,6 +122,19 @@ tests:
           path: spec.storageClassName
           value: fast-ssd
 
+  - it: should add labels to cache PVC
+    template: persistentVolumeClaim.yaml
+    documentIndex: 2
+    set:
+      persistence.cache.enabled: true
+      persistence.cache.type: pvc
+      persistence.cache.labels:
+        my-label: my-value
+    asserts:
+      - equal:
+          path: metadata.labels.my-label
+          value: my-value
+
   - it: should add annotations to cache PVC
     template: persistentVolumeClaim.yaml
     documentIndex: 2
