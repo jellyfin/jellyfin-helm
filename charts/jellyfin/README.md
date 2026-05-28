@@ -1,6 +1,6 @@
 # jellyfin
 
-![Version: 3.2.0](https://img.shields.io/badge/Version-3.2.0-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: 10.11.11](https://img.shields.io/badge/AppVersion-10.11.11-informational?style=flat-square)
+![Version: 3.3.0](https://img.shields.io/badge/Version-3.3.0-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: 10.11.11](https://img.shields.io/badge/AppVersion-10.11.11-informational?style=flat-square)
 
 A Helm chart for Jellyfin Media Server
 
@@ -68,7 +68,8 @@ helm install my-jellyfin jellyfin/jellyfin -f values.yaml
 | image.repository | string | `"docker.io/jellyfin/jellyfin"` | Container image repository for Jellyfin. |
 | image.tag | string | `""` | Jellyfin container image tag. Leave empty to automatically use the Chart's app version. |
 | imagePullSecrets | list | `[]` | Image pull secrets to authenticate with private repositories. See: https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/ |
-| ingress | object | `{"annotations":{},"className":"","enabled":false,"hosts":[{"host":"chart-example.local","paths":[{"path":"/","pathType":"ImplementationSpecific"}]}],"tls":[]}` | Ingress configuration. See: https://kubernetes.io/docs/concepts/services-networking/ingress/ |
+| ingress | object | `{"annotations":{},"className":"","enabled":false,"hosts":[{"host":"chart-example.local","paths":[{"path":"/","pathType":"ImplementationSpecific"}]}],"service":{},"tls":[]}` | Ingress configuration. See: https://kubernetes.io/docs/concepts/services-networking/ingress/ |
+| ingress.service | object | `{}` | Optional: custom backend service (defaults to the chart's service name and port) |
 | initContainers | list | `[]` | DEPRECATED: Use extraInitContainers instead. Will be removed after 2030. @deprecated - This parameter is deprecated, use extraInitContainers instead |
 | jellyfin.args | list | `[]` | Additional arguments for the entrypoint command. |
 | jellyfin.command | list | `[]` | Custom command to use as container entrypoint. |
