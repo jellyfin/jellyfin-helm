@@ -217,12 +217,12 @@ securityContext:
       - "ALL"
   privileged: false
 
-extraVolumes:
+volumes:
   - name: hwa
     hostPath:
       path: /dev/dri
 
-extraVolumeMounts:
+volumeMounts:
   - name: hwa
     mountPath: /dev/dri
 ```
