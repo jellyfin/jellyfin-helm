@@ -3,6 +3,7 @@ apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: {{ include "jellyfin.fullname" . }}
+  namespace: {{ .Release.Namespace }}
   labels:
     {{- include "jellyfin.labels" . | nindent 4 }}
   {{- with .Values.ingress.annotations }}
