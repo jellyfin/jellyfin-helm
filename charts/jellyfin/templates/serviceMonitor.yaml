@@ -4,6 +4,7 @@ apiVersion: monitoring.coreos.com/v1
 kind: ServiceMonitor
 metadata:
   name: {{ include "jellyfin.fullname" . }}
+  namespace: {{ .Release.Namespace }}
   {{- if .Values.metrics.serviceMonitor.namespace }}
   namespace: {{ tpl .Values.metrics.serviceMonitor.namespace . }}
   {{- end }}
