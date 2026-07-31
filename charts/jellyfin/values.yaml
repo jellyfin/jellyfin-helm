@@ -292,6 +292,8 @@ persistence:
     storageClass: ''
     ## -- Use an existing PVC for this mount
     # existingClaim: ''
+    # -- Mount media storage as read-only
+    readOnly: false
   cache:
     # -- set to false to use emptyDir
     enabled: false
