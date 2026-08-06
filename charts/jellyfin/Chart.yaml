@@ -8,10 +8,12 @@ keywords:
   - jellyfin
   - media
   - self-hosted
-version: 3.2.0
+version: 3.3.0
 appVersion: 10.11.11
 annotations:
   artifacthub.io/changes: |
+    - kind: added
+      description: Add options for customizing the ingress service
     - kind: fixes
       description: Fix NOTES.txt templating for Gateway API host/path rendering and remove redundant conditional
     - kind: deprecated

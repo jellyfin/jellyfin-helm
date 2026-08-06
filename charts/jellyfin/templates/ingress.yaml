@@ -35,9 +35,9 @@ spec:
             {{- end }}
             backend:
               service:
-                name: {{ include "jellyfin.fullname" $ }}
+                name: {{ $.Values.ingress.service.name | default (include "jellyfin.fullname" $) }}
                 port:
-                  number: {{ $.Values.service.port }}
+                  number: {{ $.Values.ingress.service.port | default $.Values.service.port }}
           {{- end }}
     {{- end }}
 {{- end }}
