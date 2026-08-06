@@ -167,6 +167,11 @@ spec:
           hostPath:
             path: {{ .Values.persistence.media.hostPath }}
             type: Directory
+            {{- else if eq .Values.persistence.media.type "nfs" }}
+          nfs:
+            server: {{ .Values.persistence.media.nfsServer }}
+            path: {{ .Values.persistence.media.nfsPath }}
+            readOnly: {{ .Values.persistence.media.readOnly }}
             {{- else }}
           emptyDir: {}
             {{- end }}

@@ -277,7 +277,7 @@ persistence:
   media:
     # -- set to false to use emptyDir
     enabled: true
-    # -- Type of volume for media storage (pvc, hostPath, emptyDir). If 'enabled' is false, 'emptyDir' is used regardless of this setting.
+    # -- Type of volume for media storage (pvc, hostPath, nfs, emptyDir). If 'enabled' is false, 'emptyDir' is used regardless of this setting.
     type: pvc
     # -- Path on the host node for media storage, only used if type is 'hostPath'.
     hostPath: ""
@@ -292,6 +292,10 @@ persistence:
     storageClass: ''
     ## -- Use an existing PVC for this mount
     # existingClaim: ''
+    # -- NFS specific settings, only used if type is 'nfs'.
+    nfsServer: ""
+    nfsPath: ""
+    readOnly: true
   cache:
     # -- set to false to use emptyDir
     enabled: false

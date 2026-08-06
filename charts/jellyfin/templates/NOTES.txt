@@ -78,7 +78,7 @@ WARNING: Configuration persistence is disabled!
 
 {{- if .Values.persistence.media.enabled }}
 
-Media is {{ if eq .Values.persistence.media.type "hostPath" }}mounted from host path{{ else if eq .Values.persistence.media.type "pvc" }}persisted to PVC{{ else }}stored in emptyDir{{ end }}:
+Media is {{ if eq .Values.persistence.media.type "hostPath" }}mounted from host path{{ else if eq .Values.persistence.media.type "pvc" }}persisted to PVC{{ else if eq .Values.persistence.media.type "nfs" }}mounted from NFS{{ else }}stored in emptyDir{{ end }}:
 {{- if eq .Values.persistence.media.type "hostPath" }}
   Host path: {{ .Values.persistence.media.hostPath }}
 {{- else if eq .Values.persistence.media.type "pvc" }}
@@ -87,6 +87,10 @@ Media is {{ if eq .Values.persistence.media.type "hostPath" }}mounted from host 
   {{- else }}
   PVC: {{ include "jellyfin.fullname" . }}-media
   {{- end }}
+{{- else if eq .Values.persistence.media.type "nfs" }}
+  NFS Server: {{ .Values.persistence.media.nfsServer }}
+  NFS Path: {{ .Values.persistence.media.nfsPath }}
+  Read Only: {{ .Values.persistence.media.readOnly }}
 {{- end }}
 {{- else }}
 
