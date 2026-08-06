@@ -133,9 +133,12 @@ helm install my-jellyfin jellyfin/jellyfin -f values.yaml
 | persistence.media.enabled | bool | `true` | set to false to use emptyDir |
 | persistence.media.hostPath | string | `""` | Path on the host node for media storage, only used if type is 'hostPath'. |
 | persistence.media.labels | object | `{}` | Custom labels to be added to the PVC |
+| persistence.media.nfsPath | string | `""` |  |
+| persistence.media.nfsServer | string | `""` | NFS specific settings, only used if type is 'nfs'. |
+| persistence.media.readOnly | bool | `true` |  |
 | persistence.media.size | string | `"25Gi"` |  |
 | persistence.media.storageClass | string | `""` | If undefined (the default) or set to null, no storageClassName spec is set, choosing the default provisioner. |
-| persistence.media.type | string | `"pvc"` | Type of volume for media storage (pvc, hostPath, emptyDir). If 'enabled' is false, 'emptyDir' is used regardless of this setting. |
+| persistence.media.type | string | `"pvc"` | Type of volume for media storage (pvc, hostPath, nfs, emptyDir). If 'enabled' is false, 'emptyDir' is used regardless of this setting. |
 | podAnnotations | object | `{}` | Annotations to add to the pod. |
 | podLabels | object | `{}` | Additional labels to add to the pod. |
 | podPrivileges | object | `{"hostIPC":false,"hostNetwork":false,"hostPID":false}` | Privileged pod settings for advanced use cases |
