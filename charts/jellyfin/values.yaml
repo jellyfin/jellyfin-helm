@@ -15,10 +15,12 @@ revisionHistoryLimit: 3
 imagePullSecrets: []
 
 image:
+  # -- Container image registry for Jellyfin.
+  registry: docker.io
   # -- Container image repository for Jellyfin.
-  repository: docker.io/jellyfin/jellyfin
-  # -- Jellyfin container image tag. Leave empty to automatically use the Chart's app version.
-  tag: ""
+  repository: jellyfin/jellyfin
+  # -- Jellyfin container image version. Leave empty to automatically use the Chart's app version.
+  version: ""
   # -- Image pull policy (Always, IfNotPresent, or Never).
   pullPolicy: IfNotPresent
 

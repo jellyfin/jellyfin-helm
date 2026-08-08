@@ -65,8 +65,9 @@ helm install my-jellyfin jellyfin/jellyfin -f values.yaml
 | httpRoute.parentRefs | list | `[]` | Gateway references to attach this HTTPRoute to |
 | httpRoute.rules | list | `[{"matches":[{"path":{"type":"PathPrefix","value":"/"}}]}]` | Rules for routing traffic |
 | image.pullPolicy | string | `"IfNotPresent"` | Image pull policy (Always, IfNotPresent, or Never). |
-| image.repository | string | `"docker.io/jellyfin/jellyfin"` | Container image repository for Jellyfin. |
-| image.tag | string | `""` | Jellyfin container image tag. Leave empty to automatically use the Chart's app version. |
+| image.registry | string | `"docker.io"` | Container image registry for Jellyfin. |
+| image.repository | string | `"jellyfin/jellyfin"` | Container image repository for Jellyfin. |
+| image.version | string | `""` | Jellyfin container image version, can be version tag or digest. Leave empty to automatically use the Chart's app version. |
 | imagePullSecrets | list | `[]` | Image pull secrets to authenticate with private repositories. See: https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/ |
 | ingress | object | `{"annotations":{},"className":"","enabled":false,"hosts":[{"host":"chart-example.local","paths":[{"path":"/","pathType":"ImplementationSpecific"}]}],"service":{},"tls":[]}` | Ingress configuration. See: https://kubernetes.io/docs/concepts/services-networking/ingress/ |
 | ingress.service | object | `{}` | Optional: custom backend service (defaults to the chart's service name and port) |

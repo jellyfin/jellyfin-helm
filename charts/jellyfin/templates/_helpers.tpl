@@ -38,6 +38,22 @@ Create chart name and version as used by the chart label.
 {{- end }}
 
 {{/*
+Create the image path for the .Values.image field
+Source: https://blog.andyserver.com/2021/09/adding-image-digest-references-to-your-helm-charts/
+*/}}
+{{- define "jellyfin.image" -}}
+{{- if and .Values.image.registry .Values.image.repository ( or .Values.image.version .Chart.AppVersion ) -}}
+    {{- if eq (substr 0 7 .Values.image.version) "sha256:" -}}
+    {{- printf "%s/%s@%s" .Values.image.registry .Values.image.repository .Values.image.version -}}
+    {{- else -}}
+    {{- printf "%s/%s:%s" .Values.image.registry .Values.image.repository ( .Values.image.version | default .Chart.AppVersion ) -}}
+    {{- end -}}
+{{- else -}}
+    {{- printf "%s:%s" .Values.image.repository ( .Values.image.tag | default .Chart.AppVersion ) -}}
+{{- end -}}
+{{- end -}}
+
+{{/*
 Common labels
 */}}
 {{- define "jellyfin.labels" -}}
