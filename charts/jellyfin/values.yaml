@@ -523,4 +523,5 @@ networkPolicy:
     # Default selector works with prometheus-operator and kube-prometheus-stack.
     # Adjust if your Prometheus uses different labels.
     podSelector:
-      app.kubernetes.io/name: prometheus
+      matchLabels:
+        app.kubernetes.io/name: prometheus
