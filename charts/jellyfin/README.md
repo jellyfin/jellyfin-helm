@@ -123,10 +123,10 @@ helm install my-jellyfin jellyfin/jellyfin -f values.yaml
 | persistence.cache.size | string | `"10Gi"` |  |
 | persistence.cache.storageClass | string | `""` | If undefined (the default) or set to null, no storageClassName spec is set, choosing the default provisioner. |
 | persistence.cache.type | string | `"pvc"` | Type of volume for cache storage (pvc, hostPath, emptyDir). If 'enabled' is false, 'emptyDir' is used regardless of this setting. |
-| persistence.config.accessMode | string | `"ReadWriteOnce"` |  |
+| persistence.config.accessMode | string | `"ReadWriteOnce"` | PVC specific settings, only used if type is 'pvc'. |
 | persistence.config.annotations | object | `{}` | Custom annotations to be added to the PVC |
 | persistence.config.enabled | bool | `true` | set to false to use emptyDir |
-| persistence.config.hostPath | string | `""` | Path on the host node for media storage, only used if type is 'hostPath'. |
+| persistence.config.hostPath | string | `""` |  |
 | persistence.config.labels | object | `{}` | Custom labels to be added to the PVC |
 | persistence.config.nfsPath | string | `""` |  |
 | persistence.config.nfsServer | string | `""` | NFS specific settings, only used if type is 'nfs'. |
