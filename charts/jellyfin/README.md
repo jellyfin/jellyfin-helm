@@ -54,6 +54,7 @@ helm install my-jellyfin jellyfin/jellyfin -f values.yaml
 |-----|------|---------|-------------|
 | affinity | object | `{}` | Affinity rules for pod scheduling. |
 | deploymentAnnotations | object | `{}` | Annotations to add to the deployment. |
+| deploymentLabels | object | `{}` | Labels to add to the deployment. |
 | deploymentStrategy | object | `{"type":"RollingUpdate"}` | Deployment strategy configuration. See `kubectl explain deployment.spec.strategy`. |
 | dnsConfig | object | `{}` | Define a dnsConfig. See https://kubernetes.io/docs/concepts/services-networking/dns-pod-service/#pod-dns-config Use this to provide a custom DNS resolver configuration |
 | dnsPolicy | string | `""` | Define a dnsPolicy. See https://kubernetes.io/docs/concepts/services-networking/dns-pod-service/#pod-s-dns-policy |
