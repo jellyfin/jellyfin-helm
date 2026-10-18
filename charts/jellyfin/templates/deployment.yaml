@@ -84,23 +84,24 @@ spec:
                     echo "Waiting for system.xml to enable metrics..."
                     timeout=300 # 5 minutes timeout
                     interval=5  # Check every 5 seconds
+                    systemxml="${JELLYFIN_CONFIG_DIR:-/config/config}/system.xml"
                     elapsed=0
-                    while [ ! -f /config/config/system.xml ]; do
+                    while [ ! -f "$systemxml" ]; do
                       if [ $elapsed -ge $timeout ]; then
-                        echo "ERROR: Timed out waiting for /config/config/system.xml" >&2
+                        echo "ERROR: Timed out waiting for $systemxml" >&2
                         exit 1
                       fi
                       sleep $interval
                       elapsed=$((elapsed + interval))
                     done
-                    echo "Found /config/config/system.xml, enabling metrics..."
+                    echo "Found $systemxml, enabling metrics..."
                     # Check if metrics are already enabled before running sed
-                    if ! grep -q '<EnableMetrics>true</EnableMetrics>' /config/config/system.xml; then
-                      sed 's,<EnableMetrics>false</EnableMetrics>,<EnableMetrics>true</EnableMetrics>,' -i /config/config/system.xml
+                    if ! grep -q '<EnableMetrics>true</EnableMetrics>' "$systemxml"; then
+                      sed 's,<EnableMetrics>false</EnableMetrics>,<EnableMetrics>true</EnableMetrics>,' -i "$systemxml"
                       if [ $? -eq 0 ]; then
                         echo "Metrics enabled successfully."
                       else
-                        echo "ERROR: Failed to enable metrics in /config/config/system.xml" >&2
+                        echo "ERROR: Failed to enable metrics in $systemxml" >&2
                         exit 1
                       fi
                     else
