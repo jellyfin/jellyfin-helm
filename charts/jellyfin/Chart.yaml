@@ -8,7 +8,7 @@ keywords:
   - jellyfin
   - media
   - self-hosted
-version: 3.5.0
+version: 3.6.0
 appVersion: 12.3
 annotations:
   artifacthub.io/changes: |
