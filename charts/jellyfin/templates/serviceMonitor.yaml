@@ -14,7 +14,7 @@ metadata:
     {{- end }}
 spec:
   endpoints:
-    - port: {{ .Values.service.name | default "http" }}
+    - port: {{ .Values.service.portName | default "http" }}
       {{- with .Values.metrics.serviceMonitor.interval }}
       interval: {{ . }}
       {{- end }}
