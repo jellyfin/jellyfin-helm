@@ -9,7 +9,7 @@ metadata:
   labels:
     {{- include "jellyfin.labels" . | nindent 4 }}
     {{- with .Values.deploymentLabels }}
-    {{- toYaml . | nindent 8 }}
+    {{- toYaml . | nindent 4 }}
     {{- end }}
 spec:
   {{- with .Values.deploymentStrategy }}
