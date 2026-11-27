@@ -317,7 +317,7 @@ persistence:
     # -- NFS specific settings, only used if type is 'nfs'.
     nfsServer: ""
     nfsPath: ""
-    readOnly: true
+    readOnly: ""
   cache:
     # -- set to false to use emptyDir
     enabled: false
